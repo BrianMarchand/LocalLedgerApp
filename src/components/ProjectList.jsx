@@ -1,51 +1,90 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { db } from '../firebaseConfig';
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 
 function ProjectList() {
   const navigate = useNavigate();
 
   // State Management
-  const [projects, setProjects] = useState(() => {
-    const savedProjects = localStorage.getItem("projects");
-    return savedProjects ? JSON.parse(savedProjects) : [];
-  });
+  const [projects, setProjects] = useState([]); // Store projects from Firestore
+
+// Fetch projects from Firestore
+const fetchProjects = async () => {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'projects')); // Firestore query
+    const projectList = querySnapshot.docs.map(doc => ({
+      id: doc.id, // Use Firestore doc ID
+      ...doc.data(),
+    }));
+    setProjects(projectList); // Update state
+  } catch (error) {
+    console.error('Error fetching projects:', error);
+  }
+};
+
+// Load projects on component mount
+useEffect(() => {
+  fetchProjects();
+}, []);
 
   const [editingProject, setEditingProject] = useState(null);
 
   // --- Start New Project ---
-  const startNewProject = () => {
+  const startNewProject = async () => {
     const newProject = {
-      id: Date.now(),
       name: "",
       location: "",
       budget: "",
-      status: "Pending",
+      status: "",
     };
-
-    // Add placeholder project to the list
-    setProjects([...projects, newProject]);
-    setEditingProject(newProject);
+  
+    try {
+      const docRef = await addDoc(collection(db, 'projects'), newProject); // Save to Firestore
+      fetchProjects(); // Refresh project list
+      setEditingProject({ id: docRef.id, ...newProject }); // Start editing new project
+    } catch (error) {
+      console.error('Error adding project:', error);
+    }
   };
 
-  // --- Save Project ---
-  const saveProject = () => {
-    const updatedProjects = projects.map((project) =>
-      project.id === editingProject.id ? editingProject : project
-    );
+// --- Save Project ---
+const saveProject = async () => {
+  // --- Validation Check ---
+  if (!editingProject.name || !editingProject.status) { // Check for empty name or status
+    alert("Please fill out all required fields before saving."); // Show error message
+    return; // Stop the save if validation fails
+  }
 
-    // Update state and local storage
-    setProjects(updatedProjects);
-    localStorage.setItem("projects", JSON.stringify(updatedProjects));
+  try {
+    // Reference Firestore doc
+    const docRef = doc(db, 'projects', editingProject.id);
 
-    // Navigate to Project Dashboard
+    // Update in Firestore
+    await updateDoc(docRef, editingProject);
+
+    // Refresh project list
+    fetchProjects();
+
+    // Exit edit mode
+    setEditingProject(null);
+
+    // Navigate to the project dashboard
     navigate(`/project/${editingProject.id}`);
-  };
+  } catch (error) {
+    console.error('Error updating project:', error); // Log any errors
+  }
+};
 
   // --- Delete Project ---
-  const deleteProject = (id) => {
-    const updatedProjects = projects.filter((project) => project.id !== id);
-    setProjects(updatedProjects);
-    localStorage.setItem("projects", JSON.stringify(updatedProjects));
+  const deleteProject = async (id) => {
+    try {
+      const docRef = doc(db, 'projects', id); // Reference Firestore doc
+      await deleteDoc(docRef); // Delete from Firestore
+      fetchProjects(); // Refresh project list
+    } catch (error) {
+      console.error('Error deleting project:', error);
+    }
   };
 
   return (

@@ -1,6 +1,8 @@
 // --- Import Dependencies ---
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import 'bootstrap-icons/font/bootstrap-icons.css'; // Bootstrap icons
+import { db } from '../firebaseConfig'; // Firestone Import for data storage
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { useParams, useNavigate } from 'react-router-dom'; // React Router for navigation
 
 // --- Main Component ---
@@ -10,16 +12,46 @@ function ProjectDashboard() {
   const navigate = useNavigate(); // Hook for navigation between routes
 
   // --- Load Projects and Transactions ---
-  const [projects, setProjects] = useState(() =>
-    JSON.parse(localStorage.getItem('projects')) || [] // Load projects from local storage or default to an empty array
-  );
+  const [project, setProject] = useState(null); // Single project data
+  const [transactions, setTransactions] = useState([]); // Store transactions for the project
 
-  const [transactions, setTransactions] = useState(() =>
-    JSON.parse(localStorage.getItem('transactions')) || [] // Load transactions from local storage or default to an empty array
-  );
-
-  // --- Get Current Project by ID ---
-  const project = projects.find(p => p.id === parseInt(id)); // Find project matching the URL parameter ID
+    // --- Fetch Project from Firestore ---
+    const fetchProject = async () => {
+      try {
+        const docRef = doc(db, 'projects', id); // Fetch project by ID
+        const docSnap = await getDoc(docRef);
+  
+        if (docSnap.exists()) {
+          setProject({ id: docSnap.id, ...docSnap.data() }); // Update project state
+        } else {
+          console.error('No such project!');
+        }
+      } catch (error) {
+        console.error('Error fetching project: ', error);
+      }
+    };
+  
+    // --- Fetch Transactions from Firestore ---
+    const fetchTransactions = async () => {
+      try {
+        const querySnapshot = await getDocs(
+          collection(db, `projects/${id}/transactions`) // Fetch transactions for this project
+        );
+        const transactionsList = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setTransactions(transactionsList); // Update transactions state
+      } catch (error) {
+        console.error('Error fetching transactions: ', error);
+      }
+    };
+  
+    // --- Load Data When Component Mounts ---
+    useEffect(() => {
+      fetchProject();       // Fetch project details
+      fetchTransactions();  // Fetch project transactions
+    }, [id]); // Re-run if ID changes
 
   // --- Navigation Function ---
   const goBack = () => navigate('/'); // Navigate back to the projects list  // --- Transaction States ---
@@ -32,56 +64,76 @@ function ProjectDashboard() {
 
   const [editingTransaction, setEditingTransaction] = useState(null); // Tracks transaction being edited
 
-  // --- Add Transaction ---
-  const addTransaction = () => {
-    // Ensure required fields are filled
-    if (newTransaction.name && newTransaction.amount) {
-      const updatedTransactions = [
-        ...transactions, // Keep existing transactions
-        { ...newTransaction, id: Date.now(), projectId: project.id }, // Add new transaction with unique ID and project ID
-      ];
+// --- Add Transaction ---
+const addTransaction = async () => {
+  // Ensure required fields are filled
+  if (newTransaction.name && newTransaction.amount) {
+    // Create a new transaction object with additional timestamp
+    const newTrans = {
+      ...newTransaction,     // Spread existing transaction details
+      createdAt: new Date(), // Add timestamp for sorting or tracking
+    };
 
-      // Update state and save to local storage
-      setTransactions(updatedTransactions);
-      localStorage.setItem('transactions', JSON.stringify(updatedTransactions));
+    try {
+      // Save the new transaction to Firestore in the 'transactions' subcollection
+      await addDoc(collection(db, `projects/${id}/transactions`), newTrans);
 
-      // Reset the form fields
+      // Refresh the transactions list after adding the new transaction
+      fetchTransactions();
+
+      // Reset the form fields for a new transaction entry
       setNewTransaction({ name: '', amount: '', category: 'Materials', type: 'Cash' });
+    } catch (error) {
+      // Handle and log any errors that occur during Firestore operation
+      console.error('Error adding transaction:', error);
     }
-  };
+  }
+};
 
-  // --- Edit Transaction ---
-  const startEditTransaction = (transaction) => {
-    setEditingTransaction({ ...transaction }); // Load transaction details into editing mode
-  };
+// --- Save Edited Transaction ---
+const saveEditTransaction = async () => {
+  // Ensure there's a transaction being edited
+  if (editingTransaction) {
+    try {
+      // Reference the specific transaction in Firestore
+      const docRef = doc(db, `projects/${id}/transactions`, editingTransaction.id);
 
-  const saveEditTransaction = () => {
-    // Replace the edited transaction in the list
-    const updatedTransactions = transactions.map(t =>
-      t.id === editingTransaction.id ? editingTransaction : t
-    );
+      // Update the transaction document with the edited data
+      await updateDoc(docRef, editingTransaction); // Save to Firestore
 
-    // Update state and save to local storage
-    setTransactions(updatedTransactions);
-    localStorage.setItem('transactions', JSON.stringify(updatedTransactions));
+      // Refresh transactions to reflect the edit
+      fetchTransactions();
 
-    // Exit edit mode
-    setEditingTransaction(null);
-  };
+      // Exit edit mode
+      setEditingTransaction(null); // Reset editing state
+    } catch (error) {
+      console.error('Error updating transaction:', error); // Handle errors
+    }
+  }
+};
 
   const cancelEditTransaction = () => {
     setEditingTransaction(null); // Cancel edit and reset editing state
   };
 
-  // --- Delete Transaction ---
-  const deleteTransaction = (id) => {
-    // Remove transaction by ID
-    const updatedTransactions = transactions.filter(t => t.id !== id);
+// --- Delete Transaction ---
+const deleteTransaction = async (transactionId) => {
+  try {
+    // Reference the specific transaction in Firestore
+    const docRef = doc(db, `projects/${id}/transactions`, transactionId);
 
-    // Update state and save to local storage
-    setTransactions(updatedTransactions);
-    localStorage.setItem('transactions', JSON.stringify(updatedTransactions));
-  };
+    // Delete the transaction document
+    await deleteDoc(docRef);
+
+    // Refresh the transactions list after deletion
+    fetchTransactions();
+  } catch (error) {
+    // Log any errors during Firestore delete
+    console.error('Error deleting transaction:', error);
+  }
+};
+
+
 
 
 
