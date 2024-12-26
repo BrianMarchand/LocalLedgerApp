@@ -1,0 +1,141 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background-color: #f9f9f9;
+}
+
+h1, h2, h3 {
+  margin-bottom: 10px;
+}
+
+input, select, button {
+  margin: 5px;
+  padding: 8px;
+  font-size: 14px;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid #007BFF;
+  color: white;
+  background-color: #007BFF;
+  border-radius: 4px;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  padding: 10px;
+  margin: 5px 0;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  border-radius: 4px;
+  display: flex;
+  justify-content: flex-start !important; /* Force left alignment */
+  align-items: flex-start !important;    /* Align vertically to the top */
+  text-align: left !important;           /* Override any text alignment */
+}
+
+.project-status {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.status-pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-in-progress {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+.status-completed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.transaction-list {
+  margin-top: 10px;
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 4px;
+  background-color: #fefefe;
+}
+
+.transaction-list li {
+  display: flex;
+  justify-content: space-between;
+}
+
+.transaction-total {
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.project-card {
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+
+.project-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard {
+  padding: 20px;
+}
+
+.transaction-form input,
+.transaction-form select {
+  margin-right: 10px;
+  padding: 5px;
+}
+
+.transaction-list {
+  margin-top: 20px;
+}
+/* Force all Financial Summary text to be left-aligned */
+.financial-summary-container {
+  text-align: left !important;
+}
+
+/* Ensure all lists are left-aligned */
+.financial-summary-container ul {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+  text-align: left !important;
+  list-style-position: inside !important;
+}
+
+/* Force alignment for list items */
+.financial-summary-container li {
+  text-align: left !important;
+  margin-bottom: 5px;
+}
