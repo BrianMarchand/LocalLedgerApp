@@ -2,8 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import 'bootstrap-icons/font/bootstrap-icons.css'; // Bootstrap icons
 import { db } from '../firebaseConfig'; // Firestone Import for data storage
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { useParams, useNavigate } from 'react-router-dom'; // React Router for navigation
+
+// --- STARTUP LOG ---
+console.log('ProjectDashboard Loaded!'); // Confirm component loads
 
 // --- Main Component ---
 function ProjectDashboard() {
@@ -14,34 +17,49 @@ function ProjectDashboard() {
   // --- Load Projects and Transactions ---
   const [project, setProject] = useState(null); // Single project data
   const [transactions, setTransactions] = useState([]); // Store transactions for the project
+  const [loading, setLoading] = useState(true); // Tracks loading state
 
     // --- Fetch Project from Firestore ---
+
     const fetchProject = async () => {
+      setLoading(true); // Start loading
+
       try {
-        const docRef = doc(db, 'projects', id); // Fetch project by ID
-        const docSnap = await getDoc(docRef);
-  
+        const docRef = doc(db, 'projects', id); // Reference Firestore
+        const docSnap = await getDoc(docRef); // Fetch data
+
         if (docSnap.exists()) {
-          setProject({ id: docSnap.id, ...docSnap.data() }); // Update project state
+          const data = docSnap.data(); // Assign snapshot data
+          console.log('Firestore Data:', data); // Log Firestore data
+          console.log('Document Keys:', Object.keys(data || {})); // Debug keys
+          console.log('Firestore Document Keys:', Object.keys(docSnap.data() || {}));
+
+
+          setProject({ id: docSnap.id, ...data }); // Update project state
         } else {
-          console.error('No such project!');
+          console.log('Document does NOT exist!');
         }
       } catch (error) {
-        console.error('Error fetching project: ', error);
+        console.error('Error fetching project:', error); // Log errors
+      } finally {
+        setLoading(false); // Stop loading
       }
     };
   
     // --- Fetch Transactions from Firestore ---
     const fetchTransactions = async () => {
       try {
-        const querySnapshot = await getDocs(
-          collection(db, `projects/${id}/transactions`) // Fetch transactions for this project
-        );
-        const transactionsList = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setTransactions(transactionsList); // Update transactions state
+        const querySnapshot = await getDocs(collection(db, `projects/${id}/transactions`));
+        const transactionsList = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            date: data.date?.toDate ? data.date.toDate().toISOString().split('T')[0] : 'N/A', // Convert Firestore Timestamp
+          };
+        });
+        console.log('Fetched Transactions:', transactionsList); // Log updated transactions
+        setTransactions(transactionsList);
       } catch (error) {
         console.error('Error fetching transactions: ', error);
       }
@@ -49,44 +67,44 @@ function ProjectDashboard() {
   
     // --- Load Data When Component Mounts ---
     useEffect(() => {
-      fetchProject();       // Fetch project details
-      fetchTransactions();  // Fetch project transactions
-    }, [id]); // Re-run if ID changes
-
+      console.log('useEffect triggered with ID:', id);
+      fetchProject(); // Fetch project details
+      fetchTransactions(); // Fetch transactions
+    }, [id]);
+    
   // --- Navigation Function ---
   const goBack = () => navigate('/'); // Navigate back to the projects list  // --- Transaction States ---
   const [newTransaction, setNewTransaction] = useState({
-    name: '',               // Transaction description
-    amount: '',             // Transaction amount
-    category: 'Materials',  // Default category for new transactions
-    type: 'Cash',           // Default payment type for new transactions
+    date: new Date().toISOString().split('T')[0], // Default to today
+    name: '',
+    amount: '',
+    category: '',
+    type: '',
   });
 
   const [editingTransaction, setEditingTransaction] = useState(null); // Tracks transaction being edited
 
 // --- Add Transaction ---
 const addTransaction = async () => {
-  // Ensure required fields are filled
-  if (newTransaction.name && newTransaction.amount) {
-    // Create a new transaction object with additional timestamp
+  if (newTransaction.name && newTransaction.amount && newTransaction.date) { // Ensure date is filled
     const newTrans = {
-      ...newTransaction,     // Spread existing transaction details
-      createdAt: new Date(), // Add timestamp for sorting or tracking
+      ...newTransaction,
+      projectId: id,
+      createdAt: new Date(), // Timestamp for sorting
+      date: new Date(newTransaction.date), // Explicitly save 'date' field
     };
 
     try {
-      // Save the new transaction to Firestore in the 'transactions' subcollection
       await addDoc(collection(db, `projects/${id}/transactions`), newTrans);
+      console.log('New Transaction Added:', newTrans);
 
-      // Refresh the transactions list after adding the new transaction
-      fetchTransactions();
-
-      // Reset the form fields for a new transaction entry
-      setNewTransaction({ name: '', amount: '', category: 'Materials', type: 'Cash' });
+      await fetchTransactions(); // Refresh transactions
+      setNewTransaction({ name: '', amount: '', category: 'Materials', type: 'Cash', date: '' });
     } catch (error) {
-      // Handle and log any errors that occur during Firestore operation
       console.error('Error adding transaction:', error);
     }
+  } else {
+    console.log('Missing required fields for transaction.');
   }
 };
 
@@ -133,26 +151,22 @@ const deleteTransaction = async (transactionId) => {
   }
 };
 
-
-
-
-
-    // --- Financial Summary Calculations ---
+  // --- Financial Summary Calculations ---
 
   // --- Income ---
   const income = transactions
-    .filter(t => t.projectId === project.id && t.category === 'Client Payment') // Filter for client payments
-    .reduce((sum, t) => sum + Number(t.amount), 0); // Sum up payment amounts
+  .filter(t => t.projectId === project?.id && t.category === 'Client Payment') // Filter for client payments
+  .reduce((sum, t) => sum + Number(t.amount), 0); // Sum up payment amounts
 
   // --- Expenses ---
   const expenses = transactions
-    .filter(t => t.projectId === project.id && t.category !== 'Client Payment') // Exclude client payments
-    .reduce((sum, t) => sum + Number(t.amount), 0); // Sum up expenses
+  .filter(t => t.projectId === project?.id && t.category !== 'Client Payment') // Exclude client payments
+  .reduce((sum, t) => sum + Number(t.amount), 0); // Sum up expenses
 
   // --- Budget Metrics ---
-  const remainingBudget = project.budget - expenses;       // Remaining budget based on project allocation
+  const remainingBudget = (project?.budget || 0) - expenses;       // Remaining budget based on project allocation
   const availableFunds = income - expenses;                // Available funds after deducting expenses
-  const remainingClientPayment = project.budget - income;  // Remaining amount client still owes
+  const remainingClientPayment = project?.budget - income;  // Remaining amount client still owes
 
   // --- Payment Breakdown by Type ---
 
@@ -187,29 +201,40 @@ const deleteTransaction = async (transactionId) => {
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
    // --- Render UI ---
-   return (
-    <div className="container py-4">
-      {/* --- Header --- */}
-      <div className="d-flex justify-content-between align-items-left mb-4">
-        <h1 className="h3">Project Dashboard</h1>
-        <button className="btn btn-secondary" onClick={goBack}>
-          Back to Projects
-        </button>
-      </div>
 
-      {/* --- Project Info Card --- */}
-      <div className="card mb-4">
+ // Loading State
+ console.log('Render Debug - Loading:', loading);
+ console.log('Render Debug - Project:', project);
+ console.log('Render Debug - Transactions:', transactions);
+ 
+ if (loading) {
+   return <p>Loading project details...</p>;
+ }
+ 
+ if (!project) {
+   return <p>Project not found!</p>;
+ }
+
+   
+return (
+  <div className="container py-4">
+    <div className="card mb-4">
+    <div className="card-header bg-primary text-white">
+    <h5 className="mb-0">Project Details</h5>
+    </div>
         <div className="card-body">
-          <h5 className="card-title">{project.name}</h5> {/* Display project name */}
+        <p><strong>Project:</strong> {project.name}</p> {/* Display project name */}
           <p><strong>Location:</strong> {project.location}</p> {/* Display project location */}
-          <p><strong>Budget:</strong> ${project.budget}</p> {/* Display project budget */}
+          <p><strong>Budget:</strong> {project?.budget ?? 'N/A'}</p>
           <p><strong>Status:</strong> {project.status}</p> {/* Display project status */}
         </div>
       </div>
 
       {/* --- Add Transaction Form --- */}
       <div className="card mb-4">
-        <div className="card-header">Add Transaction</div>
+        <div className="card-header bg-success text-white">
+        <h5 className="mb-0">Add New Transaction</h5>
+          </div>
         <div className="card-body">
           <div className="row g-3">
             {/* Date Input */}
@@ -284,132 +309,149 @@ const deleteTransaction = async (transactionId) => {
 
       {/* --- Transactions Table --- */}
       <div className="card mb-4">
-        <div className="card-header">Transactions</div>
-        <div className="card-body">
-          {transactions.filter(t => t.projectId === project.id).length === 0 ? (
-            // Show message if no transactions exist
-            <p className="text-center text-muted">
-              No transactions yet. Start by adding your first transaction below!
-            </p>
-          ) : (
-            // Display transactions table if transactions exist
-            <table className="table table-striped">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Description</th>
-                  <th>Amount</th>
-                  <th>Category</th>
-                  <th>Type</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.filter(t => t.projectId === project.id).map(t => (
-                  <tr key={t.id}>
-                    {editingTransaction && editingTransaction.id === t.id ? (
-                      // Edit mode - inline form for editing
-                      <>
-                        <td>
-                          <input
-                            type="date"
-                            className="form-control"
-                            value={editingTransaction.date}
-                            onChange={(e) =>
-                              setEditingTransaction({ ...editingTransaction, date: e.target.value })
-                            }
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={editingTransaction.name}
-                            onChange={(e) =>
-                              setEditingTransaction({ ...editingTransaction, name: e.target.value })
-                            }
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            className="form-control"
-                            value={editingTransaction.amount}
-                            onChange={(e) =>
-                              setEditingTransaction({ ...editingTransaction, amount: e.target.value })
-                            }
-                          />
-                        </td>
-                        <td>
-                          <select
-                            className="form-select"
-                            value={editingTransaction.category}
-                            onChange={(e) =>
-                              setEditingTransaction({ ...editingTransaction, category: e.target.value })
-                            }
-                          >
-                            <option value="Client Payment">Client Payment</option>
-                            <option value="Labour">Labour</option>
-                            <option value="Materials">Materials</option>
-                            <option value="Misc Expense">Misc Expense</option>
-                          </select>
-                        </td>
-                        <td>
-                          <select
-                            className="form-select"
-                            value={editingTransaction.type}
-                            onChange={(e) =>
-                              setEditingTransaction({ ...editingTransaction, type: e.target.value })
-                            }
-                          >
-                            <option value="Cash">Cash</option>
-                            <option value="VISA">VISA</option>
-                            <option value="E-Transfer">E-Transfer</option>
-                            <option value="Debit">Debit</option>
-                          </select>
-                        </td>
-                        <td>
-                          <button className="btn btn-success btn-sm me-2" onClick={saveEditTransaction}>
-                            Save
-                          </button>
-                          <button className="btn btn-secondary btn-sm" onClick={cancelEditTransaction}>
-                            Cancel
-                          </button>
-                        </td>
-                      </>
-                    ) : (
-                      // Read-only mode - show transaction details
-                      <>
-                        <td>{t.date}</td>
-                        <td>{t.name}</td>
-                        <td>${t.amount}</td>
-                        <td>{t.category}</td>
-                        <td>{t.type}</td>
-                        <td>
-                          <button className="btn btn-warning btn-sm me-2" onClick={() => startEditTransaction(t)}>
-                            Edit
-                          </button>
-                          <button className="btn btn-danger btn-sm" onClick={() => deleteTransaction(t.id)}>
-                            Delete
-                          </button>
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
+  <div className="card-header bg-info text-white">
+    <h5 className="mb-0">Current Transactions</h5>
+    </div>
+  <div className="card-body">
+
+    {transactions.length === 0 || !project?.id ? (
+      // Show message if no transactions exist
+      <p className="text-center text-muted">
+        No transactions yet. Start by adding your first transaction below!
+      </p>
+    ) : (
+      // Display transactions table if transactions exist
+      <table className="table table-striped">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>Category</th>
+            <th>Type</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {transactions
+            .filter(t => t.projectId === (project?.id || '')) // Safe filter
+            .map(t => (
+              <tr key={t.id}>
+                {editingTransaction && editingTransaction.id === t.id ? (
+                  // Edit mode - inline form for editing
+                  <>
+                    <td>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={editingTransaction.date}
+                        onChange={(e) =>
+                          setEditingTransaction({ ...editingTransaction, date: e.target.value })
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={editingTransaction.name}
+                        onChange={(e) =>
+                          setEditingTransaction({ ...editingTransaction, name: e.target.value })
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={editingTransaction.amount}
+                        onChange={(e) =>
+                          setEditingTransaction({ ...editingTransaction, amount: e.target.value })
+                        }
+                      />
+                    </td>
+                    <td>
+                      <select
+                        className="form-select"
+                        value={editingTransaction.category}
+                        onChange={(e) =>
+                          setEditingTransaction({ ...editingTransaction, category: e.target.value })
+                        }
+                      >
+                        <option value="Client Payment">Client Payment</option>
+                        <option value="Labour">Labour</option>
+                        <option value="Materials">Materials</option>
+                        <option value="Misc Expense">Misc Expense</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select
+                        className="form-select"
+                        value={editingTransaction.type}
+                        onChange={(e) =>
+                          setEditingTransaction({ ...editingTransaction, type: e.target.value })
+                        }
+                      >
+                        <option value="Cash">Cash</option>
+                        <option value="VISA">VISA</option>
+                        <option value="E-Transfer">E-Transfer</option>
+                        <option value="Debit">Debit</option>
+                      </select>
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-success btn-sm me-2"
+                        onClick={saveEditTransaction}
+                      >
+                        Save
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={cancelEditTransaction}
+                      >
+                        Cancel
+                      </button>
+                    </td>
+                  </>
+                ) : (
+                  // Read-only mode - show transaction details
+                  <>
+                    <td>{t.date || 'N/A'}</td>
+                    <td>{t.name || 'Unnamed'}</td>
+                    <td>${t.amount || 0}</td>
+                    <td>{t.category || 'N/A'}</td>
+                    <td>{t.type || 'N/A'}</td>
+                    <td>
+                      <button
+                        className="btn btn-warning btn-sm me-2"
+                        onClick={() => startEditTransaction(t)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => deleteTransaction(t.id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+        </tbody>
+      </table>
+    )}
+  </div>
+</div>
 
       {/* --- Financial Summary - Dynamic Visibility --- */}
       {transactions
-        .filter(t => t.projectId === project.id) // Filter transactions by project ID
+        .filter(t => t.projectId === project?.id) // Filter transactions by project ID
         .sort((a, b) => new Date(a.date) - new Date(b.date)) // Sort transactions by date
         .length > 0 && ( // Only show summary if there are transactions
         <div className="card mb-4 financial-summary-container">
-          <div className="card-header">
+          <div className="card-header bg-warning text-dark">
             <h5 className="mb-0">Financial Summary</h5>
           </div>
           <div className="card-body">
