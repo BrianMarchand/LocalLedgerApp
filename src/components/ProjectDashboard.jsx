@@ -84,29 +84,55 @@ function ProjectDashboard() {
 
   const [editingTransaction, setEditingTransaction] = useState(null); // Tracks transaction being edited
 
-// --- Add Transaction ---
+  // --- Validate The Transaction Form! ---
+  const validateForm = () => {
+    let tempErrors = {};
+  
+    // Check for empty or invalid fields
+    if (!newTransaction.date) tempErrors.date = 'Date is required';
+    if (!newTransaction.name.trim()) tempErrors.name = 'Description is required';
+    if (!newTransaction.amount || Number(newTransaction.amount) <= 0)
+      tempErrors.amount = 'Amount must be greater than 0';
+    if (!newTransaction.category) tempErrors.category = 'Select a category';
+    if (!newTransaction.type) tempErrors.type = 'Select a payment type';
+  
+    setErrors(tempErrors); // Update error state
+    return Object.keys(tempErrors).length === 0; // Returns true if no errors
+  };
+
+// --- Add Transaction with Validation ---
 const addTransaction = async () => {
-  if (newTransaction.name && newTransaction.amount && newTransaction.date) { // Ensure date is filled
-    const newTrans = {
-      ...newTransaction,
-      projectId: id,
-      createdAt: new Date(), // Timestamp for sorting
-      date: new Date(newTransaction.date), // Explicitly save 'date' field
-    };
+  // Perform validation before submission
+  if (!validateForm()) return; // Stop if validation fails
 
-    try {
-      await addDoc(collection(db, `projects/${id}/transactions`), newTrans);
-      console.log('New Transaction Added:', newTrans);
+  const newTrans = {
+    ...newTransaction,
+    projectId: id,
+    createdAt: new Date(), // Timestamp for sorting
+    date: new Date(newTransaction.date), // Explicitly save 'date' field
+  };
 
-      await fetchTransactions(); // Refresh transactions
-      setNewTransaction({ name: '', amount: '', category: 'Materials', type: 'Cash', date: '' });
-    } catch (error) {
-      console.error('Error adding transaction:', error);
-    }
-  } else {
-    console.log('Missing required fields for transaction.');
+  try {
+    await addDoc(collection(db, `projects/${id}/transactions`), newTrans);
+    console.log('New Transaction Added:', newTrans);
+
+    // Refresh transactions
+    await fetchTransactions();
+
+    // Reset form and errors
+    setNewTransaction({
+      date: new Date().toISOString().split('T')[0],
+      name: '',
+      amount: '',
+      category: '',
+      type: '',
+    });
+    setErrors({}); // Clear errors after successful submission
+  } catch (error) {
+    console.error('Error adding transaction:', error);
   }
 };
+const [errors, setErrors] = useState({}); // Tracks validation errors
 
 // --- Start Edit Transaction ---
 const startEditTransaction = (transaction) => {
@@ -223,11 +249,39 @@ const deleteTransaction = async (transactionId) => {
 
    
 return (
-  <div className="container py-4">
-    <div className="card mb-4">
-    <div className="card-header bg-primary text-white">
-    <h5 className="mb-0">Project Details</h5>
+
+<div className="navbar-padding"> {/* Apply padding here */}
+  
+{/* Sticky Navbar */}
+<div className="sticky-navbar bg-dark">
+  <div className="container py-3"> {/* Reduced padding for mobile */}
+    <div className="row align-items-center">
+      {/* Project Name - Mobile Center, Desktop Left */}
+      <div className="col-12 col-md-auto text-center text-md-start mb-2 mb-md-0">
+        <h1 className="h4 text-white mb-0">{project?.name || 'Project Tracker'}</h1>
+      </div>
+
+      {/* Spacer for Desktop Only */}
+      <div className="d-none d-md-block col"></div>
+
+      {/* Back Button - Mobile Center, Desktop Right */}
+      <div className="col-12 col-md-auto text-center text-md-end navbar-padding-mobile">
+        <button
+          className="btn btn-light btn-sm"
+          onClick={() => navigate('/')}
+        >
+          <i className="bi bi-arrow-left me-1"></i> Back to Dashboard
+        </button>
+      </div>
     </div>
+  </div>
+</div>
+  
+  <div className="container py-4 mt-5">
+    <div className="card mb-4">
+    <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <h5 className="mb-0">Project Details</h5>
+  </div>
         <div className="card-body">
         <p><strong>Project:</strong> {project.name}</p> {/* Display project name */}
           <p><strong>Location:</strong> {project.location}</p> {/* Display project location */}
@@ -242,82 +296,93 @@ return (
         <h5 className="mb-0">Add New Transaction</h5>
           </div>
         <div className="card-body">
-          <div className="row g-3">
-            {/* Date Input */}
-            <div className="col-md-2">
-              <input
-                type="date"
-                className="form-control"
-                value={newTransaction.date}
-                onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })}
-              />
-            </div>
+        <div className="row g-2 align-items-center">
+  {/* Date Input */}
+  <div className="col-lg-2 col-md-3 col-6">
+    <input
+      type="date"
+      className={`form-control ${errors.date ? 'is-invalid' : ''}`}
+      value={newTransaction.date}
+      onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })}
+    />
+    {errors.date && <div className="invalid-feedback">{errors.date}</div>}
+  </div>
 
-            {/* Description Input */}
-            <div className="col-md-3">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Description"
-                value={newTransaction.name}
-                onChange={(e) => setNewTransaction({ ...newTransaction, name: e.target.value })}
-              />
-            </div>
+  {/* Description Input */}
+  <div className="col-lg-3 col-md-3 col-6">
+    <input
+      type="text"
+      className={`form-control ${errors.name ? 'is-invalid' : ''}`}
+      placeholder="Description"
+      value={newTransaction.name}
+      onChange={(e) => setNewTransaction({ ...newTransaction, name: e.target.value })}
+    />
+    {errors.name && <div className="invalid-feedback">{errors.name}</div>}
+  </div>
 
-            {/* Amount Input */}
-            <div className="col-md-2">
-              <input
-                type="number"
-                className="form-control"
-                placeholder="Amount"
-                value={newTransaction.amount}
-                onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
-              />
-            </div>
+  {/* Amount Input */}
+  <div className="col-lg-2 col-md-2 col-6">
+    <input
+      type="number"
+      className={`form-control ${errors.amount ? 'is-invalid' : ''}`}
+      placeholder="Amount"
+      value={newTransaction.amount}
+      onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
+    />
+    {errors.amount && <div className="invalid-feedback">{errors.amount}</div>}
+  </div>
 
-            {/* Category Dropdown */}
-            <div className="col-md-3">
-              <select
-                className="form-select"
-                value={newTransaction.category}
-                onChange={(e) => setNewTransaction({ ...newTransaction, category: e.target.value })}
-              >
-                <option value="Client Payment">Client Payment</option>
-                <option value="Labour">Labour</option>
-                <option value="Materials">Materials</option>
-                <option value="Misc Expense">Misc Expense</option>
-              </select>
-            </div>
+  {/* Category Dropdown */}
+  <div className="col-lg-2 col-md-3 col-6">
+    <select
+      className={`form-select ${errors.category ? 'is-invalid' : ''}`}
+      value={newTransaction.category || ''}
+      onChange={(e) => setNewTransaction({ ...newTransaction, category: e.target.value })}
+    >
+      <option value="" disabled>Select Category</option>
+      <option value="Client Payment">Client Payment</option>
+      <option value="Labour">Labour</option>
+      <option value="Materials">Materials</option>
+      <option value="Misc Expense">Misc Expense</option>
+    </select>
+    {errors.category && <div className="invalid-feedback">{errors.category}</div>}
+  </div>
 
-            {/* Payment Type Dropdown */}
-            <div className="col-md-2">
-              <select
-                className="form-select"
-                value={newTransaction.type}
-                onChange={(e) => setNewTransaction({ ...newTransaction, type: e.target.value })}
-              >
-                <option value="Cash">Cash</option>
-                <option value="VISA">VISA</option>
-                <option value="E-Transfer">E-Transfer</option>
-                <option value="Debit">Debit</option>
-              </select>
-            </div>
+  {/* Payment Type Dropdown */}
+  <div className="col-lg-2 col-md-3 col-6">
+    <select
+      className={`form-select ${errors.type ? 'is-invalid' : ''}`}
+      value={newTransaction.type || ''}
+      onChange={(e) => setNewTransaction({ ...newTransaction, type: e.target.value })}
+    >
+      <option value="" disabled>Select Type</option>
+      <option value="Cash">Cash</option>
+      <option value="VISA">VISA</option>
+      <option value="E-Transfer">E-Transfer</option>
+      <option value="Debit">Debit</option>
+    </select>
+    {errors.type && <div className="invalid-feedback">{errors.type}</div>}
+  </div>
 
-            {/* Add Transaction Button */}
-            <div className="col-md-2">
-              <button className="btn btn-primary" onClick={addTransaction}>
-                Add Transaction
-              </button>
-            </div>
-          </div>
+  {/* Add Transaction Button */}
+  <div className="col-lg-1 col-md-3 col-6 text-end">
+    <button
+      className="btn btn-primary btn-sm w-100"
+      onClick={addTransaction}
+      disabled={Object.keys(errors).length > 0}
+    >
+      Add
+    </button>
+  </div>
+</div>
         </div>
       </div>
 
-      {/* --- Transactions Table --- */}
-      <div className="card mb-4">
+{/* --- Transactions Section --- */}
+<div className="card mb-4">
   <div className="card-header bg-info text-white">
     <h5 className="mb-0">Current Transactions</h5>
-    </div>
+  </div>
   <div className="card-body">
 
     {transactions.length === 0 || !project?.id ? (
@@ -326,127 +391,154 @@ return (
         No transactions yet. Start by adding your first transaction below!
       </p>
     ) : (
-      // Display transactions table if transactions exist
-      <table className="table table-striped">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Description</th>
-            <th>Amount</th>
-            <th>Category</th>
-            <th>Type</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {transactions
-            .filter(t => t.projectId === (project?.id || '')) // Safe filter
-            .map(t => (
-              <tr key={t.id}>
-                {editingTransaction && editingTransaction.id === t.id ? (
-                  // Edit mode - inline form for editing
-                  <>
-                    <td>
-                      <input
-                        type="date"
-                        className="form-control"
-                        value={editingTransaction.date}
-                        onChange={(e) =>
-                          setEditingTransaction({ ...editingTransaction, date: e.target.value })
-                        }
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={editingTransaction.name}
-                        onChange={(e) =>
-                          setEditingTransaction({ ...editingTransaction, name: e.target.value })
-                        }
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={editingTransaction.amount}
-                        onChange={(e) =>
-                          setEditingTransaction({ ...editingTransaction, amount: e.target.value })
-                        }
-                      />
-                    </td>
-                    <td>
-                      <select
-                        className="form-select"
-                        value={editingTransaction.category}
-                        onChange={(e) =>
-                          setEditingTransaction({ ...editingTransaction, category: e.target.value })
-                        }
-                      >
-                        <option value="Client Payment">Client Payment</option>
-                        <option value="Labour">Labour</option>
-                        <option value="Materials">Materials</option>
-                        <option value="Misc Expense">Misc Expense</option>
-                      </select>
-                    </td>
-                    <td>
-                      <select
-                        className="form-select"
-                        value={editingTransaction.type}
-                        onChange={(e) =>
-                          setEditingTransaction({ ...editingTransaction, type: e.target.value })
-                        }
-                      >
-                        <option value="Cash">Cash</option>
-                        <option value="VISA">VISA</option>
-                        <option value="E-Transfer">E-Transfer</option>
-                        <option value="Debit">Debit</option>
-                      </select>
-                    </td>
-                    <td>
-                      <button
-                        className="btn btn-success btn-sm me-2"
-                        onClick={saveEditTransaction}
-                      >
-                        Save
-                      </button>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={cancelEditTransaction}
-                      >
-                        Cancel
-                      </button>
-                    </td>
-                  </>
-                ) : (
-                  // Read-only mode - show transaction details
-                  <>
-                    <td>{t.date || 'N/A'}</td>
-                    <td>{t.name || 'Unnamed'}</td>
-                    <td>${t.amount || 0}</td>
-                    <td>{t.category || 'N/A'}</td>
-                    <td>{t.type || 'N/A'}</td>
-                    <td>
-                    <button
-                      className="btn btn-warning btn-sm me-2"
-                      onClick={() => startEditTransaction(t)} // Attach the function here
-                    >
-                      Edit
-                    </button>
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => deleteTransaction(t.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </>
-                )}
+      <>
+        {/* Table View for Larger Screens */}
+        <div className="d-none d-md-block table-responsive">
+          <table className="table table-striped table-hover">
+            <thead>
+              <tr>
+                <th style={{ width: '15%' }}>Date</th>
+                <th style={{ width: '20%' }}>Description</th>
+                <th style={{ width: '15%' }}>Amount</th>
+                <th style={{ width: '20%' }}>Category</th>
+                <th style={{ width: '15%' }}>Type</th>
+                <th style={{ width: '15%' }}>Actions</th>
               </tr>
-            ))}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {transactions.map(t => (
+                <tr key={t.id}>
+                  {editingTransaction && editingTransaction.id === t.id ? (
+                    // Edit mode - inline editing
+                    <>
+                      <td>
+                        <input
+                          type="date"
+                          className="form-control"
+                          value={editingTransaction.date}
+                          onChange={(e) =>
+                            setEditingTransaction({ ...editingTransaction, date: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={editingTransaction.name}
+                          onChange={(e) =>
+                            setEditingTransaction({ ...editingTransaction, name: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          className="form-control"
+                          value={editingTransaction.amount}
+                          onChange={(e) =>
+                            setEditingTransaction({ ...editingTransaction, amount: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td>
+                        <select
+                          className="form-select"
+                          value={editingTransaction.category}
+                          onChange={(e) =>
+                            setEditingTransaction({ ...editingTransaction, category: e.target.value })
+                          }
+                        >
+                          <option value="Client Payment">Client Payment</option>
+                          <option value="Labour">Labour</option>
+                          <option value="Materials">Materials</option>
+                          <option value="Misc Expense">Misc Expense</option>
+                        </select>
+                      </td>
+                      <td>
+                        <select
+                          className="form-select"
+                          value={editingTransaction.type}
+                          onChange={(e) =>
+                            setEditingTransaction({ ...editingTransaction, type: e.target.value })
+                          }
+                        >
+                          <option value="Cash">Cash</option>
+                          <option value="VISA">VISA</option>
+                          <option value="E-Transfer">E-Transfer</option>
+                          <option value="Debit">Debit</option>
+                        </select>
+                      </td>
+                      <td>
+                        <button className="btn btn-success btn-sm me-2" onClick={saveEditTransaction}>
+                          Save
+                        </button>
+                        <button className="btn btn-secondary btn-sm" onClick={cancelEditTransaction}>
+                          Cancel
+                        </button>
+                      </td>
+                    </>
+                  ) : (
+                    // Read-only mode
+                    <>
+                      <td>{t.date || 'N/A'}</td>
+                      <td>{t.name || 'Unnamed'}</td>
+                      <td>${t.amount || 0}</td>
+                      <td>{t.category || 'N/A'}</td>
+                      <td>{t.type || 'N/A'}</td>
+                      <td>
+                        <button
+                          className="btn btn-warning btn-sm me-2"
+                          onClick={() => startEditTransaction(t)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => deleteTransaction(t.id)}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Stacked Cards View for Small Screens */}
+        <div className="d-block d-md-none">
+          {transactions.map(t => (
+            <div key={t.id} className="card mb-2">
+              <div className="card-body">
+                <h6 className="card-title">{t.name || 'Unnamed'}</h6>
+                <p className="card-text">
+                  <strong>Date:</strong> {t.date || 'N/A'} <br />
+                  <strong>Amount:</strong> ${t.amount || 0} <br />
+                  <strong>Category:</strong> {t.category || 'N/A'} <br />
+                  <strong>Type:</strong> {t.type || 'N/A'}
+                </p>
+                <div>
+                  <button
+                    className="btn btn-warning btn-sm me-2"
+                    onClick={() => startEditTransaction(t)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={() => deleteTransaction(t.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </>
     )}
   </div>
 </div>
@@ -525,8 +617,10 @@ return (
           </div>
         </div>
       )}
-    </div>
+    </div></div>
   );
+
+
 }
 
 export default ProjectDashboard;

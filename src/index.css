@@ -1,3 +1,11 @@
+/* Remove default padding/margin for full-width navbar */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden; /* Prevent horizontal scrollbars */
+}
+
 body {
   font-family: Arial, sans-serif;
   margin: 0;
@@ -138,4 +146,27 @@ li {
 .financial-summary-container li {
   text-align: left !important;
   margin-bottom: 5px;
+}
+/* Custom Sticky Navbar Style */
+.sticky-navbar {
+  position: fixed;      /* Fixes it at the top */
+  top: 0;               /* Aligns it to the very top */
+  left: 0;              /* Aligns it to the left edge */
+  width: 100%;          /* Ensures full width */
+  z-index: 1030;        /* Keeps it above other elements */
+  margin: 0;            /* Removes any margin */
+  --navbar-height: 4rem; /* Default height for navbar */
+  height: auto;          /* Allows height to grow if content increases */
+  padding: 0.5rem 1rem;  /* Add padding inside navbar */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7); /* Optional: Adds shadow for visual separation */
+}
+
+/* Adjust padding below sticky navbar dynamically */
+.navbar-padding {
+  padding-top: calc(var(--navbar-height, 4rem) + 1rem); /* Navbar height + 1rem extra padding */
+}
+
+/* Add extra padding above button when stacked on mobile */
+.navbar-padding-mobile {
+  padding-top: 1rem; /* Add 8px padding */
 }
