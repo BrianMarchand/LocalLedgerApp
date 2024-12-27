@@ -6,29 +6,28 @@ import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from 'firebase
 function ProjectList() {
   const navigate = useNavigate();
 
-  // State Management
+  // --- State Management ---
   const [projects, setProjects] = useState([]); // Store projects from Firestore
+  const [editingProject, setEditingProject] = useState(null); // Track project being edited
 
-// Fetch projects from Firestore
-const fetchProjects = async () => {
-  try {
-    const querySnapshot = await getDocs(collection(db, 'projects')); // Firestore query
-    const projectList = querySnapshot.docs.map(doc => ({
-      id: doc.id, // Use Firestore doc ID
-      ...doc.data(),
-    }));
-    setProjects(projectList); // Update state
-  } catch (error) {
-    console.error('Error fetching projects:', error);
-  }
-};
+  // --- Fetch Projects ---
+  const fetchProjects = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'projects')); // Query Firestore
+      const projectList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setProjects(projectList); // Update state
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    }
+  };
 
-// Load projects on component mount
-useEffect(() => {
-  fetchProjects();
-}, []);
-
-  const [editingProject, setEditingProject] = useState(null);
+  // --- Load Data on Component Mount ---
+  useEffect(() => {
+    fetchProjects(); // Fetch projects initially
+  }, []);
 
   // --- Start New Project ---
   const startNewProject = async () => {
@@ -36,64 +35,78 @@ useEffect(() => {
       name: "",
       location: "",
       budget: "",
-      status: "",
+      status: "new", // Default to 'new'
+      statusDate: new Date(), // Default to today's date
+      statusNote: "",
     };
-  
+
     try {
-      const docRef = await addDoc(collection(db, 'projects'), newProject); // Save to Firestore
-      fetchProjects(); // Refresh project list
-      setEditingProject({ id: docRef.id, ...newProject }); // Start editing new project
+      const docRef = await addDoc(collection(db, 'projects'), newProject); // Add to Firestore
+      fetchProjects(); // Refresh list
+      setEditingProject({ id: docRef.id, ...newProject }); // Enter edit mode
     } catch (error) {
       console.error('Error adding project:', error);
     }
   };
 
-// --- Save Project ---
-const saveProject = async () => {
-  // --- Validation Check ---
-  if (!editingProject.name || !editingProject.status) { // Check for empty name or status
-    alert("Please fill out all required fields before saving."); // Show error message
-    return; // Stop the save if validation fails
-  }
+  // --- Save Project ---
+  const saveProject = async () => {
+    // --- Validation ---
+    if (!editingProject.name || !editingProject.status) {
+      alert("Please fill out all required fields.");
+      return; // Prevent saving invalid data
+    }
 
-  try {
-    // Reference Firestore doc
-    const docRef = doc(db, 'projects', editingProject.id);
-
-    // Update in Firestore
-    await updateDoc(docRef, editingProject);
-
-    // Refresh project list
-    fetchProjects();
-
-    // Exit edit mode
-    setEditingProject(null);
-
-    // Navigate to the project dashboard
-    navigate(`/project/${editingProject.id}`);
-  } catch (error) {
-    console.error('Error updating project:', error); // Log any errors
-  }
-};
+    try {
+      const docRef = doc(db, 'projects', editingProject.id);
+      await updateDoc(docRef, editingProject); // Update Firestore
+      fetchProjects(); // Refresh project list
+      setEditingProject(null); // Exit edit mode
+      navigate(`/project/${editingProject.id}`); // Go to project details
+    } catch (error) {
+      console.error('Error updating project:', error);
+    }
+  };
 
   // --- Delete Project ---
   const deleteProject = async (id) => {
     try {
-      const docRef = doc(db, 'projects', id); // Reference Firestore doc
-      await deleteDoc(docRef); // Delete from Firestore
+      const docRef = doc(db, 'projects', id);
+      await deleteDoc(docRef); // Remove from Firestore
       fetchProjects(); // Refresh project list
     } catch (error) {
       console.error('Error deleting project:', error);
     }
   };
 
+  // --- Status Badge Styles ---
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'new':
+        return 'badge bg-secondary'; // Gray
+      case 'in-progress':
+        return 'badge bg-primary'; // Blue
+      case 'completed':
+        return 'badge bg-success'; // Green
+      case 'on-hold':
+        return 'badge bg-warning'; // Yellow
+      case 'cancelled':
+        return 'badge bg-danger'; // Red
+      default:
+        return 'badge bg-light'; // Default
+    }
+  };
+
   return (
     <div className="container mt-4">
       <h1 className="mb-4">Welcome to the Local Unlimited Project Tracker</h1>
+
+      {/* Start New Project Button */}
       <button className="btn btn-primary mb-3" onClick={startNewProject}>
         Start a New Project
       </button>
 
+      {/* Show Projects */}
       {projects.length === 0 ? (
         <p>No projects available. Start your first project!</p>
       ) : (
@@ -102,8 +115,8 @@ const saveProject = async () => {
             <div key={project.id} className="col-md-4 mb-4">
               <div className="card shadow-sm">
                 <div className="card-body">
+                  {/* --- Inline Edit Mode --- */}
                   {editingProject && editingProject.id === project.id ? (
-                    // --- Inline Edit Form ---
                     <>
                       <input
                         type="text"
@@ -132,6 +145,8 @@ const saveProject = async () => {
                           setEditingProject({ ...editingProject, budget: e.target.value })
                         }
                       />
+
+                      {/* --- Status Dropdown --- */}
                       <select
                         className="form-select mb-2"
                         value={editingProject.status}
@@ -139,10 +154,22 @@ const saveProject = async () => {
                           setEditingProject({ ...editingProject, status: e.target.value })
                         }
                       >
-                        <option value="Pending">Pending</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Completed">Completed</option>
+                        <option value="new">New</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="on-hold">On Hold</option>
+                        <option value="cancelled">Cancelled</option>
                       </select>
+
+                      <textarea
+                        className="form-control mb-2"
+                        placeholder="Notes (Optional)"
+                        value={editingProject.statusNote}
+                        onChange={(e) =>
+                          setEditingProject({ ...editingProject, statusNote: e.target.value })
+                        }
+                      ></textarea>
+
                       <button className="btn btn-success" onClick={saveProject}>
                         Save
                       </button>
@@ -154,7 +181,9 @@ const saveProject = async () => {
                       <p className="card-text">
                         Location: {project.location || "N/A"} <br />
                         Budget: ${project.budget || 0} <br />
-                        Status: {project.status}
+                        Status: <span className={getStatusBadge(project.status)}>
+                          {project.status}
+                        </span>
                       </p>
                       <button
                         className="btn btn-primary me-2"

@@ -45,6 +45,20 @@ function ProjectDashboard() {
         setLoading(false); // Stop loading
       }
     };
+
+    // --- Fetch Project Status Firestore ---
+
+    const statusColor = (status) => {
+      switch (status) {
+        case 'new': return 'primary'; // Blue
+        case 'in-progress': return 'success'; // Green
+        case 'on-hold': return 'warning'; // Orange
+        case 'cancelled': return 'danger'; // Red
+        case 'pending': return 'info'; // Light Blue
+        case 'completed': return 'secondary'; // Gray
+        default: return 'dark';
+      }
+    };
   
     // --- Fetch Transactions from Firestore ---
     const fetchTransactions = async () => {
@@ -64,13 +78,62 @@ function ProjectDashboard() {
         console.error('Error fetching transactions: ', error);
       }
     };
+
+// --- Check and Update Status Based on Transactions ---
+const checkAndUpdateStatus = async () => {
+  // Prevent changes if status is locked
+  const lockedStatuses = ['completed', 'cancelled'];
+  if (lockedStatuses.includes(project.status)) {
+    console.log(`Status is locked: ${project.status}`);
+    return;
+  }
+
+  // Check if a deposit exists
+  console.log('Transactions:', transactions);
+  const hasDeposit = transactions.some(
+    (t) =>
+      t.category === 'Client Payment' &&
+      t.name.toLowerCase().includes('deposit') // Look for 'deposit'
+  );
+
+  // Update status to 'in-progress' if conditions are met
+  if (hasDeposit && project.status !== 'in-progress') {
+    try {
+      // Update Firestore
+      await updateDoc(doc(db, 'projects', project.id), {
+        status: 'in-progress',
+        statusDate: new Date(),
+      });
+
+      // Update local state
+      setProject((prev) => ({
+        ...prev,
+        status: 'in-progress',
+        statusDate: new Date(),
+      }));
+
+      console.log('Status updated to In Progress.');
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
+  }
+};
   
-    // --- Load Data When Component Mounts ---
-    useEffect(() => {
-      console.log('useEffect triggered with ID:', id);
-      fetchProject(); // Fetch project details
-      fetchTransactions(); // Fetch transactions
-    }, [id]);
+// --- Load Data When Component Mounts ---
+useEffect(() => {
+  console.log('useEffect triggered with ID:', id);
+  fetchProject(); // Fetch project details
+  fetchTransactions(); // Fetch transactions
+}, [id]);
+
+// --- Check Status After Transactions Are Loaded ---
+useEffect(() => {
+  if (!loading && transactions.length > 0) {
+    console.log('Transactions loaded. Running status check...');
+    checkAndUpdateStatus(); // Run status check only after transactions are loaded
+  }
+}, [transactions, loading]); // Dependency on transactions and loading state
+
     
   // --- Navigation Function ---
   const goBack = () => navigate('/'); // Navigate back to the projects list  // --- Transaction States ---
@@ -116,8 +179,11 @@ const addTransaction = async () => {
     await addDoc(collection(db, `projects/${id}/transactions`), newTrans);
     console.log('New Transaction Added:', newTrans);
 
-    // Refresh transactions
-    await fetchTransactions();
+// Refresh transactions and check status
+await fetchTransactions(); // Fetch updated transactions
+await checkAndUpdateStatus(); // Check and update project status
+
+
 
     // Reset form and errors
     setNewTransaction({
@@ -280,7 +346,12 @@ return (
   <div className="container py-4 mt-5">
     <div className="card mb-4">
     <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-    <h5 className="mb-0">Project Details</h5>
+    <div className="d-flex align-items-center">
+  <h5 className="mb-0">Project Details</h5>
+  <span className={`badge bg-${statusColor(project.status)} ms-3`}>
+    {project.status}
+  </span>
+</div>
   </div>
         <div className="card-body">
         <p><strong>Project:</strong> {project.name}</p> {/* Display project name */}
@@ -289,6 +360,62 @@ return (
           <p><strong>Status:</strong> {project.status}</p> {/* Display project status */}
         </div>
       </div>
+
+{/* Project Status Dropdown */}
+<div className="mb-3">
+  <label className="form-label">Project Status</label>
+  <select
+    className="form-select"
+    value={project.status}
+    onChange={async (e) => {
+      const newStatus = e.target.value;
+
+      let note = ''; // For optional status notes
+      let confirmed = true; // Default confirmation
+
+      // --- Handle Special Cases ---
+      if (newStatus === 'cancelled') {
+        note = prompt('Reason for cancellation:');
+        confirmed = window.confirm('Are you sure you want to cancel this project?');
+      } else if (newStatus === 'on-hold') {
+        note = prompt('Add a note for placing the project on hold:');
+      } else if (newStatus === 'completed') {
+        confirmed = window.confirm('Mark this project as completed? This action is final.');
+      }
+
+      // --- Proceed if Confirmed ---
+      if (confirmed) {
+        try {
+          await updateDoc(doc(db, 'projects', project.id), {
+            status: newStatus,
+            statusDate: new Date(),
+            statusNote: note || '', // Save note or empty string
+          });
+
+          // Update state locally
+          setProject((prev) => ({
+            ...prev,
+            status: newStatus,
+            statusDate: new Date(),
+            statusNote: note || '',
+          }));
+
+          console.log(`Status updated to: ${newStatus}`);
+        } catch (error) {
+          console.error('Error updating status:', error);
+        }
+      }
+    }}
+  >
+    <option value="new">New</option>
+    <option value="in-progress">In Progress</option>
+    <option value="on-hold">On Hold</option>
+    <option value="cancelled">Cancelled</option>
+    <option value="pending">Pending</option>
+    <option value="completed">Completed</option>
+  </select>
+</div>
+
 
       {/* --- Add Transaction Form --- */}
       <div className="card mb-4">
