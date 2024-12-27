@@ -180,8 +180,8 @@ const addTransaction = async () => {
     console.log('New Transaction Added:', newTrans);
 
 // Refresh transactions and check status
-await fetchTransactions(); // Fetch updated transactions
-await checkAndUpdateStatus(); // Check and update project status
+await fetchTransactions(); // Refresh transactions
+await checkAndUpdateStatus(); // Immediately check and update status
 
 
 
