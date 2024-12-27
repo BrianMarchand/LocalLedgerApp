@@ -108,6 +108,12 @@ const addTransaction = async () => {
   }
 };
 
+// --- Start Edit Transaction ---
+const startEditTransaction = (transaction) => {
+  setEditingTransaction(transaction); // Set the transaction being edited
+  console.log('Editing Transaction:', transaction); // Debug log
+};
+
 // --- Save Edited Transaction ---
 const saveEditTransaction = async () => {
   // Ensure there's a transaction being edited
@@ -422,12 +428,12 @@ return (
                     <td>{t.category || 'N/A'}</td>
                     <td>{t.type || 'N/A'}</td>
                     <td>
-                      <button
-                        className="btn btn-warning btn-sm me-2"
-                        onClick={() => startEditTransaction(t)}
-                      >
-                        Edit
-                      </button>
+                    <button
+                      className="btn btn-warning btn-sm me-2"
+                      onClick={() => startEditTransaction(t)} // Attach the function here
+                    >
+                      Edit
+                    </button>
                       <button
                         className="btn btn-danger btn-sm"
                         onClick={() => deleteTransaction(t.id)}
