@@ -170,3 +170,40 @@ li {
 .navbar-padding-mobile {
   padding-top: 1rem; /* Add 8px padding */
 }
+
+/* Dim the card with an overlay */
+.card-cancelled {
+  position: relative; /* Needed for overlay positioning */
+  opacity: 1; /* Keep full opacity for the card itself */
+  pointer-events: none; /* Disable interactions for card content */
+}
+
+/* Semi-transparent overlay for the card contents */
+.card-cancelled::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6); /* Dark overlay with 60% opacity */
+  z-index: 1; /* Stack above content */
+  border-radius: 0.25rem; /* Match Bootstrap card border radius */
+}
+
+/* Enable interactions only for the button */
+.card-cancelled .btn-reopen {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* Center the button */
+  z-index: 2; /* Place above the overlay */
+  opacity: 1; /* Ensure full opacity */
+  pointer-events: auto; /* Re-enable button interaction */
+}
+
+/* Adjust hover effect for the button */
+.card-cancelled .btn-reopen:hover {
+  background-color: #ffc107; /* Lighten the button color on hover */
+  color: #000;
+}

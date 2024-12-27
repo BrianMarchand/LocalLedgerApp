@@ -69,7 +69,9 @@ function ProjectDashboard() {
           return {
             id: doc.id,
             ...data,
-            date: data.date?.toDate ? data.date.toDate().toISOString().split('T')[0] : 'N/A', // Convert Firestore Timestamp
+            date: data.date && data.date.toDate instanceof Function
+  ? data.date.toDate().toISOString().split('T')[0] // Firestore Timestamp
+  : data.date || 'N/A', // Fallback for string or invalid dates // Convert Firestore Timestamp
           };
         });
         console.log('Fetched Transactions:', transactionsList); // Log updated transactions
@@ -79,13 +81,14 @@ function ProjectDashboard() {
       }
     };
 
+
 // --- Check and Update Status Based on Transactions ---
 const checkAndUpdateStatus = async () => {
   // Prevent changes if status is locked
-  const lockedStatuses = ['completed', 'cancelled'];
+  const lockedStatuses = ['completed', 'cancelled', 'on-hold']; // Add 'on-hold'
   if (lockedStatuses.includes(project.status)) {
     console.log(`Status is locked: ${project.status}`);
-    return;
+    return; // Do nothing if status is locked
   }
 
   // Check if a deposit exists
@@ -96,7 +99,7 @@ const checkAndUpdateStatus = async () => {
       t.name.toLowerCase().includes('deposit') // Look for 'deposit'
   );
 
-  // Update status to 'in-progress' if conditions are met
+  // Update status to 'in-progress' if no manual override and conditions are met
   if (hasDeposit && project.status !== 'in-progress') {
     try {
       // Update Firestore
@@ -113,6 +116,50 @@ const checkAndUpdateStatus = async () => {
       }));
 
       console.log('Status updated to In Progress.');
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
+  }
+};
+
+// --- Handle Manual Status Change ---
+const handleStatusChange = async (newStatus) => {
+  let note = ''; // For optional status notes
+  let confirmed = true; // Default confirmation
+
+  // --- Handle special cases ---
+  if (newStatus === 'cancelled') {
+    note = prompt('Reason for cancellation:'); // Ask for cancellation note
+    confirmed = window.confirm('Are you sure you want to cancel this project?');
+  } else if (newStatus === 'on-hold') {
+    note = prompt('Add a note for placing the project on hold:'); // Optional note
+  } else if (newStatus === 'completed') {
+    confirmed = window.confirm('Mark this project as completed? This action is final.');
+  }
+
+  if (confirmed) {
+    try {
+      // --- Update Firestore with the new status ---
+      await updateDoc(doc(db, 'projects', project.id), {
+        status: newStatus,
+        statusDate: new Date(),
+        statusNote: note || '',
+      });
+
+      // --- Update local state ---
+      setProject((prev) => ({
+        ...prev,
+        status: newStatus,
+        statusDate: new Date(),
+        statusNote: note || '',
+      }));
+
+      console.log(`Status updated to: ${newStatus}`);
+
+      // --- Redirect if status is cancelled ---
+      if (newStatus === 'cancelled') {
+        navigate('/'); // Go back to project list
+      }
     } catch (error) {
       console.error('Error updating status:', error);
     }
@@ -202,9 +249,12 @@ const [errors, setErrors] = useState({}); // Tracks validation errors
 
 // --- Start Edit Transaction ---
 const startEditTransaction = (transaction) => {
-  setEditingTransaction(transaction); // Set the transaction being edited
   console.log('Editing Transaction:', transaction); // Debug log
+  console.log('Editing Transaction Selected:', transaction); // Extra debug log for tracking
+  setEditingTransaction(transaction); // Set the transaction being edited
 };
+
+
 
 // --- Save Edited Transaction ---
 const saveEditTransaction = async () => {
@@ -367,45 +417,7 @@ return (
   <select
     className="form-select"
     value={project.status}
-    onChange={async (e) => {
-      const newStatus = e.target.value;
-
-      let note = ''; // For optional status notes
-      let confirmed = true; // Default confirmation
-
-      // --- Handle Special Cases ---
-      if (newStatus === 'cancelled') {
-        note = prompt('Reason for cancellation:');
-        confirmed = window.confirm('Are you sure you want to cancel this project?');
-      } else if (newStatus === 'on-hold') {
-        note = prompt('Add a note for placing the project on hold:');
-      } else if (newStatus === 'completed') {
-        confirmed = window.confirm('Mark this project as completed? This action is final.');
-      }
-
-      // --- Proceed if Confirmed ---
-      if (confirmed) {
-        try {
-          await updateDoc(doc(db, 'projects', project.id), {
-            status: newStatus,
-            statusDate: new Date(),
-            statusNote: note || '', // Save note or empty string
-          });
-
-          // Update state locally
-          setProject((prev) => ({
-            ...prev,
-            status: newStatus,
-            statusDate: new Date(),
-            statusNote: note || '',
-          }));
-
-          console.log(`Status updated to: ${newStatus}`);
-        } catch (error) {
-          console.error('Error updating status:', error);
-        }
-      }
-    }}
+    onChange={(e) => handleStatusChange(e.target.value)} // Use the new function
   >
     <option value="new">New</option>
     <option value="in-progress">In Progress</option>
@@ -535,16 +547,23 @@ return (
             <tbody>
               {transactions.map(t => (
                 <tr key={t.id}>
-                  {editingTransaction && editingTransaction.id === t.id ? (
+                  {editingTransaction?.id?.toString() === t.id.toString() ? (
                     // Edit mode - inline editing
                     <>
                       <td>
                         <input
                           type="date"
                           className="form-control"
-                          value={editingTransaction.date}
+                          value={
+                            editingTransaction.date
+                              ? new Date(editingTransaction.date).toISOString().split('T')[0]
+                              : ''
+                          }
                           onChange={(e) =>
-                            setEditingTransaction({ ...editingTransaction, date: e.target.value })
+                            setEditingTransaction({
+                              ...editingTransaction,
+                              date: new Date(e.target.value).toISOString(),
+                            })
                           }
                         />
                       </td>
