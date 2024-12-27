@@ -260,6 +260,7 @@ const combinedProjects = [...tempProjects, ...projects]; // Merge temp and saved
                       Status: <span className={`badge bg-${getStatusColor(project.status)} me-2`}>{project.status || "N/A"}</span><br />
                       Created: <span className="text-dark">{formatDate(project.statusDate)}</span>
                     </p>
+                    <hr></hr>
                     <button
                       className="btn btn-primary me-2"
                       onClick={() => navigate(`/project/${project.id}`)}
