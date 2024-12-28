@@ -9,6 +9,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useContext } from "react";
 import { useTheme } from "../context/ThemeContext"; // Import Theme Hook
+import Navbar from "../components/Navbar"; // Import the Navbar component
 
 import {
   collection,
@@ -475,43 +476,10 @@ function ProjectDashboard() {
   }
 
   return (
-    <div className="navbar-padding">
-      {" "}
-      {/* Apply padding here */}
-      {/* Sticky Navbar */}
-      <div className="sticky-navbar bg-dark">
-        <div className="container py-3">
-          {" "}
-          {/* Reduced padding for mobile */}
-          <div className="row align-items-center">
-            {/* Project Name - Mobile Center, Desktop Left */}
-            <div className="col-12 col-md-auto text-center text-md-start mb-2 mb-md-0">
-              <h1 className="h4 text-white mb-0">
-                {project?.name || "Project Tracker"}
-              </h1>
-            </div>
+    <div>
+      {/* --- Navbar --- */}
+      <Navbar page="projectDashboard" />
 
-            {/* Spacer for Desktop Only */}
-            <div className="d-none d-md-block col"></div>
-
-            {/* Back Button - Mobile Center, Desktop Right */}
-            <div className="col-12 col-md-auto text-center text-md-end navbar-padding-mobile">
-              <button
-                className="btn btn-outline-light btn-sm me-2"
-                onClick={() => toggleTheme()}
-              >
-                {darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
-              </button>
-              <button
-                className="btn btn-light btn-sm"
-                onClick={() => navigate("/")}
-              >
-                <i className="bi bi-arrow-left me-1"></i> Back to Dashboard
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
       <div className="container py-4 mt-5">
         <div className="card mb-4">
           <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -843,7 +811,14 @@ function ProjectDashboard() {
                                 </button>
                                 <button
                                   className="btn btn-danger btn-sm"
-                                  onClick={() => deleteTransaction(t.id)}
+                                  onClick={() => {
+                                    const confirmDelete = window.confirm(
+                                      "Are you sure you want to delete this transaction? This action cannot be undone.",
+                                    );
+                                    if (confirmDelete) {
+                                      deleteTransaction(t.id); // Proceed only if confirmed
+                                    }
+                                  }}
                                 >
                                   Delete
                                 </button>
@@ -870,18 +845,138 @@ function ProjectDashboard() {
                           <strong>Type:</strong> {t.type || "N/A"}
                         </p>
                         <div>
-                          <button
-                            className="btn btn-warning btn-sm me-2"
-                            onClick={() => startEditTransaction(t)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="btn btn-danger btn-sm"
-                            onClick={() => deleteTransaction(t.id)}
-                          >
-                            Delete
-                          </button>
+                          {editingTransaction?.id === t.id ? (
+                            // EDIT MODE
+                            <>
+                              <input
+                                type="date"
+                                className="form-control mb-2"
+                                value={
+                                  editingTransaction.date
+                                    ? new Date(editingTransaction.date)
+                                        .toISOString()
+                                        .split("T")[0]
+                                    : ""
+                                }
+                                onChange={(e) =>
+                                  setEditingTransaction({
+                                    ...editingTransaction,
+                                    date: new Date(
+                                      e.target.value,
+                                    ).toISOString(),
+                                  })
+                                }
+                              />
+                              <input
+                                type="text"
+                                className="form-control mb-2"
+                                value={editingTransaction.name}
+                                onChange={(e) =>
+                                  setEditingTransaction({
+                                    ...editingTransaction,
+                                    name: e.target.value,
+                                  })
+                                }
+                              />
+                              <input
+                                type="number"
+                                className="form-control mb-2"
+                                value={editingTransaction.amount}
+                                onChange={(e) =>
+                                  setEditingTransaction({
+                                    ...editingTransaction,
+                                    amount: e.target.value,
+                                  })
+                                }
+                              />
+                              <select
+                                className="form-select mb-2"
+                                value={editingTransaction.category}
+                                onChange={(e) =>
+                                  setEditingTransaction({
+                                    ...editingTransaction,
+                                    category: e.target.value,
+                                  })
+                                }
+                              >
+                                <option value="Client Payment">
+                                  Client Payment
+                                </option>
+                                <option value="Labour">Labour</option>
+                                <option value="Materials">Materials</option>
+                                <option value="Misc Expense">
+                                  Misc Expense
+                                </option>
+                              </select>
+                              <select
+                                className="form-select mb-2"
+                                value={editingTransaction.type}
+                                onChange={(e) =>
+                                  setEditingTransaction({
+                                    ...editingTransaction,
+                                    type: e.target.value,
+                                  })
+                                }
+                              >
+                                <option value="Cash">Cash</option>
+                                <option value="VISA">VISA</option>
+                                <option value="E-Transfer">E-Transfer</option>
+                                <option value="Debit">Debit</option>
+                              </select>
+
+                              {/* Only Save and Cancel Buttons in Edit Mode */}
+                              <div className="d-flex justify-content-start">
+                                <button
+                                  className="btn btn-success btn-sm me-2"
+                                  onClick={saveEditTransaction}
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={cancelEditTransaction}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            // VIEW MODE
+                            <>
+                              <p className="card-text">
+                                <strong>Date:</strong> {t.date || "N/A"} <br />
+                                <strong>Amount:</strong> ${t.amount || 0} <br />
+                                <strong>Category:</strong> {t.category || "N/A"}{" "}
+                                <br />
+                                <strong>Type:</strong> {t.type || "N/A"}
+                              </p>
+
+                              {/* Only Edit and Delete Buttons in View Mode */}
+                              {!editingTransaction && (
+                                <div className="d-flex justify-content-start">
+                                  <button
+                                    className="btn btn-warning btn-sm me-2"
+                                    onClick={() => startEditTransaction(t)}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    className="btn btn-danger btn-sm"
+                                    onClick={() => {
+                                      const confirmDelete = window.confirm(
+                                        "Are you sure you want to delete this transaction? This action cannot be undone.",
+                                      );
+                                      if (confirmDelete) {
+                                        deleteTransaction(t.id); // Proceed only if confirmed
+                                      }
+                                    }}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>

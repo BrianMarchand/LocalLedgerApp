@@ -1,25 +1,20 @@
-// Import the functions you need from the SDKs you need
-// Import the necessary functions from Firebase SDK
+// --- Import Firebase Dependencies ---
 import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
+// --- Firebase Configuration ---
 const firebaseConfig = {
   apiKey: "AIzaSyDQkgErcTqXqLl87E3YUrunkqPQo40CJvM",
   authDomain: "local-unlimited-tracker.firebaseapp.com",
   projectId: "local-unlimited-tracker",
-  storageBucket: "local-unlimited-tracker.firebasestorage.app",
+  storageBucket: "local-unlimited-tracker.appspot.com", // <-- Fixed typo
   messagingSenderId: "792077217335",
   appId: "1:792077217335:web:57fc86dacfa7db298b19b2",
 };
 
-// Initialize Firebase
+// --- Initialize Firebase ---
 const app = initializeApp(firebaseConfig);
-
-// Initialize Firestore
-const db = getFirestore(app); // Firestore initialization
-
-// Export db to use in other files
-export { db };
+export const auth = getAuth(app); // Export Authentication
+export const db = getFirestore(app); // Export Firestore
+export default app; // Default Firebase export

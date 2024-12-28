@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext"; // Import Theme Hook
 import { db } from "../firebaseConfig";
+import Navbar from "../components/Navbar"; // Import the Navbar component
+
 import {
   collection,
   getDocs,
@@ -36,6 +39,7 @@ function ProjectList() {
   useEffect(() => {
     fetchProjects(); // Fetch projects initially
   }, []);
+  const { darkMode, toggleTheme } = useTheme(); // Get theme state and toggle function
 
   // --- Start New Project ---
   const startNewProject = () => {
@@ -160,37 +164,9 @@ function ProjectList() {
   const combinedProjects = [...tempProjects, ...projects]; // Merge temp and saved projects
 
   return (
-    <div className="navbar-padding">
-      {" "}
-      {/* Apply padding here */}
-      {/* Sticky Navbar */}
-      <div className="sticky-navbar bg-dark">
-        <div className="container py-3">
-          {" "}
-          {/* Reduced padding for mobile */}
-          <div className="row align-items-center">
-            {/* Project Name - Mobile Center, Desktop Left */}
-            <div className="col-12 col-md-auto text-center text-md-start mb-2 mb-md-0">
-              <h1 className="h4 text-white mb-0">
-                Local Unlimited Project Tracker
-              </h1>
-            </div>
-
-            {/* Spacer for Desktop Only */}
-            <div className="d-none d-md-block col"></div>
-
-            {/* Back Button - Mobile Center, Desktop Right */}
-            <div className="col-12 col-md-auto text-center text-md-end navbar-padding-mobile">
-              <button
-                className="btn btn-light btn-sm"
-                onClick={startNewProject}
-              >
-                <i className="bi bi-plus-lg me-1"></i> Create New Project
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div>
+      {/* --- Navbar --- */}
+      <Navbar page="projectDashboard" />
       <div className="container mt-4">
         <h1 className="mb-4">Your current projects:</h1>
 
