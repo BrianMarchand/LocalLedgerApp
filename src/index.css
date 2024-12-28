@@ -1,9 +1,16 @@
 /* Remove default padding/margin for full-width navbar */
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   width: 100%;
   overflow-x: hidden; /* Prevent horizontal scrollbars */
+}
+
+body {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 body {
@@ -13,11 +20,15 @@ body {
   background-color: #f9f9f9;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   margin-bottom: 10px;
 }
 
-input, select, button {
+input,
+select,
+button {
   margin: 5px;
   padding: 8px;
   font-size: 14px;
@@ -25,9 +36,9 @@ input, select, button {
 
 button {
   cursor: pointer;
-  border: 1px solid #007BFF;
+  border: 1px solid #007bff;
   color: white;
-  background-color: #007BFF;
+  background-color: #007bff;
   border-radius: 4px;
 }
 
@@ -48,8 +59,8 @@ li {
   border-radius: 4px;
   display: flex;
   justify-content: flex-start !important; /* Force left alignment */
-  align-items: flex-start !important;    /* Align vertically to the top */
-  text-align: left !important;           /* Override any text alignment */
+  align-items: flex-start !important; /* Align vertically to the top */
+  text-align: left !important; /* Override any text alignment */
 }
 
 .project-status {
@@ -149,21 +160,23 @@ li {
 }
 /* Custom Sticky Navbar Style */
 .sticky-navbar {
-  position: fixed;      /* Fixes it at the top */
-  top: 0;               /* Aligns it to the very top */
-  left: 0;              /* Aligns it to the left edge */
-  width: 100%;          /* Ensures full width */
-  z-index: 1030;        /* Keeps it above other elements */
-  margin: 0;            /* Removes any margin */
+  position: fixed; /* Fixes it at the top */
+  top: 0; /* Aligns it to the very top */
+  left: 0; /* Aligns it to the left edge */
+  width: 100%; /* Ensures full width */
+  z-index: 1030; /* Keeps it above other elements */
+  margin: 0; /* Removes any margin */
   --navbar-height: 4rem; /* Default height for navbar */
-  height: auto;          /* Allows height to grow if content increases */
-  padding: 0.5rem 1rem;  /* Add padding inside navbar */
+  height: auto; /* Allows height to grow if content increases */
+  padding: 0.5rem 1rem; /* Add padding inside navbar */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7); /* Optional: Adds shadow for visual separation */
 }
 
 /* Adjust padding below sticky navbar dynamically */
 .navbar-padding {
-  padding-top: calc(var(--navbar-height, 4rem) + 1rem); /* Navbar height + 1rem extra padding */
+  padding-top: calc(
+    var(--navbar-height, 4rem) + 1rem
+  ); /* Navbar height + 1rem extra padding */
 }
 
 /* Add extra padding above button when stacked on mobile */
