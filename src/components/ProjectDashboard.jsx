@@ -675,8 +675,15 @@ function ProjectDashboard() {
               <div className="col-lg-1 col-md-3 col-6 text-end">
                 <button
                   className="btn btn-primary btn-sm w-100"
-                  onClick={addTransaction}
-                  disabled={Object.keys(errors).length > 0}
+                  onClick={() => {
+                    if (validateForm()) {
+                      addTransaction(); // Only add if validation passes
+                    } else {
+                      notifyError(
+                        "Please fix the errors in the form before adding.",
+                      ); // Show toast if validation fails
+                    }
+                  }}
                 >
                   Add
                 </button>
