@@ -256,8 +256,14 @@ function ProjectDashboard() {
     const newTrans = {
       ...newTransaction,
       projectId: id,
-      createdAt: new Date(), // Timestamp for sorting
-      date: new Date(newTransaction.date), // Explicitly save 'date' field
+      createdAt: new Date(), // Timestamp
+      date: new Date(newTransaction.date), // Ensure date formatting
+      category: newTransaction.category, // Use user-selected category
+      type: newTransaction.type, // Use user-selected type
+      // Handle 'Deposit' labeling dynamically
+      name: newTransaction.name.toLowerCase().includes("deposit")
+        ? "Deposit" // Enforce "Deposit" label if it includes "deposit"
+        : newTransaction.name, // Otherwise, keep original name
     };
 
     try {
