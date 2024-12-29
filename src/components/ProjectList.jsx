@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom"; // <-- NEW
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext"; // Import Theme Hook
 import { db } from "../firebaseConfig";
 import Navbar from "../components/Navbar"; // Import the Navbar component
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import * as bootstrap from "bootstrap"; // Explicitly import Bootstrap JS
 
 import {
   collection,
@@ -15,11 +19,27 @@ import {
 
 function ProjectList() {
   const navigate = useNavigate();
+  const location = useLocation(); // <-- This MUST stay here at the top!
 
   // --- State Management ---
   const [projects, setProjects] = useState([]); // Store projects from Firestore
   const [editingProject, setEditingProject] = useState(null); // Track project being edited
   const [tempProjects, setTempProjects] = useState([]); // Store temporary projects
+
+  // --- Update Status Dynamically Based on Transactions ---
+  const determineStatus = (transactions) => {
+    if (!transactions || transactions.length === 0) return "new";
+
+    const hasDeposit = transactions.some((t) => t.category === "deposit");
+    const hasFinalPayment = transactions.some(
+      (t) => t.category === "final-payment",
+    );
+
+    if (hasFinalPayment) return "completed";
+    if (hasDeposit) return "in-progress";
+
+    return "new"; // Default fallback
+  };
 
   // --- Fetch Projects ---
   const fetchProjects = async () => {
@@ -57,6 +77,124 @@ function ProjectList() {
     setTempProjects([tempProject]); // Add to temporary list
   };
 
+  // --- Mark as Complete ---
+  const markAsComplete = async (project) => {
+    // --- Validate Status Change Dynamically ---
+    const isValid = await validateStatusChange(project, "completed");
+    if (!isValid) return; // Stop if validation fails
+
+    const confirmed = window.confirm(
+      "Are you sure you want to mark this project as Complete?",
+    );
+    if (!confirmed) return;
+
+    try {
+      // --- Update Status in Firestore ---
+      const docRef = doc(db, "projects", project.id);
+      await updateDoc(docRef, {
+        status: "completed",
+        statusDate: new Date(),
+      });
+
+      fetchProjects(); // Refresh project list
+    } catch (error) {
+      console.error("Error marking project as complete:", error);
+      alert("Failed to update status. Please try again.");
+    }
+  };
+
+  const calculateRemainingPayment = (transactions) => {
+    if (!transactions || transactions.length === 0) return 0;
+
+    const totalIncome = transactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const totalExpenses = transactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    return totalIncome - totalExpenses; // Remaining payment
+  };
+
+  // --- Cancel Project ---
+  const cancelProject = async (project) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this project? This cannot be undone.",
+    );
+    if (!confirmed) return;
+
+    try {
+      const docRef = doc(db, "projects", project.id);
+      await updateDoc(docRef, {
+        status: "cancelled",
+        statusDate: new Date(),
+      });
+
+      fetchProjects(); // Refresh project list
+    } catch (error) {
+      console.error("Error cancelling project:", error);
+    }
+  };
+
+  // --- Validate Status Check ---
+  const validateStatusChange = async (project, targetStatus) => {
+    try {
+      // --- Fetch Latest Transactions ---
+      const transactionsSnapshot = await getDocs(
+        collection(db, `projects/${project.id}/transactions`),
+      );
+      const transactions = transactionsSnapshot.docs.map((doc) => doc.data());
+
+      console.log("Fetched Transactions:", transactions); // Debugging
+
+      // --- Calculate Metrics Using Dashboard Rules ---
+      const totalIncome = transactions
+        .filter((t) => t.category === "Client Payment") // Matches Dashboard rule
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+
+      const totalExpenses = transactions
+        .filter((t) => t.category !== "Client Payment") // Matches Dashboard rule
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+
+      const remainingClientPayment = (project.budget || 0) - totalIncome; // Matches Dashboard rule
+      const availableFunds = totalIncome - totalExpenses; // Matches Dashboard rule
+
+      console.log("Remaining Client Payment:", remainingClientPayment);
+      console.log("Available Funds:", availableFunds);
+
+      // --- Check for Completed Status ---
+      if (targetStatus === "completed") {
+        // 1. Block if remaining client payment > 0
+        if (remainingClientPayment > 0) {
+          alert(
+            `Cannot complete project. Remaining client payment must be $0. Current balance: $${remainingClientPayment}`,
+          );
+          return false;
+        }
+
+        // 2. Check for a deposit transaction (category = "Client Payment")
+        const hasDeposit = transactions.some(
+          (t) =>
+            t.category === "Client Payment" &&
+            t.name.toLowerCase().includes("deposit"),
+        );
+
+        if (!hasDeposit) {
+          alert(
+            "Cannot complete project. At least one 'deposit' transaction is required.",
+          );
+          return false;
+        }
+      }
+
+      return true; // Validation passed
+    } catch (error) {
+      console.error("Error validating status change:", error);
+      alert("Validation failed. Please try again.");
+      return false;
+    }
+  };
   // --- Save Project ---
   const saveProject = async () => {
     if (!editingProject.name || !editingProject.status) {
@@ -163,10 +301,77 @@ function ProjectList() {
 
   const combinedProjects = [...tempProjects, ...projects]; // Merge temp and saved projects
 
+  // --- Tooltip Initialization ---
+  useEffect(() => {
+    console.log("Initializing tooltips...");
+
+    // Initialize tooltips after rendering
+    requestAnimationFrame(() => {
+      const tooltipTriggerList = document.querySelectorAll(
+        '[data-bs-toggle="tooltip"]',
+      );
+      console.log("Tooltip elements found:", tooltipTriggerList);
+
+      tooltipTriggerList.forEach((tooltipTriggerEl) => {
+        const existingTooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+        if (!existingTooltip) {
+          // --- Initialize Tooltip ---
+          const newTooltip = new bootstrap.Tooltip(tooltipTriggerEl);
+
+          // --- FIX: Close Tooltip on Click or Focus Loss ---
+          tooltipTriggerEl.addEventListener("click", () => {
+            console.log("Tooltip clicked! Hiding...");
+            newTooltip.hide(); // Force hide tooltip when clicked
+          });
+
+          tooltipTriggerEl.addEventListener("blur", () => {
+            console.log("Focus lost! Hiding tooltip...");
+            newTooltip.hide(); // Hide tooltip when focus is lost
+          });
+        }
+      });
+    });
+
+    // Cleanup tooltips on unmount
+    return () => {
+      console.log("Cleaning up tooltips...");
+
+      // --- Forcefully Hide & Dispose All Tooltips ---
+      const allTooltips = document.querySelectorAll(
+        '[data-bs-toggle="tooltip"]',
+      );
+      allTooltips.forEach((tooltipTriggerEl) => {
+        const instance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+        if (instance) {
+          instance.hide(); // <<< HIDE TOOLTIP FIRST
+          console.log("Disposing Tooltip on Unmount:", tooltipTriggerEl);
+          instance.dispose(); // <<< THEN DISPOSE TOOLTIP
+        }
+      });
+    };
+  }, [projects]); // Re-run when 'projects' change
+
+  // --- Fix Stuck Tooltips on Route Changes ---
+  useEffect(() => {
+    console.log("Route changed! Cleaning up lingering tooltips...");
+
+    // Cleanup tooltips when navigating away
+    const allTooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    allTooltips.forEach((tooltipTriggerEl) => {
+      const instance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+      if (instance) {
+        instance.hide(); // <<< HIDE TOOLTIP FIRST
+        console.log("Disposing Tooltip on Route Change:", tooltipTriggerEl);
+        instance.dispose(); // <<< THEN DISPOSE TOOLTIP
+      }
+    });
+  }, [location]); // Re-run whenever route changes
+
   return (
     <div>
       {/* --- Navbar --- */}
       <Navbar page="projectDashboard" />
+
       <div className="container mt-4">
         <h1 className="mb-4">Your current projects:</h1>
 
@@ -184,8 +389,8 @@ function ProjectList() {
               <div key={project.id} className="col-md-4 mb-4">
                 <div className="card shadow-sm">
                   <div className="card-body">
-                    {/* --- Inline Edit Mode --- */}
                     {editingProject && editingProject.id === project.id ? (
+                      // --- Inline Edit Mode ---
                       <>
                         <input
                           type="text"
@@ -239,7 +444,6 @@ function ProjectList() {
                           <option value="on-hold">On Hold</option>
                           <option value="cancelled">Cancelled</option>
                         </select>
-
                         <textarea
                           className="form-control mb-2"
                           placeholder="Notes (Optional)"
@@ -251,7 +455,6 @@ function ProjectList() {
                             })
                           }
                         ></textarea>
-
                         <div className="d-flex gap-2">
                           <button
                             className="btn btn-success"
@@ -259,17 +462,16 @@ function ProjectList() {
                           >
                             Save
                           </button>
-
                           <button
                             className="btn btn-secondary"
-                            onClick={() => cancelEdit()} // Properly handle cancellation
+                            onClick={cancelEdit}
                           >
                             Cancel
                           </button>
                         </div>
                       </>
                     ) : (
-                      // --- Display Project Details ---
+                      // --- View Mode ---
                       <>
                         <h5 className="card-title">
                           {project.name || "New Project"}
@@ -289,25 +491,95 @@ function ProjectList() {
                             {formatDate(project.statusDate)}
                           </span>
                         </p>
-                        <hr></hr>
-                        <button
-                          className="btn btn-primary me-2"
-                          onClick={() => navigate(`/project/${project.id}`)}
-                        >
-                          View Project
-                        </button>
-                        <button
-                          className="btn btn-secondary me-2"
-                          onClick={() => setEditingProject(project)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="btn btn-danger"
-                          onClick={() => deleteProject(project.id)}
-                        >
-                          Delete
-                        </button>
+                        <hr />
+
+                        {/* --- Actions Button Group with Bootstrap Tooltips --- */}
+                        <div className="btn-group d-flex flex-wrap gap-2">
+                          {/* View Project */}
+                          <button
+                            className="btn btn-primary"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="View Project" // Tooltip text
+                            onClick={() => navigate(`/project/${project.id}`)}
+                          >
+                            <i className="bi bi-eye"></i>
+                          </button>
+
+                          {/* Edit Project */}
+                          <button
+                            className="btn btn-secondary"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="Edit Project"
+                            onClick={() => setEditingProject(project)}
+                            disabled={project.status === "completed"}
+                          >
+                            <i className="bi bi-pencil-square"></i>
+                          </button>
+
+                          {/* Mark as Complete */}
+                          {project.status === "in-progress" && (
+                            <button
+                              className="btn btn-success"
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                              title="Mark as Complete"
+                              onClick={() => markAsComplete(project)}
+                            >
+                              <i className="bi bi-check-circle"></i>
+                            </button>
+                          )}
+
+                          {/* Cancel Project */}
+                          {project.status !== "completed" && (
+                            <button
+                              className="btn btn-danger"
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                              title="Cancel Project"
+                              onClick={() => {
+                                if (
+                                  validateStatusChange(project, "cancelled")
+                                ) {
+                                  cancelProject(project);
+                                }
+                              }}
+                            >
+                              <i className="bi bi-x-circle"></i>
+                            </button>
+                          )}
+
+                          {/* Delete Project */}
+                          <button
+                            className="btn btn-danger"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="Delete Project"
+                            onClick={() => deleteProject(project.id)}
+                            disabled={project.status === "completed"}
+                          >
+                            <i className="bi bi-trash"></i>
+                          </button>
+
+                          {/* Reopen Project */}
+                          {project.status === "cancelled" && (
+                            <button
+                              className="btn btn-warning"
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                              title="Reopen Project"
+                              onClick={() =>
+                                setEditingProject({
+                                  ...project,
+                                  status: "in-progress",
+                                })
+                              }
+                            >
+                              <i className="bi bi-arrow-repeat"></i>
+                            </button>
+                          )}
+                        </div>
                       </>
                     )}
                   </div>

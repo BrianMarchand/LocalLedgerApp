@@ -260,3 +260,47 @@ li {
   z-index: 2;
   pointer-events: auto;
 }
+
+.dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+.dropdown-menu {
+  max-height: none; /* Remove fixed height */
+  overflow: visible; /* No scrolling unless required */
+  z-index: 1050; /* Always above other elements */
+}
+
+.dropdown-menu.dropdown-scrollable {
+  max-height: 250px; /* Enable scrolling only for long lists */
+  overflow-y: auto; /* Scrollbar appears if needed */
+}
+/* --- Tooltip Custom Styles --- */
+.tooltip {
+  z-index: 9999 !important; /* Always on top */
+}
+
+.tooltip-inner {
+  background-color: #4a90e2 !important; /* Blue background */
+  color: white !important; /* White text */
+  font-size: 14px !important; /* Larger font */
+  padding: 8px 12px !important; /* Padding */
+  border-radius: 6px !important; /* Rounded corners */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important; /* Shadow */
+}
+
+.bs-tooltip-top .tooltip-arrow::before {
+  border-top-color: #4a90e2 !important; /* Top arrow color */
+}
+
+.bs-tooltip-bottom .tooltip-arrow::before {
+  border-bottom-color: #4a90e2 !important; /* Bottom arrow color */
+}
+
+.bs-tooltip-start .tooltip-arrow::before {
+  border-left-color: #4a90e2 !important; /* Left arrow color */
+}
+
+.bs-tooltip-end .tooltip-arrow::before {
+  border-right-color: #4a90e2 !important; /* Right arrow color */
+}
