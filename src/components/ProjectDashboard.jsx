@@ -474,213 +474,86 @@ function ProjectDashboard() {
     );
   }
 
-    // --- Utility to Render Transactions ---
-    const renderTransactions = (isMobile) => {
-      return transactions.map((t) =>
-        isMobile ? (
-          // --- MOBILE VIEW: Stacked Cards ---
-          <div key={t.id} className="card mb-2">
-            <div className="card-body">
-              {editingTransaction?.id === t.id ? (
-                // Edit Mode - Mobile
-                <>
-                  <input
-                    type="date"
-                    className="form-control mb-2"
-                    value={
-                      editingTransaction.date
-                        ? new Date(editingTransaction.date).toISOString().split("T")[0]
-                        : ""
-                    }
-                    onChange={(e) =>
-                      setEditingTransaction({
-                        ...editingTransaction,
-                        date: new Date(e.target.value).toISOString(),
-                      })
-                    }
-                  />
-                  <input
-                    type="text"
-                    className="form-control mb-2"
-                    value={editingTransaction.name}
-                    onChange={(e) =>
-                      setEditingTransaction({
-                        ...editingTransaction,
-                        name: e.target.value,
-                      })
-                    }
-                  />
-                  <input
-                    type="number"
-                    className="form-control mb-2"
-                    value={editingTransaction.amount}
-                    onChange={(e) =>
-                      setEditingTransaction({
-                        ...editingTransaction,
-                        amount: e.target.value,
-                      })
-                    }
-                  />
-                  <select
-                    className="form-select mb-2"
-                    value={editingTransaction.category}
-                    onChange={(e) =>
-                      setEditingTransaction({
-                        ...editingTransaction,
-                        category: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="Client Payment">Client Payment</option>
-                    <option value="Labour">Labour</option>
-                    <option value="Materials">Materials</option>
-                    <option value="Misc Expense">Misc Expense</option>
-                  </select>
-                  <select
-                    className="form-select mb-2"
-                    value={editingTransaction.type}
-                    onChange={(e) =>
-                      setEditingTransaction({
-                        ...editingTransaction,
-                        type: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="Cash">Cash</option>
-                    <option value="VISA">VISA</option>
-                    <option value="E-Transfer">E-Transfer</option>
-                    <option value="Debit">Debit</option>
-                  </select>
-                  <div className="mt-2">
-                    <button
-                      className="btn btn-success btn-sm me-2"
-                      onClick={saveEditTransaction}
-                    >
-                      Save
-                    </button>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={cancelEditTransaction}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </>
-              ) : (
-                // View Mode - Mobile
-                <>
-                  <h6 className="card-title">{t.name || "Unnamed"}</h6>
-                  <p className="card-text">
-                    <strong>Date:</strong> {t.date || "N/A"} <br />
-                    <strong>Amount:</strong> ${t.amount || 0} <br />
-                    <strong>Category:</strong> {t.category || "N/A"} <br />
-                    <strong>Type:</strong> {t.type || "N/A"}
-                  </p>
-                  <div>
-                    <button
-                      className="btn btn-warning btn-sm me-2"
-                      onClick={() => startEditTransaction(t)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="btn btn-danger btn-sm"
-                      onClick={() => deleteTransaction(t.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        ) : (
-          // --- DESKTOP VIEW: Table Rows ---
-          <tr key={t.id}>
+  // --- Utility to Render Transactions ---
+  const renderTransactions = (isMobile) => {
+    return transactions.map((t) =>
+      isMobile ? (
+        // --- MOBILE VIEW: Stacked Cards ---
+        <div key={t.id} className="card mb-2">
+          <div className="card-body">
             {editingTransaction?.id === t.id ? (
-              // Edit Mode - Desktop
+              // Edit Mode - Mobile
               <>
-                <td>
-                  <input
-                    type="date"
-                    className="form-control"
-                    value={
-                      editingTransaction.date
-                        ? new Date(editingTransaction.date).toISOString().split("T")[0]
-                        : ""
-                    }
-                    onChange={(e) =>
-                      setEditingTransaction({
-                        ...editingTransaction,
-                        date: new Date(e.target.value).toISOString(),
-                      })
-                    }
-                  />
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={editingTransaction.name}
-                    onChange={(e) =>
-                      setEditingTransaction({
-                        ...editingTransaction,
-                        name: e.target.value,
-                      })
-                    }
-                  />
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={editingTransaction.amount}
-                    onChange={(e) =>
-                      setEditingTransaction({
-                        ...editingTransaction,
-                        amount: e.target.value,
-                      })
-                    }
-                  />
-                </td>
-                <td>
-                  <select
-                    className="form-select"
-                    value={editingTransaction.category}
-                    onChange={(e) =>
-                      setEditingTransaction({
-                        ...editingTransaction,
-                        category: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="Client Payment">Client Payment</option>
-                    <option value="Labour">Labour</option>
-                    <option value="Materials">Materials</option>
-                    <option value="Misc Expense">Misc Expense</option>
-                  </select>
-                </td>
-                <td>
-                  <select
-                    className="form-select"
-                    value={editingTransaction.type}
-                    onChange={(e) =>
-                      setEditingTransaction({
-                        ...editingTransaction,
-                        type: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="Cash">Cash</option>
-                    <option value="VISA">VISA</option>
-                    <option value="E-Transfer">E-Transfer</option>
-                    <option value="Debit">Debit</option>
-    
-    
-    ```javascript
-                  </select>
-                </td>
-                <td>
+                <input
+                  type="date"
+                  className="form-control mb-2"
+                  value={
+                    editingTransaction.date
+                      ? new Date(editingTransaction.date)
+                          .toISOString()
+                          .split("T")[0]
+                      : ""
+                  }
+                  onChange={(e) =>
+                    setEditingTransaction({
+                      ...editingTransaction,
+                      date: new Date(e.target.value).toISOString(),
+                    })
+                  }
+                />
+                <input
+                  type="text"
+                  className="form-control mb-2"
+                  value={editingTransaction.name}
+                  onChange={(e) =>
+                    setEditingTransaction({
+                      ...editingTransaction,
+                      name: e.target.value,
+                    })
+                  }
+                />
+                <input
+                  type="number"
+                  className="form-control mb-2"
+                  value={editingTransaction.amount}
+                  onChange={(e) =>
+                    setEditingTransaction({
+                      ...editingTransaction,
+                      amount: e.target.value,
+                    })
+                  }
+                />
+                <select
+                  className="form-select mb-2"
+                  value={editingTransaction.category}
+                  onChange={(e) =>
+                    setEditingTransaction({
+                      ...editingTransaction,
+                      category: e.target.value,
+                    })
+                  }
+                >
+                  <option value="Client Payment">Client Payment</option>
+                  <option value="Labour">Labour</option>
+                  <option value="Materials">Materials</option>
+                  <option value="Misc Expense">Misc Expense</option>
+                </select>
+                <select
+                  className="form-select mb-2"
+                  value={editingTransaction.type}
+                  onChange={(e) =>
+                    setEditingTransaction({
+                      ...editingTransaction,
+                      type: e.target.value,
+                    })
+                  }
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="VISA">VISA</option>
+                  <option value="E-Transfer">E-Transfer</option>
+                  <option value="Debit">Debit</option>
+                </select>
+                <div className="mt-2">
                   <button
                     className="btn btn-success btn-sm me-2"
                     onClick={saveEditTransaction}
@@ -693,17 +566,19 @@ function ProjectDashboard() {
                   >
                     Cancel
                   </button>
-                </td>
+                </div>
               </>
             ) : (
-              // View Mode - Desktop
+              // View Mode - Mobile
               <>
-                <td className="align-middle">{t.date || "N/A"}</td>
-                <td className="align-middle">{t.name || "Unnamed"}</td>
-                <td className="align-middle">${t.amount || 0}</td>
-                <td className="align-middle">{t.category || "N/A"}</td>
-                <td className="align-middle">{t.type || "N/A"}</td>
-                <td className="align-middle">
+                <h6 className="card-title">{t.name || "Unnamed"}</h6>
+                <p className="card-text">
+                  <strong>Date:</strong> {t.date || "N/A"} <br />
+                  <strong>Amount:</strong> ${t.amount || 0} <br />
+                  <strong>Category:</strong> {t.category || "N/A"} <br />
+                  <strong>Type:</strong> {t.type || "N/A"}
+                </p>
+                <div>
                   <button
                     className="btn btn-warning btn-sm me-2"
                     onClick={() => startEditTransaction(t)}
@@ -716,14 +591,164 @@ function ProjectDashboard() {
                   >
                     Delete
                   </button>
-                </td>
+                </div>
               </>
             )}
-          </tr>
-        )
-      );
-    };
+          </div>
+        </div>
+      ) : (
+        // --- DESKTOP VIEW: Table Rows ---
+        <tr
+          key={t.id}
+          className={editingTransaction?.id === t.id ? "editing-row" : ""}
+        >
+          {/* Date Cell */}
+          <td className={editingTransaction?.id === t.id ? "editing-cell" : ""}>
+            {editingTransaction?.id === t.id ? (
+              <input
+                type="date"
+                value={
+                  editingTransaction.date
+                    ? new Date(editingTransaction.date)
+                        .toISOString()
+                        .split("T")[0]
+                    : ""
+                }
+                className="form-control"
+                onChange={(e) =>
+                  setEditingTransaction({
+                    ...editingTransaction,
+                    date: new Date(e.target.value).toISOString(),
+                  })
+                }
+              />
+            ) : (
+              t.date // Show date in view mode
+            )}
+          </td>
 
+          {/* Description Cell */}
+          <td className={editingTransaction?.id === t.id ? "editing-cell" : ""}>
+            {editingTransaction?.id === t.id ? (
+              <input
+                type="text"
+                value={editingTransaction.name}
+                className="form-control"
+                onChange={(e) =>
+                  setEditingTransaction({
+                    ...editingTransaction,
+                    name: e.target.value,
+                  })
+                }
+              />
+            ) : (
+              t.name || "Unnamed"
+            )}
+          </td>
+
+          {/* Amount Cell */}
+          <td className={editingTransaction?.id === t.id ? "editing-cell" : ""}>
+            {editingTransaction?.id === t.id ? (
+              <input
+                type="number"
+                value={editingTransaction.amount}
+                className="form-control"
+                onChange={(e) =>
+                  setEditingTransaction({
+                    ...editingTransaction,
+                    amount: e.target.value,
+                  })
+                }
+              />
+            ) : (
+              `$${t.amount || 0}`
+            )}
+          </td>
+
+          {/* Category Cell */}
+          <td className={editingTransaction?.id === t.id ? "editing-cell" : ""}>
+            {editingTransaction?.id === t.id ? (
+              <select
+                className="form-select"
+                value={editingTransaction.category}
+                onChange={(e) =>
+                  setEditingTransaction({
+                    ...editingTransaction,
+                    category: e.target.value,
+                  })
+                }
+              >
+                <option value="Client Payment">Client Payment</option>
+                <option value="Labour">Labour</option>
+                <option value="Materials">Materials</option>
+                <option value="Misc Expense">Misc Expense</option>
+              </select>
+            ) : (
+              t.category || "N/A"
+            )}
+          </td>
+
+          {/* Type Cell */}
+          <td className={editingTransaction?.id === t.id ? "editing-cell" : ""}>
+            {editingTransaction?.id === t.id ? (
+              <select
+                className="form-select"
+                value={editingTransaction.type}
+                onChange={(e) =>
+                  setEditingTransaction({
+                    ...editingTransaction,
+                    type: e.target.value,
+                  })
+                }
+              >
+                <option value="Cash">Cash</option>
+                <option value="VISA">VISA</option>
+                <option value="E-Transfer">E-Transfer</option>
+                <option value="Debit">Debit</option>
+              </select>
+            ) : (
+              t.type || "N/A"
+            )}
+          </td>
+
+          {/* Actions */}
+          <td className={editingTransaction?.id === t.id ? "editing-cell" : ""}>
+            {editingTransaction?.id === t.id ? (
+              <>
+                <button
+                  className="btn btn-success btn-sm me-2"
+                  onClick={saveEditTransaction}
+                >
+                  Save
+                </button>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={cancelEditTransaction}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="btn btn-warning btn-sm me-2"
+                  onClick={() => startEditTransaction(t)}
+                >
+                  Edit
+                </button>
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={() => deleteTransaction(t.id)}
+                >
+                  Delete
+                </button>
+              </>
+            )}
+          </td>
+        </tr>
+      ),
+    );
+  };
 
   return (
     <div>
@@ -910,50 +935,51 @@ function ProjectDashboard() {
           </div>
         </div>
 
-          {/* --- Transactions Section --- */}
-          <div className="card mb-4">
-        <div className="card-header bg-info text-white">
-          <h5 className="mb-0">Current Transactions</h5>
-        </div>
-        <div className="card-body">
-          {transactions.length === 0 || !project?.id ? (
-            <p className="text-center text-muted">
-              No transactions yet. Start by adding your first transaction below!
-            </p>
-          ) : (
-            <>
-            {/* --- Desktop View --- */}
-{/* --- Desktop View --- */}
-<div className="d-none d-md-block table-responsive">
-  <table className="table table-striped table-hover">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Description</th>
-        <th>Amount</th>
-        <th>Category</th>
-        <th>Type</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>{renderTransactions(false)}</tbody>
-  </table>
-</div>
+        {/* --- Transactions Section --- */}
+        <div className="card mb-4">
+          <div className="card-header bg-info text-white">
+            <h5 className="mb-0">Current Transactions</h5>
+          </div>
+          <div className="card-body">
+            {transactions.length === 0 || !project?.id ? (
+              <p className="text-center text-muted">
+                No transactions yet. Start by adding your first transaction
+                below!
+              </p>
+            ) : (
+              <>
+                {/* --- Desktop View --- */}
+                {/* --- Desktop View --- */}
+                <div className="d-none d-md-block table-responsive">
+                  <table className="table table-striped table-hover">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                        <th>Type</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>{renderTransactions(false)}</tbody>
+                  </table>
+                </div>
 
-{/* --- Mobile View --- */}
-<div className="d-block d-md-none">
-  {renderTransactions(true)}
-</div>
+                {/* --- Mobile View --- */}
+                <div className="d-block d-md-none">
+                  {renderTransactions(true)}
+                </div>
 
-              {/* --- Mobile View --- */}
-            {/* --- Mobile View --- */}
-            <div className="d-block d-md-none">
-              {renderTransactions(true)}
-            </div>
-            </>
-          )}
+                {/* --- Mobile View --- */}
+                {/* --- Mobile View --- */}
+                <div className="d-block d-md-none">
+                  {renderTransactions(true)}
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      </div>
 
         {/* --- Financial Summary - Dynamic Visibility --- */}
         {transactions
