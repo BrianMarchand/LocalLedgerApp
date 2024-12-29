@@ -756,55 +756,73 @@ function ProjectDashboard() {
     );
   };
 
+  // Calculate progress dynamically
+  const progress = project?.budget
+    ? Math.round((expenses / project.budget) * 100) // Percentage spent
+    : 0; // Default to 0% if no budget
+
   return (
     <div>
       {/* --- Navbar --- */}
-      <Navbar page="projectDashboard" />
+      <Navbar page="projectDashboard" progress={progress} />
 
       <div className="container py-4 mt-5">
-        <div className="card mb-4">
-          <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        {/* --- Project Details Card --- */}
+        <div className="card mb-4 position-relative">
+          {" "}
+          {/* Enables relative positioning for ribbon */}
+          {/* Ribbon for Status */}
+          <div
+            className={`position-absolute top-0 end-0 mt-2 me-2 badge bg-${statusColor(
+              project.status,
+            )}`}
+            style={{
+              fontSize: "0.8rem",
+              padding: "0.5rem 0.75rem",
+              borderRadius: "0.5rem",
+            }}
+          >
+            {project.status.toUpperCase()} {/* Capitalized Status */}
+          </div>
+          {/* Header */}
+          <div className="card-header bg-primary text-white">
+            <h5 className="mb-0">Project Details</h5>
+          </div>
+          {/* Body */}
+          <div className="card-body">
+            {/* Project Info */}
+            <p className="mb-2">
+              <strong>Project:</strong> {project.name}
+            </p>
+            <p className="mb-2">
+              <strong>Location:</strong> {project.location}
+            </p>
+            <p className="mb-2">
+              <strong>Budget:</strong> ${project?.budget ?? "N/A"}
+            </p>
+
+            {/* Status Dropdown - Inline */}
             <div className="d-flex align-items-center">
-              <h5 className="mb-0">Project Details</h5>
-              <span className={`badge bg-${statusColor(project.status)} ms-3`}>
-                {project.status}
-              </span>
+              <strong className="me-2">Status:</strong>
+              <select
+                className="form-select form-select-sm me-2" // Small dropdown + margin-right
+                value={project.status}
+                onChange={(e) => handleStatusChange(e.target.value)}
+                style={{
+                  width: "130px", // Set dropdown width
+                  fontSize: "0.9rem", // Match text size
+                  padding: "0.25rem 0.5rem", // Compact padding
+                }}
+              >
+                <option value="new">New</option>
+                <option value="in-progress">In Progress</option>
+                <option value="on-hold">On Hold</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+              </select>
             </div>
           </div>
-          <div className="card-body">
-            <p>
-              <strong>Project:</strong> {project.name}
-            </p>{" "}
-            {/* Display project name */}
-            <p>
-              <strong>Location:</strong> {project.location}
-            </p>{" "}
-            {/* Display project location */}
-            <p>
-              <strong>Budget:</strong> {project?.budget ?? "N/A"}
-            </p>
-            <p>
-              <strong>Status:</strong> {project.status}
-            </p>{" "}
-            {/* Display project status */}
-          </div>
-        </div>
-
-        {/* Project Status Dropdown */}
-        <div className="mb-3">
-          <label className="form-label">Project Status</label>
-          <select
-            className="form-select"
-            value={project.status}
-            onChange={(e) => handleStatusChange(e.target.value)} // Use the new function
-          >
-            <option value="new">New</option>
-            <option value="in-progress">In Progress</option>
-            <option value="on-hold">On Hold</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="pending">Pending</option>
-            <option value="completed">Completed</option>
-          </select>
         </div>
 
         {/* --- Add Transaction Form --- */}
@@ -971,13 +989,6 @@ function ProjectDashboard() {
                     <tbody>{renderTransactions(false)}</tbody>
                   </table>
                 </div>
-
-                {/* --- Mobile View --- */}
-                <div className="d-block d-md-none">
-                  {renderTransactions(true)}
-                </div>
-
-                {/* --- Mobile View --- */}
                 {/* --- Mobile View --- */}
                 <div className="d-block d-md-none">
                   {renderTransactions(true)}

@@ -8,6 +8,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import * as bootstrap from "bootstrap"; // Explicitly import Bootstrap JS
 import AddProjectModal from "../components/AddProjectModal";
+import { ProgressBar } from "react-loader-spinner";
 
 import {
   collection,
@@ -23,6 +24,10 @@ function ProjectList() {
   const navigate = useNavigate();
   const location = useLocation(); // <-- This MUST stay here at the top!
 
+  // --- Loading Animation ---
+  const [loading, setLoading] = useState(true); // Tracks loading state
+  const [showLoading, setShowLoading] = useState(true); // Adds delay for animation
+
   // --- Modal Window: Projects ---
   const [showModal, setShowModal] = useState(false);
   const handleModalOpen = () => setShowModal(true);
@@ -31,7 +36,6 @@ function ProjectList() {
   // --- State Management ---
   const [projects, setProjects] = useState([]); // Store projects from Firestore
   const [editingProject, setEditingProject] = useState(null); // Track project being edited
-  const [tempProjects, setTempProjects] = useState([]); // Store temporary projects
 
   // --- Update Status Dynamically Based on Transactions ---
   const determineStatus = (transactions) => {
@@ -50,15 +54,23 @@ function ProjectList() {
 
   // --- Fetch Projects ---
   const fetchProjects = async () => {
+    setLoading(true); // Start loading
     try {
-      const querySnapshot = await getDocs(collection(db, "projects")); // Query Firestore
+      const querySnapshot = await getDocs(collection(db, "projects"));
       const projectList = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      setProjects(projectList); // Update state
+      setProjects(projectList); // Update project state
     } catch (error) {
       console.error("Error fetching projects:", error);
+    } finally {
+      setLoading(false); // Stop loading after fetch
+
+      // Force spinner visibility for at least 1.5 seconds
+      setTimeout(() => {
+        setShowLoading(false); // Stop delay
+      }, 1500);
     }
   };
 
@@ -81,19 +93,19 @@ function ProjectList() {
   }, []);
   const { darkMode, toggleTheme } = useTheme(); // Get theme state and toggle function
 
-  // --- Add New Project (For Modal) ---
+  // --- Add New Project ---
   const addNewProject = async (newProject) => {
     try {
-      // Add project to Firestore
+      // --- Save to Firestore ---
       const docRef = await addDoc(collection(db, "projects"), newProject);
 
-      // Add to local state immediately for instant UI update
-      setProjects((prev) => [
-        ...prev,
-        { id: docRef.id, ...newProject }, // Include Firestore ID
-      ]);
+      // --- Update Actual Projects ---
+      setProjects((prev) => [...prev, { id: docRef.id, ...newProject }]);
 
-      handleModalClose(); // Close the modal
+      // --- Clear Editing State ---
+      setEditingProject(null); // <<< Remove editing project
+      setTempProjects([]); // <<< Just in case, clear any leftover temp data
+      handleModalClose(); // Close modal
     } catch (error) {
       console.error("Error adding project: ", error);
     }
@@ -122,17 +134,18 @@ function ProjectList() {
   // --- Start New Project ---
   const startNewProject = () => {
     const tempProject = {
-      id: `temp-${Date.now()}`, // Temporary ID
+      id: `temp-${Date.now()}`, // Keep this for immediate UI rendering
       name: "",
       location: "",
       budget: "",
       status: "new",
       statusDate: new Date(),
       statusNote: "",
-      isTemp: true, // Mark as temporary
+      isTemp: true,
     };
-    setEditingProject(tempProject); // Start editing mode
-    setTempProjects([tempProject]); // Add to temporary list
+
+    setEditingProject(tempProject); // Only keep this for the modal form
+    handleModalOpen(); // Open modal
   };
 
   // --- Mark as Complete ---
@@ -291,14 +304,21 @@ function ProjectList() {
     setEditingProject(null); // Exit edit mode
   };
 
-  // --- Delete Project ---
+  // --- Delete Project with Confirmation ---
   const deleteProject = async (id) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this project? This action cannot be undone.",
+    );
+    if (!confirmed) return; // Exit if user cancels
+
     try {
       const docRef = doc(db, "projects", id);
-      await deleteDoc(docRef); // Remove from Firestore
-      fetchProjects(); // Refresh project list
+      await deleteDoc(docRef); // Remove project from Firestore
+      fetchProjects(); // Refresh the project list
+      console.log("Project deleted successfully!");
     } catch (error) {
       console.error("Error deleting project:", error);
+      alert("Failed to delete project. Please try again."); // Display error if delete fails
     }
   };
 
@@ -352,7 +372,7 @@ function ProjectList() {
     });
   };
 
-  const combinedProjects = [...tempProjects, ...projects]; // Merge temp and saved projects
+  const combinedProjects = projects; // Use only saved projects
 
   // --- Tooltip Initialization ---
   useEffect(() => {
@@ -419,6 +439,30 @@ function ProjectList() {
       }
     });
   }, [location]); // Re-run whenever route changes
+
+  // --- Check Loading State ---
+  if (loading || showLoading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          flexDirection: "column",
+        }}
+      >
+        <ProgressBar
+          height="80"
+          width="200"
+          ariaLabel="progress-bar-loading"
+          borderColor="#4A90E2"
+          barColor="#4A90E2"
+        />
+        <p style={{ marginTop: "10px" }}>Loading Your Projects...</p>
+      </div>
+    );
+  }
 
   return (
     <div>
