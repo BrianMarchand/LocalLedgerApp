@@ -1,4 +1,23 @@
-# React + Vite
+# Local Ledger App – Project Tracker Dashboard
+
+## Setup Instructions
+
+1. **Clone the Repository**
+   ```bash
+   git clone <repo-url>
+# Local Ledger App – Project Tracker Dashboard
+
+## Setup Instructions
+
+1. **Clone the Repository**
+   ```bash
+   git clone <repo-url># Local Ledger App – Project Tracker Dashboard
+
+## Setup Instructions
+
+1. **Clone the Repository**
+   ```bash
+   git clone <repo-url># React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

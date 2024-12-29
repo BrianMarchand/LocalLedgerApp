@@ -5,12 +5,12 @@ import { getFirestore } from "firebase/firestore";
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
-  apiKey: "AIzaSyDQkgErcTqXqLl87E3YUrunkqPQo40CJvM",
-  authDomain: "local-unlimited-tracker.firebaseapp.com",
-  projectId: "local-unlimited-tracker",
-  storageBucket: "local-unlimited-tracker.appspot.com", // <-- Fixed typo
-  messagingSenderId: "792077217335",
-  appId: "1:792077217335:web:57fc86dacfa7db298b19b2",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 // --- Initialize Firebase ---
