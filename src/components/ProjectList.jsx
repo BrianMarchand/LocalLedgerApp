@@ -7,6 +7,7 @@ import Navbar from "../components/Navbar"; // Import the Navbar component
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import * as bootstrap from "bootstrap"; // Explicitly import Bootstrap JS
+import AddProjectModal from "../components/AddProjectModal";
 
 import {
   collection,
@@ -15,11 +16,17 @@ import {
   deleteDoc,
   doc,
   updateDoc,
+  onSnapshot,
 } from "firebase/firestore";
 
 function ProjectList() {
   const navigate = useNavigate();
   const location = useLocation(); // <-- This MUST stay here at the top!
+
+  // --- Modal Window: Projects ---
+  const [showModal, setShowModal] = useState(false);
+  const handleModalOpen = () => setShowModal(true);
+  const handleModalClose = () => setShowModal(false);
 
   // --- State Management ---
   const [projects, setProjects] = useState([]); // Store projects from Firestore
@@ -55,11 +62,62 @@ function ProjectList() {
     }
   };
 
+  // --- Project Fetching Logic For Modal ---
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "projects"), (snapshot) => {
+      const projectList = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setProjects(projectList); // Update state dynamically
+    });
+
+    return () => unsubscribe(); // Cleanup listener
+  }, []);
+
   // --- Load Data on Component Mount ---
   useEffect(() => {
     fetchProjects(); // Fetch projects initially
   }, []);
   const { darkMode, toggleTheme } = useTheme(); // Get theme state and toggle function
+
+  // --- Add New Project (For Modal) ---
+  const addNewProject = async (newProject) => {
+    try {
+      // Add project to Firestore
+      const docRef = await addDoc(collection(db, "projects"), newProject);
+
+      // Add to local state immediately for instant UI update
+      setProjects((prev) => [
+        ...prev,
+        { id: docRef.id, ...newProject }, // Include Firestore ID
+      ]);
+
+      handleModalClose(); // Close the modal
+    } catch (error) {
+      console.error("Error adding project: ", error);
+    }
+  };
+
+  // --- Edit Existing Project (For Inline Editing) ---
+  const editProject = async (updatedProject) => {
+    try {
+      // Update existing project in Firestore
+      const docRef = doc(db, "projects", updatedProject.id);
+      await updateDoc(docRef, updatedProject);
+
+      // Update local state immediately for instant UI update
+      setProjects((prev) =>
+        prev.map((proj) =>
+          proj.id === updatedProject.id ? updatedProject : proj,
+        ),
+      );
+
+      setEditingProject(null); // Exit edit mode
+    } catch (error) {
+      console.error("Error updating project: ", error);
+    }
+  };
 
   // --- Start New Project ---
   const startNewProject = () => {
@@ -146,8 +204,6 @@ function ProjectList() {
       );
       const transactions = transactionsSnapshot.docs.map((doc) => doc.data());
 
-      console.log("Fetched Transactions:", transactions); // Debugging
-
       // --- Calculate Metrics Using Dashboard Rules ---
       const totalIncome = transactions
         .filter((t) => t.category === "Client Payment") // Matches Dashboard rule
@@ -159,9 +215,6 @@ function ProjectList() {
 
       const remainingClientPayment = (project.budget || 0) - totalIncome; // Matches Dashboard rule
       const availableFunds = totalIncome - totalExpenses; // Matches Dashboard rule
-
-      console.log("Remaining Client Payment:", remainingClientPayment);
-      console.log("Available Funds:", availableFunds);
 
       // --- Check for Completed Status ---
       if (targetStatus === "completed") {
@@ -589,6 +642,11 @@ function ProjectList() {
           </div>
         )}
       </div>
+      <AddProjectModal
+        show={showModal}
+        handleClose={handleModalClose}
+        saveProject={addNewProject}
+      />
     </div>
   );
 }

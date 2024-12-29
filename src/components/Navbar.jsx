@@ -6,13 +6,14 @@ import { Dropdown } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Navbar.css";
+import AddProjectModal from "./AddProjectModal";
 
 // Firebase Imports
-import { db } from "../firebaseConfig"; // Firestore Config
+import { db } from "../firebaseConfig";
 import {
   collection,
   getDocs,
-  query, // ✅ Add this
+  query,
   orderBy,
   onSnapshot,
   updateDoc,
@@ -25,6 +26,11 @@ const Navbar = ({ page }) => {
   const { logout } = useAuth();
   const { darkMode, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // --- Modal Window: Projects ---
+  const [showModal, setShowModal] = useState(false);
+  const handleModalOpen = () => setShowModal(true);
+  const handleModalClose = () => setShowModal(false);
 
   // --- State for Search ---
   const [searchQuery, setSearchQuery] = useState("");
@@ -297,7 +303,7 @@ const Navbar = ({ page }) => {
                   <Dropdown.Menu className="dropdown-animated">
                     {/* Section: Actions */}
                     <Dropdown.Header>Actions</Dropdown.Header>
-                    <Dropdown.Item onClick={() => navigate("/new-project")}>
+                    <Dropdown.Item onClick={handleModalOpen}>
                       <i className="bi bi-plus-circle-fill me-2 text-success"></i>
                       Add New Project
                     </Dropdown.Item>
@@ -460,7 +466,6 @@ const Navbar = ({ page }) => {
           </div>
         </div>
       </nav>
-
       {/* FLOATING ACTION BUTTON */}
       {/* FLOATING ACTION BUTTON */}
       <div className="fab-container">
@@ -491,6 +496,7 @@ const Navbar = ({ page }) => {
           <i className="bi bi-arrow-up-circle"></i>
         </button>
       </div>
+      <AddProjectModal show={showModal} handleClose={handleModalClose} />;
     </>
   );
 };
