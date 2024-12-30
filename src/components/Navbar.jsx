@@ -12,6 +12,8 @@ import AddProjectModal from "./AddProjectModal";
 import SearchBar from "./SearchBar";
 import NotificationsDropdown from "./NotificationsDropdown";
 import QuickActionsDropdown from "./QuickActionsDropdown";
+import FAB from "./FAB"; // Import FAB component
+
 
 // Firebase
 import { db } from "../firebaseConfig";
@@ -180,7 +182,12 @@ const Navbar = ({ page, progress = 0 }) => {
           </div>
         </div>
       </nav>
-
+       {/* FAB */}
+       <FAB
+        icon="bi-plus-circle" // Bootstrap icon
+        variant="primary" // Bootstrap button variant
+        onClick={() => setShowModal(true)}
+      />
       {/* Add Project Modal */}
       <AddProjectModal show={showModal} handleClose={handleModalClose} />
     </>
