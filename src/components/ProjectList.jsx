@@ -9,7 +9,7 @@ import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import * as bootstrap from "bootstrap"; // Explicitly import Bootstrap JS
 import AddProjectModal from "../components/AddProjectModal";
 import { ProgressBar } from "react-loader-spinner";
-
+import { toastSuccess, toastError } from "../utils/toastNotifications"; // Import toast utilities
 import {
   collection,
   getDocs,
@@ -96,38 +96,42 @@ function ProjectList() {
   // --- Add New Project ---
   const addNewProject = async (newProject) => {
     try {
-      // --- Save to Firestore ---
       const docRef = await addDoc(collection(db, "projects"), newProject);
-
-      // --- Update Actual Projects ---
       setProjects((prev) => [...prev, { id: docRef.id, ...newProject }]);
+      setEditingProject(null);
+      setTempProjects([]);
+      handleModalClose();
 
-      // --- Clear Editing State ---
-      setEditingProject(null); // <<< Remove editing project
-      setTempProjects([]); // <<< Just in case, clear any leftover temp data
-      handleModalClose(); // Close modal
+      // Toast Notification (Success)
+      toastSuccess("Project added successfully!");
     } catch (error) {
       console.error("Error adding project: ", error);
+
+      // Toast Notification (Error)
+      toastError("Failed to add project. Please try again.");
     }
   };
 
   // --- Edit Existing Project (For Inline Editing) ---
   const editProject = async (updatedProject) => {
     try {
-      // Update existing project in Firestore
       const docRef = doc(db, "projects", updatedProject.id);
       await updateDoc(docRef, updatedProject);
 
-      // Update local state immediately for instant UI update
       setProjects((prev) =>
         prev.map((proj) =>
           proj.id === updatedProject.id ? updatedProject : proj,
         ),
       );
+      setEditingProject(null);
 
-      setEditingProject(null); // Exit edit mode
+      // Toast Notification (Success)
+      toastSuccess("Project updated successfully!");
     } catch (error) {
       console.error("Error updating project: ", error);
+
+      // Toast Notification (Error)
+      toastError("Failed to update project. Please try again.");
     }
   };
 
@@ -150,9 +154,8 @@ function ProjectList() {
 
   // --- Mark as Complete ---
   const markAsComplete = async (project) => {
-    // --- Validate Status Change Dynamically ---
     const isValid = await validateStatusChange(project, "completed");
-    if (!isValid) return; // Stop if validation fails
+    if (!isValid) return;
 
     const confirmed = window.confirm(
       "Are you sure you want to mark this project as Complete?",
@@ -160,17 +163,21 @@ function ProjectList() {
     if (!confirmed) return;
 
     try {
-      // --- Update Status in Firestore ---
       const docRef = doc(db, "projects", project.id);
       await updateDoc(docRef, {
         status: "completed",
         statusDate: new Date(),
       });
 
-      fetchProjects(); // Refresh project list
+      fetchProjects();
+
+      // Toast Notification (Success)
+      toastSuccess(`Project "${project.name}" marked as complete!`);
     } catch (error) {
       console.error("Error marking project as complete:", error);
-      alert("Failed to update status. Please try again.");
+
+      // Toast Notification (Error)
+      toastError(`Failed to mark "${project.name}" as complete.`);
     }
   };
 
@@ -202,9 +209,15 @@ function ProjectList() {
         statusDate: new Date(),
       });
 
-      fetchProjects(); // Refresh project list
+      fetchProjects();
+
+      // Toast Notification (Success)
+      toastSuccess(`Project "${project.name}" has been cancelled.`);
     } catch (error) {
       console.error("Error cancelling project:", error);
+
+      // Toast Notification (Error)
+      toastError(`Failed to cancel "${project.name}". Please try again.`);
     }
   };
 
@@ -309,16 +322,20 @@ function ProjectList() {
     const confirmed = window.confirm(
       "Are you sure you want to delete this project? This action cannot be undone.",
     );
-    if (!confirmed) return; // Exit if user cancels
+    if (!confirmed) return;
 
     try {
       const docRef = doc(db, "projects", id);
-      await deleteDoc(docRef); // Remove project from Firestore
-      fetchProjects(); // Refresh the project list
-      console.log("Project deleted successfully!");
+      await deleteDoc(docRef);
+      fetchProjects();
+
+      // Toast Notification (Success)
+      toastSuccess("Project deleted successfully!");
     } catch (error) {
       console.error("Error deleting project:", error);
-      alert("Failed to delete project. Please try again."); // Display error if delete fails
+
+      // Toast Notification (Error)
+      toastError("Failed to delete project. Please try again.");
     }
   };
 
@@ -362,8 +379,10 @@ function ProjectList() {
   const formatDate = (timestamp) => {
     if (!timestamp) return "N/A";
 
-    // Handle Firestore Timestamp or JavaScript Date
-    const date = timestamp.toDate ? timestamp.toDate() : timestamp;
+    // Check if the timestamp is a Firestore Timestamp and convert it
+    const date =
+      timestamp.toDate?.() ?? // Firestore Timestamp
+      new Date(timestamp); // Fallback for JS Date or string
 
     return date.toLocaleDateString("en-US", {
       year: "numeric",
@@ -373,72 +392,6 @@ function ProjectList() {
   };
 
   const combinedProjects = projects; // Use only saved projects
-
-  // --- Tooltip Initialization ---
-  useEffect(() => {
-    console.log("Initializing tooltips...");
-
-    // Initialize tooltips after rendering
-    requestAnimationFrame(() => {
-      const tooltipTriggerList = document.querySelectorAll(
-        '[data-bs-toggle="tooltip"]',
-      );
-      console.log("Tooltip elements found:", tooltipTriggerList);
-
-      tooltipTriggerList.forEach((tooltipTriggerEl) => {
-        const existingTooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-        if (!existingTooltip) {
-          // --- Initialize Tooltip ---
-          const newTooltip = new bootstrap.Tooltip(tooltipTriggerEl);
-
-          // --- FIX: Close Tooltip on Click or Focus Loss ---
-          tooltipTriggerEl.addEventListener("click", () => {
-            console.log("Tooltip clicked! Hiding...");
-            newTooltip.hide(); // Force hide tooltip when clicked
-          });
-
-          tooltipTriggerEl.addEventListener("blur", () => {
-            console.log("Focus lost! Hiding tooltip...");
-            newTooltip.hide(); // Hide tooltip when focus is lost
-          });
-        }
-      });
-    });
-
-    // Cleanup tooltips on unmount
-    return () => {
-      console.log("Cleaning up tooltips...");
-
-      // --- Forcefully Hide & Dispose All Tooltips ---
-      const allTooltips = document.querySelectorAll(
-        '[data-bs-toggle="tooltip"]',
-      );
-      allTooltips.forEach((tooltipTriggerEl) => {
-        const instance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-        if (instance) {
-          instance.hide(); // <<< HIDE TOOLTIP FIRST
-          console.log("Disposing Tooltip on Unmount:", tooltipTriggerEl);
-          instance.dispose(); // <<< THEN DISPOSE TOOLTIP
-        }
-      });
-    };
-  }, [projects]); // Re-run when 'projects' change
-
-  // --- Fix Stuck Tooltips on Route Changes ---
-  useEffect(() => {
-    console.log("Route changed! Cleaning up lingering tooltips...");
-
-    // Cleanup tooltips when navigating away
-    const allTooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    allTooltips.forEach((tooltipTriggerEl) => {
-      const instance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-      if (instance) {
-        instance.hide(); // <<< HIDE TOOLTIP FIRST
-        console.log("Disposing Tooltip on Route Change:", tooltipTriggerEl);
-        instance.dispose(); // <<< THEN DISPOSE TOOLTIP
-      }
-    });
-  }, [location]); // Re-run whenever route changes
 
   // --- Check Loading State ---
   if (loading || showLoading) {
@@ -585,96 +538,87 @@ function ProjectList() {
                           <br />
                           Created:{" "}
                           <span className="text-dark">
-                            {formatDate(project.statusDate)}
+                            {formatDate(project.createdAt)}{" "}
                           </span>
                         </p>
                         <hr />
 
-                        {/* --- Actions Button Group with Bootstrap Tooltips --- */}
                         <div className="btn-group d-flex flex-wrap gap-2">
-                          {/* View Project */}
-                          <button
-                            className="btn btn-primary"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="View Project" // Tooltip text
-                            onClick={() => navigate(`/project/${project.id}`)}
-                          >
-                            <i className="bi bi-eye"></i>
-                          </button>
-
-                          {/* Edit Project */}
-                          <button
-                            className="btn btn-secondary"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="Edit Project"
-                            onClick={() => setEditingProject(project)}
-                            disabled={project.status === "completed"}
-                          >
-                            <i className="bi bi-pencil-square"></i>
-                          </button>
-
-                          {/* Mark as Complete */}
-                          {project.status === "in-progress" && (
-                            <button
-                              className="btn btn-success"
-                              data-bs-toggle="tooltip"
-                              data-bs-placement="top"
-                              title="Mark as Complete"
-                              onClick={() => markAsComplete(project)}
-                            >
-                              <i className="bi bi-check-circle"></i>
-                            </button>
-                          )}
-
-                          {/* Cancel Project */}
-                          {project.status !== "completed" && (
-                            <button
-                              className="btn btn-danger"
-                              data-bs-toggle="tooltip"
-                              data-bs-placement="top"
-                              title="Cancel Project"
-                              onClick={() => {
-                                if (
-                                  validateStatusChange(project, "cancelled")
-                                ) {
-                                  cancelProject(project);
-                                }
-                              }}
-                            >
-                              <i className="bi bi-x-circle"></i>
-                            </button>
-                          )}
-
-                          {/* Delete Project */}
-                          <button
-                            className="btn btn-danger"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="Delete Project"
-                            onClick={() => deleteProject(project.id)}
-                            disabled={project.status === "completed"}
-                          >
-                            <i className="bi bi-trash"></i>
-                          </button>
-
-                          {/* Reopen Project */}
-                          {project.status === "cancelled" && (
+                          {/* Show "Reopen" button ONLY for cancelled projects */}
+                          {project.status === "cancelled" ? (
                             <button
                               className="btn btn-warning"
-                              data-bs-toggle="tooltip"
-                              data-bs-placement="top"
                               title="Reopen Project"
                               onClick={() =>
                                 setEditingProject({
                                   ...project,
-                                  status: "in-progress",
+                                  status: "in-progress", // Reset status to "in-progress"
                                 })
                               }
                             >
                               <i className="bi bi-arrow-repeat"></i>
                             </button>
+                          ) : (
+                            <>
+                              {/* View Project */}
+                              <button
+                                className="btn btn-primary"
+                                title="View Project"
+                                onClick={() =>
+                                  navigate(`/project/${project.id}`)
+                                }
+                              >
+                                <i className="bi bi-eye"></i>
+                              </button>
+
+                              {/* Edit Project */}
+                              <button
+                                className="btn btn-secondary"
+                                title="Edit Project"
+                                onClick={() => setEditingProject(project)}
+                                disabled={project.status === "completed"} // Disable if completed
+                              >
+                                <i className="bi bi-pencil-square"></i>
+                              </button>
+
+                              {/* Mark as Complete */}
+                              {project.status === "in-progress" && (
+                                <button
+                                  className="btn btn-success"
+                                  title="Mark as Complete"
+                                  onClick={() => markAsComplete(project)}
+                                >
+                                  <i className="bi bi-check-circle"></i>
+                                </button>
+                              )}
+
+                              {/* Cancel Project */}
+                              {project.status !== "completed" && (
+                                <button
+                                  className="btn btn-danger"
+                                  title="Cancel Project"
+                                  onClick={() => {
+                                    if (
+                                      validateStatusChange(project, "cancelled")
+                                    ) {
+                                      cancelProject(project);
+                                    }
+                                  }}
+                                >
+                                  <i className="bi bi-x-circle"></i>
+                                </button>
+                              )}
+
+                              {/* Delete Project */}
+                              <button
+                                className="btn btn-danger"
+                                title="Delete Project"
+                                onClick={() => deleteProject(project.id)}
+                                disabled={project.status === "completed"}
+                              >
+                                <i className="bi bi-trash"></i>
+                              </button>
+                            </>
                           )}
                         </div>
                       </>

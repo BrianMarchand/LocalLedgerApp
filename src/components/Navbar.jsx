@@ -1,40 +1,31 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useTheme } from "../context/ThemeContext";
 import { Dropdown } from "react-bootstrap";
-import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Navbar.css";
-import AddProjectModal from "./AddProjectModal";
 
-// Components
-import SearchBar from "./SearchBar";
-import NotificationsDropdown from "./NotificationsDropdown";
+// --- Key Components ---
 import QuickActionsDropdown from "./QuickActionsDropdown";
 import FAB from "./FAB";
+import AddProjectModal from "./AddProjectModal";
 
-const Navbar = ({ page, progress = 0 }) => {
+const Navbar = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const { darkMode, toggleTheme } = useTheme();
-  const [menuOpen, setMenuOpen] = useState(false);
+
+  // States
   const [scrolling, setScrolling] = useState(false);
+  const [showModal, setShowModal] = useState(false); // Modal visibility
 
-  // Modal State
-  const [showModal, setShowModal] = useState(false);
-  const handleModalClose = () => setShowModal(false);
-
-  // Track Scroll Position
+  // Scroll Effect
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolling(window.scrollY > 10);
-    };
+    const handleScroll = () => setScrolling(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Handle Logout
+  // Logout Handler
   const handleLogout = async () => {
     try {
       await logout();
@@ -44,102 +35,48 @@ const Navbar = ({ page, progress = 0 }) => {
     }
   };
 
+  // Modal Handlers
+  const handleModalOpen = () => setShowModal(true);
+  const handleModalClose = () => setShowModal(false);
+
   return (
     <>
       {/* Navbar */}
-      <nav
-        className={`navbar navbar-expand-md ${
-          darkMode ? "bg-dark navbar-dark" : "bg-light navbar-light"
-        } sticky-top shadow-sm ${scrolling ? "navbar-scroll" : ""}`}
-      >
-        <div className="container-fluid d-flex align-items-center justify-content-between">
-          {/* Logo */}
-          <a
-            className="navbar-brand d-flex align-items-center"
-            href="/"
-          >
-            <img
-              src={
-                darkMode
-                  ? "http://localledger.ca/wp-content/uploads/2024/12/LL-main-logo-dark.svg"
-                  : "http://localledger.ca/wp-content/uploads/2024/12/LL-main-logo-light.svg"
-              }
-              alt="Local Ledger Logo"
-              style={{
-                height: "70px",
-                maxWidth: "100%",
-                objectFit: "contain",
-              }}
-            />
+      <nav className={`navbar-glass ${scrolling ? "navbar-scroll" : ""}`}>
+        {/* Left: Logo */}
+        <div className="navbar-left">
+          <a href="/" className="logo">
+            LL
           </a>
+        </div>
 
-          {/* Hamburger Menu */}
-          <button
-            className="navbar-toggler"
-            type="button"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-controls="navbarNav"
-            aria-expanded={menuOpen}
-            aria-label="Toggle navigation"
-          >
-            <i className="bi bi-list"></i>
-          </button>
+        {/* Right: Actions */}
+        <div className="navbar-right d-flex align-items-center gap-3">
+          {/* Quick Actions Dropdown */}
+          <QuickActionsDropdown onAddProject={handleModalOpen} />
 
-          {/* Navbar Content */}
-          <div
-            className={`navbar-collapse ${
-              menuOpen ? "show" : ""
-            } align-items-center justify-content-end`}
-          >
-            {/* Search Bar */}
-            <div className="nav-item me-3">
-              <SearchBar />
-            </div>
-
-            {/* Theme Toggle */}
-            <div className="nav-item me-3">
-              <button
-                className="btn btn-outline-secondary"
-                onClick={toggleTheme}
-                title="Toggle Theme"
-              >
-                {darkMode ? (
-                  <i className="bi bi-moon-stars-fill"></i>
-                ) : (
-                  <i className="bi bi-brightness-high-fill"></i>
-                )}
-              </button>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="nav-item me-3">
-              <QuickActionsDropdown
-                onAddProject={() => setShowModal(true)}
-              />
-            </div>
-
-            {/* Notifications */}
-            <div className="nav-item me-3">
-              <NotificationsDropdown />
-            </div>
-
-            {/* Profile Dropdown */}
-            <Dropdown>
-              <Dropdown.Toggle variant="light" id="dropdown-basic">
-                <i className="bi bi-person-circle me-2"></i> Brian M.
-              </Dropdown.Toggle>
-              <Dropdown.Menu>
-                <Dropdown.Item onClick={() => navigate("/profile")}>
-                  View Profile
-                </Dropdown.Item>
-                <Dropdown.Item onClick={() => navigate("/settings")}>
-                  Settings
-                </Dropdown.Item>
-                <Dropdown.Divider />
-                <Dropdown.Item onClick={handleLogout}>Logout</Dropdown.Item>
-              </Dropdown.Menu>
-            </Dropdown>
-          </div>
+          {/* Profile Dropdown */}
+          <Dropdown>
+            <Dropdown.Toggle
+              variant="light"
+              id="dropdown-profile"
+              className="profile-btn"
+            >
+              <i className="bi bi-person-circle me-2"></i>Welcome, Brian
+            </Dropdown.Toggle>
+            <Dropdown.Menu className="profile-dropdown-menu">
+              <Dropdown.Item onClick={() => navigate("/profile")}>
+                <i className="bi bi-person-fill me-2"></i>Profile
+              </Dropdown.Item>
+              <Dropdown.Item onClick={() => navigate("/settings")}>
+                <i className="bi bi-gear-fill me-2"></i>Settings
+              </Dropdown.Item>
+              <Dropdown.Divider />
+              <Dropdown.Item onClick={handleLogout}>
+                <i className="bi bi-box-arrow-right me-2"></i>Logout
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
         </div>
       </nav>
 
@@ -148,7 +85,7 @@ const Navbar = ({ page, progress = 0 }) => {
         icon="bi-plus-circle"
         variant="primary"
         tooltip="Add New Project"
-        onClick={() => setShowModal(true)}
+        onClick={handleModalOpen}
       />
 
       {/* Add Project Modal */}

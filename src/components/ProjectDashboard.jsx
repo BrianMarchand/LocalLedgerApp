@@ -1,16 +1,8 @@
-// --- Import Dependencies ---
-import React, { useState, useEffect } from "react";
-import "bootstrap-icons/font/bootstrap-icons.css"; // Bootstrap icons
-import { db } from "../firebaseConfig"; // Firestone Import for data storage
-import { motion } from "framer-motion";
-import { PuffLoader } from "react-spinners";
-import { ProgressBar } from "react-loader-spinner";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { useContext } from "react";
-import { useTheme } from "../context/ThemeContext"; // Import Theme Hook
-import Navbar from "../components/Navbar"; // Import the Navbar component
+// --- React Core Imports ---
+import React, { useState, useEffect, useContext } from "react";
 
+// --- Firebase Imports ---
+import { db } from "../firebaseConfig";
 import {
   collection,
   getDocs,
@@ -20,10 +12,40 @@ import {
   updateDoc,
   getDoc,
 } from "firebase/firestore";
-import { useParams, useNavigate } from "react-router-dom"; // React Router for navigation
 
-// --- STARTUP LOG ---
-console.log("ProjectDashboard Loaded!"); // Confirm component loads
+// --- React Router Imports ---
+import { useParams, useNavigate } from "react-router-dom";
+
+// --- UI/Styling Imports ---
+import "bootstrap/dist/css/bootstrap.min.css"; // Bootstrap CSS
+import "bootstrap/dist/js/bootstrap.bundle.min.js"; // Bootstrap JS components
+import "bootstrap-icons/font/bootstrap-icons.css"; // Bootstrap Icons
+import * as bootstrap from "bootstrap"; // Explicit Bootstrap JS functions
+
+// --- Toast Notifications ---
+import {
+  ToastContainer,
+  toast,
+  Slide,
+  Zoom,
+  Flip,
+  Bounce,
+} from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+// --- Loader and Animations ---
+import { motion } from "framer-motion"; // Animations
+import { PuffLoader } from "react-spinners"; // Spinner loader
+import { ProgressBar } from "react-loader-spinner"; // Progress bar loader
+
+// --- Custom Context and Hooks ---
+import { useTheme } from "../context/ThemeContext"; // Theme Hook
+
+// --- Custom Components ---
+import Navbar from "../components/Navbar"; // Navbar component
+
+// --- Debugging Mode ---
+const DEBUG_MODE = true; // Set to false for production
 
 // --- Main Component ---
 function ProjectDashboard() {
@@ -39,7 +61,13 @@ function ProjectDashboard() {
   const [error, setError] = useState(false); // Tracks errors during fetching
   const [showLoading, setShowLoading] = useState(true); // Adds delay for spinner animation
   const [errors, setErrors] = useState({}); // Initialize an empty errors object
-
+  const [newTransaction, setNewTransaction] = useState({
+    date: new Date().toISOString().split("T")[0], // Default to today
+    name: "",
+    amount: "",
+    category: "",
+    type: "",
+  });
   // --- Fetch Project from Firestore ---
 
   const fetchProject = async () => {
@@ -207,45 +235,42 @@ function ProjectDashboard() {
   // --- Load Data When Component Mounts ---
   useEffect(() => {
     console.log("useEffect triggered with ID:", id);
-    fetchProject(); // Fetch project details
-    fetchTransactions(); // Fetch transactions
-  }, [id]);
+
+    if (id) {
+      fetchProject(); // Fetch project details
+      fetchTransactions(); // Fetch transactions
+    }
+  }, [id]); // Only run when 'id' changes
 
   // --- Check Status After Transactions Are Loaded ---
   useEffect(() => {
     if (!loading && transactions.length > 0) {
       console.log("Transactions loaded. Running status check...");
-      checkAndUpdateStatus(); // Run status check only after transactions are loaded
+      checkAndUpdateStatus(); // Status update
     }
-  }, [transactions, loading]); // Dependency on transactions and loading state
+  }, [transactions]); // Depend only on 'transactions'
 
   // --- Navigation Function ---
-  const goBack = () => navigate("/"); // Navigate back to the projects list  // --- Transaction States ---
-  const [newTransaction, setNewTransaction] = useState({
-    date: new Date().toISOString().split("T")[0], // Default to today
-    name: "",
-    amount: "",
-    category: "",
-    type: "",
-  });
+  const goBack = () => navigate("/"); // Navigate back to the projects list  //
 
   const [editingTransaction, setEditingTransaction] = useState(null); // Tracks transaction being edited
 
   // --- Validate The Transaction Form! ---
   const validateForm = () => {
-    let tempErrors = {};
+    let validationErrors = {}; // Fresh validation object
 
     // Check for empty or invalid fields
-    if (!newTransaction.date) tempErrors.date = "Date is required";
+    if (!newTransaction.date) validationErrors.date = "Date is required";
     if (!newTransaction.name.trim())
-      tempErrors.name = "Description is required";
+      validationErrors.name = "Description is required";
     if (!newTransaction.amount || Number(newTransaction.amount) <= 0)
-      tempErrors.amount = "Amount must be greater than 0";
-    if (!newTransaction.category) tempErrors.category = "Select a category";
-    if (!newTransaction.type) tempErrors.type = "Select a payment type";
+      validationErrors.amount = "Please enter an amount";
+    if (!newTransaction.category)
+      validationErrors.category = "Select a category";
+    if (!newTransaction.type) validationErrors.type = "Select a payment type";
 
-    setErrors(tempErrors); // Update error state
-    return Object.keys(tempErrors).length === 0; // Returns true if no errors
+    setErrors(validationErrors); // Apply only final errors
+    return Object.keys(validationErrors).length === 0; // True if no errors
   };
 
   // --- Add Transaction with Validation ---
@@ -344,6 +369,14 @@ function ProjectDashboard() {
       console.error("Error deleting transaction:", error);
     }
   };
+
+  // --- Check if a project is marked as completed while editing a transaction ---
+  useEffect(() => {
+    if (project?.status === "completed" && editingTransaction) {
+      setEditingTransaction(null); // Exit edit mode
+    }
+  }, [project?.status]); // Reacts to status changes
+
   // --- Financial Summary Calculations ---
 
   // --- Income ---
@@ -429,7 +462,8 @@ function ProjectDashboard() {
   console.log("Render Debug - Transactions:", transactions);
 
   // --- Loading State with Spinner Delay ---
-  if (loading || showLoading) {
+  // Handle loading and missing project data
+  if (loading || showLoading || !project) {
     return (
       <div
         style={{
@@ -585,18 +619,25 @@ function ProjectDashboard() {
                   <strong>Type:</strong> {t.type || "N/A"}
                 </p>
                 <div>
-                  <button
-                    className="btn btn-warning btn-sm me-2"
-                    onClick={() => startEditTransaction(t)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => deleteTransaction(t.id)}
-                  >
-                    Delete
-                  </button>
+                  <div className="mt-2">
+                    {!isReadOnly && (
+                      <button
+                        className="btn btn-warning btn-sm me-2"
+                        onClick={() => startEditTransaction(t)}
+                      >
+                        Edit
+                      </button>
+                    )}
+
+                    {!isReadOnly && (
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => deleteTransaction(t.id)}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
               </>
             )}
@@ -718,39 +759,44 @@ function ProjectDashboard() {
           </td>
 
           {/* Actions */}
-          <td className={editingTransaction?.id === t.id ? "editing-cell" : ""}>
-            {editingTransaction?.id === t.id ? (
-              <>
-                <button
-                  className="btn btn-success btn-sm me-2"
-                  onClick={saveEditTransaction}
-                >
-                  Save
-                </button>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={cancelEditTransaction}
-                >
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  className="btn btn-warning btn-sm me-2"
-                  onClick={() => startEditTransaction(t)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => deleteTransaction(t.id)}
-                >
-                  Delete
-                </button>
-              </>
-            )}
-          </td>
+          {!isReadOnly && (
+            <td
+              className={editingTransaction?.id === t.id ? "editing-cell" : ""}
+            >
+              {editingTransaction?.id === t.id ? (
+                <>
+                  <button
+                    className="btn btn-success btn-sm me-2"
+                    onClick={saveEditTransaction}
+                  >
+                    Save
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={cancelEditTransaction}
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="btn btn-warning btn-sm me-2"
+                    onClick={() => startEditTransaction(t)}
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={() => deleteTransaction(t.id)}
+                  >
+                    Delete
+                  </button>
+                </>
+              )}
+            </td>
+          )}
         </tr>
       ),
     );
@@ -758,8 +804,12 @@ function ProjectDashboard() {
 
   // Calculate progress dynamically
   const progress = project?.budget
-    ? Math.round((expenses / project.budget) * 100) // Percentage spent
-    : 0; // Default to 0% if no budget
+    ? Math.round((expenses / project.budget) * 100)
+    : 0;
+
+  const cappedProgress = Math.min(progress, 100); // Prevent exceeding 100%
+  // Place this after loading and project are finalized, before the return
+  const isReadOnly = project?.status === "completed";
 
   return (
     <div>
@@ -774,15 +824,10 @@ function ProjectDashboard() {
           {/* Ribbon for Status */}
           <div
             className={`position-absolute top-0 end-0 mt-2 me-2 badge bg-${statusColor(
-              project.status,
+              project?.status || "new", // Default status to 'new'
             )}`}
-            style={{
-              fontSize: "0.8rem",
-              padding: "0.5rem 0.75rem",
-              borderRadius: "0.5rem",
-            }}
           >
-            {project.status.toUpperCase()} {/* Capitalized Status */}
+            {project?.status?.toUpperCase() || "NEW"}
           </div>
           {/* Header */}
           <div className="card-header bg-primary text-white">
@@ -805,14 +850,15 @@ function ProjectDashboard() {
             <div className="d-flex align-items-center">
               <strong className="me-2">Status:</strong>
               <select
-                className="form-select form-select-sm me-2" // Small dropdown + margin-right
-                value={project.status}
+                className="form-select form-select-sm me-2"
+                value={project?.status || "new"} // Default to 'new' if project is null
                 onChange={(e) => handleStatusChange(e.target.value)}
                 style={{
-                  width: "130px", // Set dropdown width
-                  fontSize: "0.9rem", // Match text size
-                  padding: "0.25rem 0.5rem", // Compact padding
+                  width: "130px",
+                  fontSize: "0.9rem",
+                  padding: "0.25rem 0.5rem",
                 }}
+                disabled={["cancelled", "completed"].includes(project?.status)} // Handle null
               >
                 <option value="new">New</option>
                 <option value="in-progress">In Progress</option>
@@ -821,144 +867,196 @@ function ProjectDashboard() {
                 <option value="pending">Pending</option>
                 <option value="completed">Completed</option>
               </select>
+              {project.status === "cancelled" && (
+                <button
+                  className="btn btn-warning btn-sm ms-3"
+                  onClick={() => handleStatusChange("in-progress")} // Reopen project
+                >
+                  Reopen
+                </button>
+              )}
             </div>
           </div>
         </div>
 
         {/* --- Add Transaction Form --- */}
-        <div className="card mb-4">
-          <div className="card-header bg-success text-white">
-            <h5 className="mb-0">Add New Transaction</h5>
-          </div>
-          <div className="card-body">
-            <div className="row g-2 align-items-center">
-              {/* Date Input */}
-              <div className="col-lg-2 col-md-3 col-6">
-                <input
-                  type="date"
-                  className={`form-control ${errors.date ? "is-invalid" : ""}`}
-                  value={newTransaction.date}
-                  onChange={(e) =>
-                    setNewTransaction({
-                      ...newTransaction,
-                      date: e.target.value,
-                    })
-                  }
-                />
-                {errors.date && (
-                  <div className="invalid-feedback">{errors.date}</div>
-                )}
-              </div>
+        {!isReadOnly && (
+          <div className="card mb-4">
+            <div className="card-header bg-success text-white">
+              <h5 className="mb-0">Add New Transaction</h5>
+            </div>
+            <div className="card-body">
+              <div className="row g-2 align-items-center">
+                {/* Date Input */}
+                <div className="col-lg-2 col-md-3 col-6">
+                  <input
+                    type="date"
+                    className={`form-control ${errors.date ? "is-invalid" : ""}`}
+                    value={newTransaction.date}
+                    onChange={(e) => {
+                      setNewTransaction({
+                        ...newTransaction,
+                        date: e.target.value,
+                      });
 
-              {/* Description Input */}
-              <div className="col-lg-3 col-md-3 col-6">
-                <input
-                  type="text"
-                  className={`form-control ${errors.name ? "is-invalid" : ""}`}
-                  placeholder="Description"
-                  value={newTransaction.name}
-                  onChange={(e) =>
-                    setNewTransaction({
-                      ...newTransaction,
-                      name: e.target.value,
-                    })
-                  }
-                />
-                {errors.name && (
-                  <div className="invalid-feedback">{errors.name}</div>
-                )}
-              </div>
+                      // Dynamic validation
+                      setErrors((prev) => ({
+                        ...prev,
+                        date: !e.target.value ? "Date is required" : "", // Clear error if valid
+                      }));
+                    }}
+                  />
+                  {errors.date && (
+                    <div className="invalid-feedback">{errors.date}</div>
+                  )}
+                </div>
 
-              {/* Amount Input */}
-              <div className="col-lg-2 col-md-2 col-6">
-                <input
-                  type="number"
-                  className={`form-control ${errors.amount ? "is-invalid" : ""}`}
-                  placeholder="Amount"
-                  value={newTransaction.amount}
-                  onChange={(e) =>
-                    setNewTransaction({
-                      ...newTransaction,
-                      amount: e.target.value,
-                    })
-                  }
-                />
-                {errors.amount && (
-                  <div className="invalid-feedback">{errors.amount}</div>
-                )}
-              </div>
+                {/* Description Input */}
+                <div className="col-lg-3 col-md-3 col-6">
+                  <input
+                    type="text"
+                    className={`form-control ${errors.name ? "is-invalid" : ""}`}
+                    placeholder="Description"
+                    value={newTransaction.name}
+                    onChange={(e) => {
+                      const value = e.target.value;
 
-              {/* Category Dropdown */}
-              <div className="col-lg-2 col-md-3 col-6">
-                <select
-                  className={`form-select ${errors.category ? "is-invalid" : ""}`}
-                  value={newTransaction.category || ""}
-                  onChange={(e) =>
-                    setNewTransaction({
-                      ...newTransaction,
-                      category: e.target.value,
-                    })
-                  }
-                >
-                  <option value="" disabled>
-                    Select Category
-                  </option>
-                  <option value="Client Payment">Client Payment</option>
-                  <option value="Labour">Labour</option>
-                  <option value="Materials">Materials</option>
-                  <option value="Misc Expense">Misc Expense</option>
-                </select>
-                {errors.category && (
-                  <div className="invalid-feedback">{errors.category}</div>
-                )}
-              </div>
+                      // Update the description in state
+                      setNewTransaction({
+                        ...newTransaction,
+                        name: value,
+                      });
 
-              {/* Payment Type Dropdown */}
-              <div className="col-lg-2 col-md-3 col-6">
-                <select
-                  className={`form-select ${errors.type ? "is-invalid" : ""}`}
-                  value={newTransaction.type || ""}
-                  onChange={(e) =>
-                    setNewTransaction({
-                      ...newTransaction,
-                      type: e.target.value,
-                    })
-                  }
-                >
-                  <option value="" disabled>
-                    Select Type
-                  </option>
-                  <option value="Cash">Cash</option>
-                  <option value="VISA">VISA</option>
-                  <option value="E-Transfer">E-Transfer</option>
-                  <option value="Debit">Debit</option>
-                </select>
-                {errors.type && (
-                  <div className="invalid-feedback">{errors.type}</div>
-                )}
-              </div>
+                      // Dynamic validation - Add or remove error
+                      setErrors((prev) => {
+                        const updatedErrors = { ...prev };
+                        if (!value.trim())
+                          updatedErrors.name = "Description is required";
+                        else delete updatedErrors.name; // Remove error if valid
+                        return updatedErrors;
+                      });
+                    }}
+                  />
+                  {errors.name && (
+                    <div className="invalid-feedback">{errors.name}</div>
+                  )}
+                </div>
 
-              {/* Add Transaction Button */}
-              <div className="col-lg-1 col-md-3 col-6 text-end">
-                <button
-                  className="btn btn-primary btn-sm w-100"
-                  onClick={() => {
-                    if (validateForm()) {
-                      addTransaction(); // Only add if validation passes
-                    } else {
-                      notifyError(
-                        "Please fix the errors in the form before adding.",
-                      ); // Show toast if validation fails
-                    }
-                  }}
-                >
-                  Add
-                </button>
+                {/* Amount Input */}
+                <div className="col-lg-2 col-md-2 col-6">
+                  <input
+                    type="number"
+                    className={`form-control ${errors.amount ? "is-invalid" : ""}`}
+                    placeholder="Amount"
+                    value={newTransaction.amount}
+                    onChange={(e) => {
+                      const value = e.target.value;
+
+                      // Update the amount in state
+                      setNewTransaction({
+                        ...newTransaction,
+                        amount: value,
+                      });
+
+                      // Dynamic validation - Add or remove error
+                      setErrors((prev) => {
+                        const updatedErrors = { ...prev };
+                        if (!value || Number(value) <= 0)
+                          updatedErrors.amount = "Please enter an amount";
+                        else delete updatedErrors.amount; // Remove error if valid
+                        return updatedErrors;
+                      });
+                    }}
+                  />
+                  {errors.amount && (
+                    <div className="invalid-feedback">{errors.amount}</div>
+                  )}
+                </div>
+
+                {/* Category Dropdown */}
+                <div className="col-lg-2 col-md-3 col-6">
+                  <select
+                    className={`form-select ${errors.category ? "is-invalid" : ""}`}
+                    value={newTransaction.category || ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+
+                      // Update the selected category
+                      setNewTransaction({
+                        ...newTransaction,
+                        category: value,
+                      });
+
+                      // Dynamic validation - Add or remove error
+                      setErrors((prev) => {
+                        const updatedErrors = { ...prev };
+                        if (!value)
+                          updatedErrors.category = "Select a category";
+                        else delete updatedErrors.category; // Remove error if valid
+                        return updatedErrors;
+                      });
+                    }}
+                  >
+                    <option value="">Select Category</option>
+                    <option value="Client Payment">Client Payment</option>
+                    <option value="Labour">Labour</option>
+                    <option value="Materials">Materials</option>
+                    <option value="Misc Expense">Misc Expense</option>
+                  </select>
+                  {errors.category && (
+                    <div className="invalid-feedback">{errors.category}</div>
+                  )}
+                </div>
+                {/* Payment Type Dropdown */}
+                <div className="col-lg-2 col-md-3 col-6">
+                  <select
+                    className={`form-select ${errors.type ? "is-invalid" : ""}`}
+                    value={newTransaction.type || ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+
+                      // Update the selected payment type
+                      setNewTransaction({
+                        ...newTransaction,
+                        type: value,
+                      });
+
+                      // Dynamic validation - Add or remove error
+                      setErrors((prev) => {
+                        const updatedErrors = { ...prev };
+                        if (!value)
+                          updatedErrors.type = "Select a payment type";
+                        else delete updatedErrors.type; // Remove error if valid
+                        return updatedErrors;
+                      });
+                    }}
+                  >
+                    <option value="">Select Type</option>
+                    <option value="Cash">Cash</option>
+                    <option value="VISA">VISA</option>
+                    <option value="E-Transfer">E-Transfer</option>
+                    <option value="Debit">Debit</option>
+                  </select>
+                  {errors.type && (
+                    <div className="invalid-feedback">{errors.type}</div>
+                  )}
+                </div>
+
+                {/* Add Button */}
+                <div className="col-lg-1 col-md-3 col-6 text-end">
+                  {!isReadOnly && (
+                    <button
+                      className="btn btn-primary btn-sm w-100"
+                      onClick={addTransaction} // Rely on validateForm() instead
+                    >
+                      Add
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-
+        )}
         {/* --- Transactions Section --- */}
         <div className="card mb-4">
           <div className="card-header bg-info text-white">
@@ -967,12 +1065,10 @@ function ProjectDashboard() {
           <div className="card-body">
             {transactions.length === 0 || !project?.id ? (
               <p className="text-center text-muted">
-                No transactions yet. Start by adding your first transaction
-                below!
+                There are no transactions to display.
               </p>
             ) : (
               <>
-                {/* --- Desktop View --- */}
                 {/* --- Desktop View --- */}
                 <div className="d-none d-md-block table-responsive">
                   <table className="table table-striped table-hover">
@@ -983,7 +1079,8 @@ function ProjectDashboard() {
                         <th>Amount</th>
                         <th>Category</th>
                         <th>Type</th>
-                        <th>Actions</th>
+                        {!isReadOnly && <th>Actions</th>}{" "}
+                        {/* Only show if editable */}
                       </tr>
                     </thead>
                     <tbody>{renderTransactions(false)}</tbody>
@@ -999,82 +1096,57 @@ function ProjectDashboard() {
         </div>
 
         {/* --- Financial Summary - Dynamic Visibility --- */}
-        {transactions
-          .filter((t) => t.projectId === project?.id) // Filter transactions by project ID
-          .sort((a, b) => new Date(a.date) - new Date(b.date)).length > 0 && ( // Sort transactions by date // Only show summary if there are transactions
+        {transactions.length > 0 && (
           <div className="card mb-4 financial-summary-container">
             <div className="card-header bg-warning text-dark">
               <h5 className="mb-0">Financial Summary</h5>
             </div>
             <div className="card-body">
               <div className="row mb-3">
-                {/* --- Overview Section --- */}
+                {/* Overview */}
                 <div className="col-md-6">
                   <h6 className="text-primary mb-3">Overview</h6>
                   <ul className="list-unstyled mb-0">
                     <li className="mb-2">
-                      <i className="bi bi-cash-stack text-success me-2"></i>
-                      <strong className="me-2">Total Income:</strong> ${income}{" "}
-                      {/* Total Income */}
+                      <strong>Total Income:</strong> ${income}
                     </li>
                     <li className="mb-2">
-                      <i className="bi bi-credit-card text-danger me-2"></i>
-                      <strong className="me-2">Total Expenses:</strong> $
-                      {expenses} {/* Total Expenses */}
+                      <strong>Total Expenses:</strong> ${expenses}
                     </li>
                     <li className="mb-2">
-                      <i className="bi bi-wallet2 text-info me-2"></i>
-                      <strong className="me-2">Remaining Budget:</strong> $
-                      {remainingBudget} {/* Remaining Budget */}
+                      <strong>Remaining Budget:</strong> ${remainingBudget}
                     </li>
                     <li className="mb-2">
-                      <i className="bi bi-piggy-bank text-primary me-2"></i>
-                      <strong className="me-2">Available Funds:</strong> $
-                      {availableFunds} {/* Available Funds */}
+                      <strong>Available Funds:</strong> ${availableFunds}
                     </li>
                     <li className="mb-2">
-                      <i className="bi bi-cash-coin text-warning me-2"></i>
-                      <strong className="me-2">
-                        Remaining Client Payment:
-                      </strong>{" "}
-                      ${remainingClientPayment} {/* Remaining Payments */}
+                      <strong>Remaining Client Payment:</strong> $
+                      {remainingClientPayment}
                     </li>
                   </ul>
                 </div>
 
-                {/* --- Payment Breakdown Section --- */}
+                {/* Payment Breakdown */}
                 <div className="col-md-6">
                   <h6 className="text-success mb-3">Payment Breakdown</h6>
                   <ul className="list-unstyled mb-0">
                     <li className="mb-2">
-                      <i className="bi bi-cash text-success me-2"></i>
-                      <strong className="me-2">Cash Received:</strong> $
-                      {cashReceived} {/* Cash Income */}
+                      <strong>Cash Received:</strong> ${cashReceived}
                     </li>
                     <li className="mb-2">
-                      <i className="bi bi-cash-coin text-danger me-2"></i>
-                      <strong className="me-2">Cash Spent:</strong> ${cashSpent}{" "}
-                      {/* Cash Expenses */}
+                      <strong>Cash Spent:</strong> ${cashSpent}
                     </li>
                     <li className="mb-2">
-                      <i className="bi bi-credit-card text-danger me-2"></i>
-                      <strong className="me-2">VISA Expenses:</strong> $
-                      {visaExpenses} {/* VISA Expenses */}
+                      <strong>VISA Expenses:</strong> ${visaExpenses}
                     </li>
                     <li className="mb-2">
-                      <i className="bi bi-bank text-danger me-2"></i>
-                      <strong className="me-2">Debit Expenses:</strong> $
-                      {debitExpenses} {/* Debit Expenses */}
+                      <strong>Debit Expenses:</strong> ${debitExpenses}
                     </li>
                     <li className="mb-2">
-                      <i className="bi bi-cash text-success me-2"></i>
-                      <strong className="me-2">E-Transfer Income:</strong> $
-                      {eTransferIncome} {/* E-Transfer Income */}
+                      <strong>E-Transfer Income:</strong> ${eTransferIncome}
                     </li>
                     <li className="mb-2">
-                      <i className="bi bi-arrow-down-right-circle text-danger me-2"></i>
-                      <strong className="me-2">E-Transfer Expenses:</strong> $
-                      {eTransferExpenses} {/* E-Transfer Expenses */}
+                      <strong>E-Transfer Expenses:</strong> ${eTransferExpenses}
                     </li>
                   </ul>
                 </div>
@@ -1082,7 +1154,19 @@ function ProjectDashboard() {
             </div>
           </div>
         )}
-        <ToastContainer position="top-right" autoClose={3000} />
+        <ToastContainer
+          position="top-center"
+          autoClose={3000}
+          hideProgressBar={true}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+          transition={Bounce}
+        />
       </div>
     </div>
   );

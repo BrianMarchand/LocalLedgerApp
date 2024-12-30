@@ -154,6 +154,7 @@ li {
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
+  overflow: visible !important; /* Allow tooltips to display outside */
 }
 
 .project-grid {
@@ -275,32 +276,41 @@ li {
   max-height: 250px; /* Enable scrolling only for long lists */
   overflow-y: auto; /* Scrollbar appears if needed */
 }
-/* --- Tooltip Custom Styles --- */
-.tooltip {
-  z-index: 9999 !important; /* Always on top */
+
+/* Enable tooltips on disabled buttons */
+button[disabled] {
+  pointer-events: auto; /* Re-enable pointer events */
+  cursor: not-allowed; /* Show disabled cursor */
 }
 
-.tooltip-inner {
-  background-color: #4a90e2 !important; /* Blue background */
+button[disabled]::after {
+  pointer-events: none; /* Prevent tooltips from blocking clicks */
+}
+
+/* --- Scoped Styles for Buttons in Project Cards --- */
+.project-card-btn + .tooltip > .tooltip-inner {
+  background-color: #ff7f50 !important; /* Coral background for project cards */
   color: white !important; /* White text */
-  font-size: 14px !important; /* Larger font */
-  padding: 8px 12px !important; /* Padding */
-  border-radius: 6px !important; /* Rounded corners */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important; /* Shadow */
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important; /* Shadow */
 }
 
-.bs-tooltip-top .tooltip-arrow::before {
-  border-top-color: #4a90e2 !important; /* Top arrow color */
+.project-card-btn + .tooltip > .tooltip-arrow::before {
+  border-color: #ff7f50 transparent transparent transparent !important; /* Coral arrow */
 }
 
-.bs-tooltip-bottom .tooltip-arrow::before {
-  border-bottom-color: #4a90e2 !important; /* Bottom arrow color */
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
-
-.bs-tooltip-start .tooltip-arrow::before {
-  border-left-color: #4a90e2 !important; /* Left arrow color */
-}
-
-.bs-tooltip-end .tooltip-arrow::before {
-  border-right-color: #4a90e2 !important; /* Right arrow color */
+button:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.6; /* Optional: Visual cue for disabled state */
 }

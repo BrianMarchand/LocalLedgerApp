@@ -1,10 +1,10 @@
-import React from "react";
-import "bootstrap/dist/css/bootstrap.min.css";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import React, { useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css"; // Bootstrap CSS
-import "bootstrap/dist/js/bootstrap.bundle.min.js"; // Bootstrap JS + Popper.js
+import "bootstrap/dist/js/bootstrap.bundle.min.js"; // Bootstrap JS
+import "./index.css"; // Custom styles should load last to override Bootstrap
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { ToastContainer, Slide } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import ProjectList from "./components/ProjectList";
 import ProjectDashboard from "./components/ProjectDashboard";
 import Signup from "./pages/Signup";
@@ -18,13 +18,22 @@ function App() {
       <Router>
         <div className="app-container">
           {/* Toast Container */}
-          <ToastContainer position="top-center" autoClose={3000} />
+          <ToastContainer
+            position="top-center"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="colored"
+            transition={Slide}
+          />
           <Routes>
-            {/* Existing Routes */}
             <Route path="/" element={<ProjectList />} />
             <Route path="/project/:id" element={<ProjectDashboard />} />
-
-            {/* Authentication Routes */}
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<Dashboard />} />
