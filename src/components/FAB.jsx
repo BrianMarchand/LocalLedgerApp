@@ -1,12 +1,18 @@
 import React from "react";
 import PropTypes from "prop-types";
+import { OverlayTrigger, Tooltip } from "react-bootstrap";
 
-const FAB = ({ onClick, icon, variant = "primary" }) => {
+const FAB = ({ onClick, icon, variant = "primary", tooltip }) => {
   return (
     <div className="fab-container">
-      <button className={`fab-btn btn btn-${variant}`} onClick={onClick}>
-        <i className={`bi ${icon}`}></i>
-      </button>
+      <OverlayTrigger
+        placement="left" // Tooltip position
+        overlay={<Tooltip id="fab-tooltip">{tooltip}</Tooltip>}
+      >
+        <button className={`fab-btn btn btn-${variant}`} onClick={onClick}>
+          <i className={`bi ${icon}`}></i>
+        </button>
+      </OverlayTrigger>
     </div>
   );
 };
@@ -14,8 +20,9 @@ const FAB = ({ onClick, icon, variant = "primary" }) => {
 // Props Validation
 FAB.propTypes = {
   onClick: PropTypes.func.isRequired,
-  icon: PropTypes.string.isRequired, // Example: "bi-plus-circle"
-  variant: PropTypes.string, // Bootstrap variants: "primary", "success", "warning"
+  icon: PropTypes.string.isRequired,
+  variant: PropTypes.string,
+  tooltip: PropTypes.string, // Tooltip text
 };
 
 export default FAB;

@@ -45,6 +45,17 @@ const Navbar = ({ page, progress = 0 }) => {
     </button>
   );
 
+  const [scrolling, setScrolling] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      console.log("ScrollY:", window.scrollY);
+      setScrolling(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   // Dynamic Navigation Buttons
   const renderNavButtons = () => {
     if (page === "dashboard") {
@@ -81,11 +92,11 @@ const Navbar = ({ page, progress = 0 }) => {
 
   return (
     <>
-      <nav
-        className={`navbar navbar-expand-lg ${
-          darkMode ? "bg-dark navbar-dark" : "bg-light navbar-light"
-        } sticky-top shadow-sm`}
-      >
+<nav
+  className={`navbar navbar-expand-lg ${
+    darkMode ? "bg-dark navbar-dark" : "bg-light navbar-light"
+  } sticky-top shadow-sm ${scrolling ? "navbar-scroll" : ""}`}
+>
         {/* --- Progress Bar --- */}
         <div
           className="progress"
@@ -184,10 +195,11 @@ const Navbar = ({ page, progress = 0 }) => {
       </nav>
        {/* FAB */}
        <FAB
-        icon="bi-plus-circle" // Bootstrap icon
-        variant="primary" // Bootstrap button variant
-        onClick={() => setShowModal(true)}
-      />
+  icon="bi-plus-circle" // Bootstrap icon
+  variant="primary" // Bootstrap button variant
+  tooltip="Add New Project" // Tooltip text
+  onClick={() => setShowModal(true)} // Opens modal
+/>
       {/* Add Project Modal */}
       <AddProjectModal show={showModal} handleClose={handleModalClose} />
     </>
