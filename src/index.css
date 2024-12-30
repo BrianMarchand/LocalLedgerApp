@@ -1,59 +1,192 @@
-/* ============================= */
-/* --- VARIABLES & RESETS --- */
-/* ============================= */
-:root {
-  --primary-color: #007bff;
-  --secondary-color: #4a90e2;
-  --white-color: #fff;
-  --hover-bg: #0056b3;
-  --navbar-height: 80px;
-}
-
-/* --- Global Resets --- */
+/* --- Global Resets and Defaults --- */
 html,
 body {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%;
   overflow-x: hidden; /* Prevent horizontal scrollbars */
-  overflow-y: auto;   /* Enable vertical scroll */
 }
 
-/* Ensure no extra spacing above navbar */
 body {
   font-family: Arial, sans-serif;
+  padding: 20px;
   background-color: #f9f9f9;
   transition:
     background-color 0.3s ease,
     color 0.3s ease;
 }
 
-/* ============================= */
-/* --- LAYOUT --- */
-/* ============================= */
-.content {
-  padding-top: var(--navbar-height); /* Adjust for navbar height */
+h1,
+h2,
+h3 {
+  margin-bottom: 10px;
 }
 
-/* ============================= */
-/* --- NAVBAR --- */
-/* ============================= */
-.navbar {
-  position: sticky !important;
+/* --- Buttons --- */
+button {
+  cursor: pointer;
+  border: 1px solid #007bff;
+  color: white;
+  background-color: #007bff;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 14px;
+}
+
+button:hover {
+  background-color: #0056b3;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.table button:hover {
+  transform: scale(1.1); /* Slight zoom effect */
+}
+
+/* --- Forms and Inputs --- */
+input,
+select {
+  margin: 5px;
+  padding: 8px;
+  font-size: 14px;
+}
+
+.table input,
+.table select {
+  width: 100%; /* Match cell width */
+  padding: 6px;
+  box-sizing: border-box; /* Prevent overflow */
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.table input:focus,
+.table select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Focus glow */
+}
+
+/* --- Lists --- */
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  padding: 10px;
+  margin: 5px 0;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+/* --- Tables --- */
+.table th,
+.table td {
+  vertical-align: middle; /* Align content vertically */
+  text-align: left; /* Align text to the left */
+  padding: 8px;
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+/* Force uniform widths for columns */
+.table th:nth-child(1),
+.table td:nth-child(1) {
+  width: 15%; /* Date */
+}
+.table th:nth-child(2),
+.table td:nth-child(2) {
+  width: 25%; /* Description */
+}
+.table th:nth-child(3),
+.table td:nth-child(3) {
+  width: 15%; /* Amount */
+}
+.table th:nth-child(4),
+.table td:nth-child(4) {
+  width: 20%; /* Category */
+}
+.table th:nth-child(5),
+.table td:nth-child(5) {
+  width: 15%; /* Type */
+}
+.table th:nth-child(6),
+.table td:nth-child(6) {
+  width: 10%; /* Actions */
+}
+
+/* Highlight editing row */
+.table tr.editing,
+.editing-row {
+  background-color: #f1f1f1; /* Light gray background */
+  box-shadow: inset 4px 0 0 #007bff; /* Blue border effect */
+  transition: all 0.3s ease-in-out;
+}
+
+/* Highlight editing cells */
+.editing-cell {
+  background-color: #e9f7ff !important; /* Light blue background for edit mode */
+  transition: all 0.3s ease-in-out;
+}
+
+/* Enable horizontal scrolling for mobile */
+.table-responsive {
+  overflow-x: auto;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .table th,
+  .table td {
+    font-size: 12px;
+    padding: 6px;
+  }
+}
+
+/* --- Project Cards and Grids --- */
+.container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.project-card {
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+
+.project-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Sticky Navbar --- */
+.sticky-navbar {
+  position: fixed;
   top: 0;
-  z-index: 1050 !important;
-  width: 100vw;
-  padding: 0 !important;
-  margin: 0; /* Ensure no gaps */
-  box-sizing: border-box;
+  left: 0;
+  width: 100%;
+  z-index: 1030;
+  padding: 0.5rem 1rem;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
 }
 
-/* Remove default container padding */
-.navbar .container-fluid {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
+.navbar-padding {
+  padding-top: calc(var(--navbar-height, 4rem) + 1rem);
 }
 
 /* Navbar Logo */
@@ -63,21 +196,13 @@ body {
   object-fit: contain;
 }
 
-/* Mobile Navbar */
 @media (max-width: 768px) {
-  .navbar {
-    padding: 0.5rem;
-    height: 60px;
-  }
-
   .navbar-brand img {
     height: 50px;
   }
 }
 
-/* ============================= */
-/* --- FLOATING ACTION BUTTON (FAB) --- */
-/* ============================= */
+/* --- Floating Action Buttons (FAB) --- */
 .fab-container {
   position: fixed;
   bottom: 20px;
@@ -104,40 +229,78 @@ body {
   transform: scale(1.1);
 }
 
-/* ============================= */
-/* --- BUTTONS --- */
-/* ============================= */
-button {
-  cursor: pointer;
-  border: 1px solid var(--primary-color);
-  color: var(--white-color);
-  background-color: var(--primary-color);
-  border-radius: 4px;
-  padding: 8px;
-  font-size: 14px;
-  transition: all 0.3s ease;
+.fab-btn.btn-success i,
+.fab-btn.btn-warning i,
+.fab-btn.btn-primary i {
+  color: white;
 }
 
-button:hover {
-  background-color: var(--hover-bg);
-  transform: scale(1.1); /* Slight zoom effect */
+/* --- Cards with Overlays --- */
+.card-cancelled {
+  position: relative;
+  pointer-events: none;
 }
 
-/* ============================= */
-/* --- TOOLTIP CUSTOM STYLES --- */
-/* ============================= */
+.card-cancelled::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1;
+}
+
+.card-cancelled .btn-reopen {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+.dropdown-menu {
+  max-height: none; /* Remove fixed height */
+  overflow: visible; /* No scrolling unless required */
+  z-index: 1050; /* Always above other elements */
+}
+
+.dropdown-menu.dropdown-scrollable {
+  max-height: 250px; /* Enable scrolling only for long lists */
+  overflow-y: auto; /* Scrollbar appears if needed */
+}
+/* --- Tooltip Custom Styles --- */
+.tooltip {
+  z-index: 9999 !important; /* Always on top */
+}
+
 .tooltip-inner {
-  background-color: var(--secondary-color) !important;
-  color: var(--white-color) !important;
-  padding: 8px 12px !important;
-  border-radius: 6px !important;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  background-color: #4a90e2 !important; /* Blue background */
+  color: white !important; /* White text */
+  font-size: 14px !important; /* Larger font */
+  padding: 8px 12px !important; /* Padding */
+  border-radius: 6px !important; /* Rounded corners */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important; /* Shadow */
 }
 
 .bs-tooltip-top .tooltip-arrow::before {
-  border-top-color: var(--secondary-color) !important;
+  border-top-color: #4a90e2 !important; /* Top arrow color */
 }
 
 .bs-tooltip-bottom .tooltip-arrow::before {
-  border-bottom-color: var(--secondary-color) !important;
+  border-bottom-color: #4a90e2 !important; /* Bottom arrow color */
+}
+
+.bs-tooltip-start .tooltip-arrow::before {
+  border-left-color: #4a90e2 !important; /* Left arrow color */
+}
+
+.bs-tooltip-end .tooltip-arrow::before {
+  border-right-color: #4a90e2 !important; /* Right arrow color */
 }

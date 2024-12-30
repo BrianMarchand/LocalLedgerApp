@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { Dropdown } from "react-bootstrap";
@@ -12,73 +12,27 @@ import AddProjectModal from "./AddProjectModal";
 import SearchBar from "./SearchBar";
 import NotificationsDropdown from "./NotificationsDropdown";
 import QuickActionsDropdown from "./QuickActionsDropdown";
-import FAB from "./FAB"; // Import FAB component
-
-
-// Firebase
-import { db } from "../firebaseConfig";
-import { collection, getDocs } from "firebase/firestore";
+import FAB from "./FAB";
 
 const Navbar = ({ page, progress = 0 }) => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { logout } = useAuth();
   const { darkMode, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolling, setScrolling] = useState(false);
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
   const handleModalClose = () => setShowModal(false);
 
-  // Theme Toggle Button
-  const themeToggleButton = (
-    <button
-      className="btn btn-outline-secondary"
-      onClick={toggleTheme}
-      title="Toggle Theme"
-    >
-      {darkMode ? (
-        <i className="bi bi-moon-stars-fill"></i>
-      ) : (
-        <i className="bi bi-brightness-high-fill"></i>
-      )}
-    </button>
-  );
-
-  const [scrolling, setScrolling] = useState(false);
-
+  // Track Scroll Position
   useEffect(() => {
     const handleScroll = () => {
-      console.log("ScrollY:", window.scrollY);
       setScrolling(window.scrollY > 10);
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  // Dynamic Navigation Buttons
-  const renderNavButtons = () => {
-    if (page === "dashboard") {
-      return (
-        <button
-          className="btn btn-outline-primary"
-          onClick={() => navigate("/")}
-        >
-          <i className="bi bi-arrow-left me-1"></i> View Projects
-        </button>
-      );
-    } else if (page === "projectDashboard") {
-      return (
-        <button
-          className="btn btn-outline-primary"
-          onClick={() => navigate("/dashboard")}
-        >
-          <i className="bi bi-arrow-left me-1"></i> Back to Dashboard
-        </button>
-      );
-    }
-    return null;
-  };
 
   // Handle Logout
   const handleLogout = async () => {
@@ -92,39 +46,16 @@ const Navbar = ({ page, progress = 0 }) => {
 
   return (
     <>
-<nav
-  className={`navbar navbar-expand-lg ${
-    darkMode ? "bg-dark navbar-dark" : "bg-light navbar-light"
-  } sticky-top shadow-sm ${scrolling ? "navbar-scroll" : ""}`}
->
-        {/* --- Progress Bar --- */}
-        <div
-          className="progress"
-          style={{
-            height: "4px",
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 1030, // Above navbar
-          }}
-        >
-          <div
-            className="progress-bar bg-primary"
-            role="progressbar"
-            style={{
-              width: `${progress}%`,
-              transition: "width 0.4s ease-in-out",
-            }}
-            aria-valuenow={progress}
-            aria-valuemin="0"
-            aria-valuemax="100"
-          ></div>
-        </div>
-        <div className="container-fluid py-3">
+      {/* Navbar */}
+      <nav
+        className={`navbar navbar-expand-md ${
+          darkMode ? "bg-dark navbar-dark" : "bg-light navbar-light"
+        } sticky-top shadow-sm ${scrolling ? "navbar-scroll" : ""}`}
+      >
+        <div className="container-fluid d-flex align-items-center justify-content-between">
           {/* Logo */}
           <a
-            className={`navbar-brand ${darkMode ? "text-white" : "text-dark"}`}
+            className="navbar-brand d-flex align-items-center"
             href="/"
           >
             <img
@@ -142,64 +73,84 @@ const Navbar = ({ page, progress = 0 }) => {
             />
           </a>
 
-          {/* Mobile Menu Toggle */}
+          {/* Hamburger Menu */}
           <button
             className="navbar-toggler"
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
+            aria-controls="navbarNav"
+            aria-expanded={menuOpen}
+            aria-label="Toggle navigation"
           >
             <i className="bi bi-list"></i>
           </button>
 
-          <div className={`collapse navbar-collapse ${menuOpen ? "show" : ""}`}>
-            <ul className="navbar-nav ms-auto align-items-center">
-              {/* Search Bar */}
-              <li className="nav-item me-3">
-                <SearchBar />
-              </li>
+          {/* Navbar Content */}
+          <div
+            className={`navbar-collapse ${
+              menuOpen ? "show" : ""
+            } align-items-center justify-content-end`}
+          >
+            {/* Search Bar */}
+            <div className="nav-item me-3">
+              <SearchBar />
+            </div>
 
-              {/* Theme Toggle */}
-              <li className="nav-item me-3">{themeToggleButton}</li>
+            {/* Theme Toggle */}
+            <div className="nav-item me-3">
+              <button
+                className="btn btn-outline-secondary"
+                onClick={toggleTheme}
+                title="Toggle Theme"
+              >
+                {darkMode ? (
+                  <i className="bi bi-moon-stars-fill"></i>
+                ) : (
+                  <i className="bi bi-brightness-high-fill"></i>
+                )}
+              </button>
+            </div>
 
-              {/* Quick Actions */}
-              <li className="nav-item me-3">
-                <QuickActionsDropdown onAddProject={() => setShowModal(true)} />
-              </li>
+            {/* Quick Actions */}
+            <div className="nav-item me-3">
+              <QuickActionsDropdown
+                onAddProject={() => setShowModal(true)}
+              />
+            </div>
 
-              {/* Notifications */}
-              <li className="nav-item me-3">
-                <NotificationsDropdown />
-              </li>
+            {/* Notifications */}
+            <div className="nav-item me-3">
+              <NotificationsDropdown />
+            </div>
 
-              {/* Profile */}
-              <li className="nav-item dropdown">
-                <Dropdown>
-                  <Dropdown.Toggle variant="light" id="dropdown-basic">
-                    <i className="bi bi-person-circle me-2"></i> Brian M.
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    <Dropdown.Item onClick={() => navigate("/profile")}>
-                      View Profile
-                    </Dropdown.Item>
-                    <Dropdown.Item onClick={() => navigate("/settings")}>
-                      Settings
-                    </Dropdown.Item>
-                    <Dropdown.Divider />
-                    <Dropdown.Item onClick={handleLogout}>Logout</Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
-              </li>
-            </ul>
+            {/* Profile Dropdown */}
+            <Dropdown>
+              <Dropdown.Toggle variant="light" id="dropdown-basic">
+                <i className="bi bi-person-circle me-2"></i> Brian M.
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item onClick={() => navigate("/profile")}>
+                  View Profile
+                </Dropdown.Item>
+                <Dropdown.Item onClick={() => navigate("/settings")}>
+                  Settings
+                </Dropdown.Item>
+                <Dropdown.Divider />
+                <Dropdown.Item onClick={handleLogout}>Logout</Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
           </div>
         </div>
       </nav>
-       {/* FAB */}
-       <FAB
-  icon="bi-plus-circle" // Bootstrap icon
-  variant="primary" // Bootstrap button variant
-  tooltip="Add New Project" // Tooltip text
-  onClick={() => setShowModal(true)} // Opens modal
-/>
+
+      {/* Floating Action Button */}
+      <FAB
+        icon="bi-plus-circle"
+        variant="primary"
+        tooltip="Add New Project"
+        onClick={() => setShowModal(true)}
+      />
+
       {/* Add Project Modal */}
       <AddProjectModal show={showModal} handleClose={handleModalClose} />
     </>
