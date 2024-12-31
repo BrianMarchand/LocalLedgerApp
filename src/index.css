@@ -3,11 +3,22 @@ html,
 body {
   margin: 0;
   padding: 0;
+  height: 100%;
   width: 100%;
   overflow-x: hidden; /* Prevent horizontal scrollbars */
 }
 
 body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+
+  /* Background Image */
+  background-image: url('/images/bg-pale-blue.jpg');
+  background-size: cover;       /* Cover the entire page without stretching */
+  background-repeat: no-repeat; /* Prevent tiling */
+  background-position: center;  /* Center the image */
+  background-attachment: fixed; /* Fixed background while scrolling */
   font-family: Arial, sans-serif;
   padding: 20px;
   background-color: #f9f9f9;
@@ -15,6 +26,12 @@ body {
     background-color 0.3s ease,
     color 0.3s ease;
 }
+
+/* Apply styles to the root container */
+#root, #app {
+  height: 100%; /* Ensures the content stretches the full height */
+}
+
 
 h1,
 h2,

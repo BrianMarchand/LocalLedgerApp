@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Dropdown } from "react-bootstrap";
@@ -6,6 +6,7 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import "../Navbar.css";
 
 // --- Key Components ---
+import { ReactSVG } from "react-svg"; // <-- Import react-svg
 import QuickActionsDropdown from "./QuickActionsDropdown";
 import FAB from "./FAB";
 import AddProjectModal from "./AddProjectModal";
@@ -17,7 +18,7 @@ const Navbar = () => {
   // States
   const [scrolling, setScrolling] = useState(false);
   const [showModal, setShowModal] = useState(false); // Modal visibility
-
+ 
   // Scroll Effect
   useEffect(() => {
     const handleScroll = () => setScrolling(window.scrollY > 10);
@@ -46,7 +47,11 @@ const Navbar = () => {
         {/* Left: Logo */}
         <div className="navbar-left">
           <a href="/" className="logo">
-            LL
+            {/* Render SVG Logo */}
+            <ReactSVG
+  src="/assets/svg/local-ledger-logo-rect-outline.svg" // Public folder path
+  className="logo-svg"
+/>
           </a>
         </div>
 
@@ -57,26 +62,27 @@ const Navbar = () => {
 
           {/* Profile Dropdown */}
           <Dropdown>
-            <Dropdown.Toggle
-              variant="light"
-              id="dropdown-profile"
-              className="profile-btn"
-            >
-              <i className="bi bi-person-circle me-2"></i>Welcome, Brian
-            </Dropdown.Toggle>
-            <Dropdown.Menu className="profile-dropdown-menu">
-              <Dropdown.Item onClick={() => navigate("/profile")}>
-                <i className="bi bi-person-fill me-2"></i>Profile
-              </Dropdown.Item>
-              <Dropdown.Item onClick={() => navigate("/settings")}>
-                <i className="bi bi-gear-fill me-2"></i>Settings
-              </Dropdown.Item>
-              <Dropdown.Divider />
-              <Dropdown.Item onClick={handleLogout}>
-                <i className="bi bi-box-arrow-right me-2"></i>Logout
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
+  <Dropdown.Toggle
+    variant="light"
+    id="dropdown-profile"
+    className="profile-btn dropdown-toggle"
+  >
+    <i className="bi bi-person-circle"></i> {/* Icon Always Visible */}
+    <span className="toggle-text">Welcome, Brian</span> {/* Text Hidden on Mobile */}
+  </Dropdown.Toggle>
+  <Dropdown.Menu className="profile-dropdown-menu">
+    <Dropdown.Item onClick={() => navigate("/profile")}>
+      <i className="bi bi-person-fill me-2"></i>Profile
+    </Dropdown.Item>
+    <Dropdown.Item onClick={() => navigate("/settings")}>
+      <i className="bi bi-gear-fill me-2"></i>Settings
+    </Dropdown.Item>
+    <Dropdown.Divider />
+    <Dropdown.Item onClick={handleLogout}>
+      <i className="bi bi-box-arrow-right me-2"></i>Logout
+    </Dropdown.Item>
+  </Dropdown.Menu>
+</Dropdown>
         </div>
       </nav>
 

@@ -4,145 +4,214 @@
 
 /* Navbar with Glass Effect */
 .navbar-glass {
-  position: sticky; /* Fixed at the top while scrolling */
+  position: sticky;
   top: 0;
   width: 100%;
-  height: 70px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1.5rem;
-  background: rgba(248, 249, 250, 0.8); /* Pale gray background */
-  backdrop-filter: blur(10px); /* Glass effect with blur */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-  z-index: 1050; /* High z-index to stay above other content */
+  padding: 0 1.6rem;
+  border-radius: 8px;
+  background: rgba(248, 249, 250, 0.8);
+  backdrop-filter: blur(30px);
+  box-shadow: 0 4px 12px rgba(5, 95, 192, 0.1);
+  z-index: 1050;
   transition: all 0.3s ease-in-out;
 }
 
 /* Navbar style when scrolling */
 .navbar-scroll {
-  background: rgba(248, 249, 250, 0.95); /* Solid background after scroll */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Stronger shadow */
-}
-
-/* Logo */
-.navbar-left .logo {
-  font-size: 1.8rem;
-  font-weight: bold;
-  color: #007bff; /* Primary blue */
-  text-decoration: none;
-  transition: transform 0.3s ease;
-}
-
-/* Logo Hover Effect */
-.navbar-left .logo:hover {
-  transform: scale(1.1); /* Slight zoom on hover */
+  background: rgba(248, 249, 250, 0.95);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* ================================
-   Unified Dropdown Menu Styles
+   Logo Styling
+================================ */
+
+.logo-svg svg {
+  width: 55px;
+  height: auto;
+  transition: transform 0.3s ease-in-out;
+}
+
+/* Hover Effect */
+.logo-svg:hover svg {
+  transform: scale(1.1);
+  fill: #1e40af;
+}
+
+/* ================================
+   Dropdown Toggle
+================================ */
+
+/* Toggle Button */
+.dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  transition: all 0.2s ease-in-out;
+  border-radius: 8px;
+  background-color: #D2F7F7;
+  font-weight: 500;
+  color: #495057;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+}
+
+/* Hover and Focus Effects */
+.dropdown-toggle:hover,
+.dropdown-toggle:focus,
+.dropdown-toggle:active,
+.dropdown-toggle.show {
+  background-color: #C3ECF7 !important;
+  color: #495057 !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Hide Text on Mobile */
+@media (max-width: 768px) {
+  .dropdown-toggle .toggle-text {
+    display: none; /* Hide text inside toggle */
+  }
+
+  .dropdown-toggle i {
+    font-size: 1.5rem; /* Larger icons for mobile tap targets */
+  }
+
+  .profile-btn {
+    padding: 0.5rem;
+  }
+}
+
+/* ================================
+   Dropdown Menu Styles
 ================================ */
 
 /* Dropdown Menu */
 .dropdown-menu {
-  border-radius: 8px; /* Rounded corners */
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Soft shadow */
-  padding: 10px;
+  margin-top: 0.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
   border: none;
-  background-color: #f8f9fa; /* Pale gray background */
+  background-color: #f8f9fa;
+  outline: none !important;
+  width: auto;
+  min-width: 220px; /* Prevent squishing */
+  max-width: 300px; /* Optional max width for scaling */
+  box-sizing: border-box;
+  white-space: nowrap; /* Prevent items from wrapping */
+  overflow: hidden; /* Hide overflow */
+}
+
+/* Dropdown Menu Alignment */
+.dropdown-menu-left {
+  left: 0;
+  right: auto;
+}
+
+.dropdown-menu-right {
+  right: 0;
+  left: auto;
 }
 
 /* Dropdown Items */
 .dropdown-item {
-  padding: 0.75rem 1rem; /* Spacing inside items */
-  border-radius: 5px; /* Rounded corners */
-  transition: all 0.2s ease-in-out; /* Smooth hover animation */
-  display: flex; /* Align icon and text */
+  padding: 0.5rem 1rem;
+  display: flex;
   align-items: center;
-  gap: 8px; /* Space between icon and text */
-  color: #495057; /* Dark gray text */
+  gap: 8px;
+  font-size: 0.95rem;
+  transition: background-color 0.2s;
+
+  /* Fix long text overflow */
+  max-width: 100%; /* Constrain width */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Hover Effect */
 .dropdown-item:hover {
-  background-color: #dbeafe; /* Pale muted blue hover */
-  color: #1e40af; /* Deep blue text on hover */
+  background-color: #f0f4f8;
 }
 
-/* Active Item */
+/* Active Items */
 .dropdown-item:active {
-  background-color: #d1fae5; /* Light teal background */
-  color: #047857; /* Deep green text */
+  background-color: #d1fae5;
+  color: #047857;
 }
 
-/* Disabled Menu Item */
+/* Disabled Items */
 .dropdown-item:disabled {
-  color: #adb5bd; /* Muted gray text for disabled items */
+  color: #adb5bd;
 }
 
-/* Dropdown Icons */
-.dropdown-item i {
-  font-size: 1.2rem; /* Slightly larger icons */
+/* Quick Actions Dropdown Width Fix */
+.dropdown-menu.dropdown-menu-left {
+  width: 250px; /* Fixed width for consistent layout */
+  max-width: 100%; /* Prevent overflow beyond parent */
+  box-sizing: border-box;
 }
 
 /* ================================
-   Dropdown Buttons (Both Menus)
+   Mobile Dropdown Adjustments
 ================================ */
 
-/* Dropdown Button */
-.dropdown-toggle {
-  border-radius: 8px; /* Rounded corners */
-  padding: 0.5rem 1rem; /* Padding inside the button */
-  transition: all 0.2s ease-in-out; /* Smooth hover effect */
-  background-color: #f8f9fa; /* Pale gray background */
-  display: flex;
-  align-items: center;
-  gap: 8px; /* Space between icon and text */
-  font-weight: 500;
-  color: #495057; /* Subtle dark gray text */
-}
+@media (max-width: 768px) {
+  .dropdown-menu {
+    width: 100%; /* Full width dropdowns on small screens */
+    position: absolute;
+    left: 0;
+    right: 0;
+  }
 
-/* Hover Effect for Dropdown Button */
-.dropdown-toggle:hover {
-  background-color: #dbeafe; /* Pale muted blue hover */
-  color: #1e40af; /* Deep blue text */
+  .dropdown-item {
+    padding: 0.75rem; /* Larger tap area for mobile */
+    white-space: normal; /* Allow text wrapping on small screens */
+    word-break: break-word; /* Prevent text overflow */
+  }
 }
 
 /* ================================
    Floating Action Button (FAB)
 ================================ */
 
-/* Floating Action Button Container */
 .fab-container {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  z-index: 1050; /* High z-index to stay above other content */
+  z-index: 1050;
 }
 
 /* FAB Button */
 .fab {
-  border-radius: 50%; /* Circular shape */
+  border-radius: 50%;
   padding: 1rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Shadow effect */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease-in-out;
-  background-color: #d1fae5; /* Light teal background */
-  color: #047857; /* Deep green text */
+  background-color: #d1fae5;
+  color: #047857;
 }
 
 /* Hover Effect for FAB */
 .fab:hover {
-  transform: scale(1.1); /* Slight zoom on hover */
-  background-color: #34d399; /* Muted teal hover */
-  color: #065f46; /* Darker green text */
+  transform: scale(1.1);
+  background-color: #34d399;
+  color: #065f46;
 }
 
-/* FAB Tooltip */
+/* Tooltip */
 .fab-tooltip {
   position: absolute;
   bottom: 60px;
   right: 0;
-  background-color: #1e40af; /* Deep blue tooltip */
+  background-color: #1e40af;
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 5px;
@@ -151,9 +220,8 @@
   transition: opacity 0.3s ease-in-out;
 }
 
-/* Tooltip Visible on Hover */
 .fab:hover .fab-tooltip {
-  opacity: 1; /* Tooltip becomes visible */
+  opacity: 1;
 }
 
 /* ================================
@@ -162,16 +230,16 @@
 
 @media (max-width: 768px) {
   .navbar-glass {
-    padding: 0.5rem 1rem; /* Adjust padding for smaller screens */
+    padding: 0.5rem 1rem;
   }
 
   .dropdown-toggle {
-    padding: 0.4rem 0.8rem; /* Smaller buttons */
+    padding: 0.4rem 0.8rem;
     font-size: 0.9rem;
   }
 
   .dropdown-menu {
-    width: 100%; /* Full width dropdown for mobile */
+    width: 100%;
   }
 
   .fab-container {
