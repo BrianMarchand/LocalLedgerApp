@@ -1,17 +1,3 @@
-
-
-/* --- SCROLL CONTAINER FIX --- */
-.droppable-container {
-  padding: 10px; /* Padding inside container */
-  box-sizing: border-box;
-  max-height: 75vh; /* Scrollable container */
-  overflow-y: auto; /* Enable scrolling */
-  overflow-x: hidden; /* Prevent horizontal scroll */
-  display: flex;
-  flex-direction: column; /* Vertical stacking */
-  gap: 10px; /* Consistent spacing */
-}
-
 /* --- DRAGGABLE CARD FIX --- */
 .draggable-card {
   padding: 1rem; /* Original padding */
