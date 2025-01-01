@@ -8,6 +8,19 @@ body {
   overflow-x: hidden; /* Prevent horizontal scrollbars */
 }
 
+#root {
+  height: 100%; /* React root container height */
+  display: flex;
+  flex-direction: column;
+}
+
+.scroll-container {
+  height: 100vh; /* Viewport height */
+  overflow-y: auto; /* Enable vertical scrolling */
+  padding: 10px;
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   padding: 0;

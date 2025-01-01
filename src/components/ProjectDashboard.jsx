@@ -17,59 +17,50 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 
 // --- UI/Styling Imports ---
-import "bootstrap/dist/css/bootstrap.min.css"; // Bootstrap CSS
+import "bootstrap/dist/css/bootstrap.min.css"; // Core Bootstrap styles
 import "bootstrap/dist/js/bootstrap.bundle.min.js"; // Bootstrap JS components
 import "bootstrap-icons/font/bootstrap-icons.css"; // Bootstrap Icons
-import * as bootstrap from "bootstrap"; // Explicit Bootstrap JS functions
+import * as bootstrap from "bootstrap"; // Explicit Bootstrap JS utilities
 
 // --- Toast Notifications ---
-import {
-  ToastContainer,
-  toast,
-  Slide,
-  Zoom,
-  Flip,
-  Bounce,
-} from "react-toastify";
+import { ToastContainer, toast, Bounce } from "react-toastify"; // Toast notifications
 import "react-toastify/dist/ReactToastify.css";
 
 // --- Loader and Animations ---
 import { motion } from "framer-motion"; // Animations
-import { PuffLoader } from "react-spinners"; // Spinner loader
 import { ProgressBar } from "react-loader-spinner"; // Progress bar loader
 
 // --- Custom Context and Hooks ---
-import { useTheme } from "../context/ThemeContext"; // Theme Hook
+import { useTheme } from "../context/ThemeContext"; // Theme context
 
 // --- Custom Components ---
-import Navbar from "../components/Navbar"; // Navbar component
+import Navbar from "../components/Navbar"; // Reusable navbar component
 
 // --- Debugging Mode ---
-const DEBUG_MODE = true; // Set to false for production
+const DEBUG_MODE = true; // Enable console logging for debugging
 
-// --- Main Component ---
 function ProjectDashboard() {
-  // --- Router Hooks ---
+  // --- Hooks for Routing and Theme ---
   const { id } = useParams(); // Get project ID from URL parameters
-  const navigate = useNavigate(); // Hook for navigation between routes
-  const { darkMode, toggleTheme } = useTheme(); // Get theme state and toggle function
+  const navigate = useNavigate(); // Handle navigation
+  const { darkMode, toggleTheme } = useTheme(); // Theme toggle hook
 
-  // --- Load Projects and Transactions ---
-  const [project, setProject] = useState(null); // Single project data
-  const [transactions, setTransactions] = useState([]); // Store transactions for the project
-  const [loading, setLoading] = useState(true); // Tracks loading state
-  const [error, setError] = useState(false); // Tracks errors during fetching
-  const [showLoading, setShowLoading] = useState(true); // Adds delay for spinner animation
-  const [errors, setErrors] = useState({}); // Initialize an empty errors object
+  // --- State Management ---
+  const [project, setProject] = useState(null); // Store project data
+  const [transactions, setTransactions] = useState([]); // Store project transactions
+  const [loading, setLoading] = useState(true); // Track loading state
+  const [error, setError] = useState(false); // Handle errors
+  const [showLoading, setShowLoading] = useState(true); // Spinner visibility
+  const [errors, setErrors] = useState({}); // Validation errors for forms
   const [newTransaction, setNewTransaction] = useState({
-    date: new Date().toISOString().split("T")[0], // Default to today
+    date: new Date().toISOString().split("T")[0], // Default date as today
     name: "",
     amount: "",
     category: "",
     type: "",
   });
-  // --- Fetch Project from Firestore ---
 
+  // --- Fetch Project from Firestore ---
   const fetchProject = async () => {
     setLoading(true); // Start loading
     setError(false); // Reset errors
@@ -100,7 +91,6 @@ function ProjectDashboard() {
   };
 
   // --- Fetch Project Status Firestore ---
-
   const statusColor = (status) => {
     switch (status) {
       case "new":
@@ -830,7 +820,7 @@ function ProjectDashboard() {
             {project?.status?.toUpperCase() || "NEW"}
           </div>
           {/* Header */}
-          <div className="card-header bg-primary text-white">
+          <div className="card-header bg-primary">
             <h5 className="mb-0">Project Details</h5>
           </div>
           {/* Body */}
@@ -882,7 +872,7 @@ function ProjectDashboard() {
         {/* --- Add Transaction Form --- */}
         {!isReadOnly && (
           <div className="card mb-4">
-            <div className="card-header bg-success text-white">
+            <div className="card-header">
               <h5 className="mb-0">Add New Transaction</h5>
             </div>
             <div className="card-body">
@@ -1059,7 +1049,7 @@ function ProjectDashboard() {
         )}
         {/* --- Transactions Section --- */}
         <div className="card mb-4">
-          <div className="card-header bg-info text-white">
+          <div className="card-header">
             <h5 className="mb-0">Current Transactions</h5>
           </div>
           <div className="card-body">
@@ -1098,7 +1088,7 @@ function ProjectDashboard() {
         {/* --- Financial Summary - Dynamic Visibility --- */}
         {transactions.length > 0 && (
           <div className="card mb-4 financial-summary-container">
-            <div className="card-header bg-warning text-dark">
+            <div className="card-header">
               <h5 className="mb-0">Financial Summary</h5>
             </div>
             <div className="card-body">
@@ -1131,22 +1121,23 @@ function ProjectDashboard() {
                   <h6 className="text-success mb-3">Payment Breakdown</h6>
                   <ul className="list-unstyled mb-0">
                     <li className="mb-2">
-                      <strong>Cash Received:</strong> ${cashReceived}
+                      <strong>Cash Received: </strong> ${cashReceived}
                     </li>
                     <li className="mb-2">
-                      <strong>Cash Spent:</strong> ${cashSpent}
+                      <strong>Cash Spent: </strong> ${cashSpent}
                     </li>
                     <li className="mb-2">
-                      <strong>VISA Expenses:</strong> ${visaExpenses}
+                      <strong>VISA Expenses: </strong> ${visaExpenses}
                     </li>
                     <li className="mb-2">
-                      <strong>Debit Expenses:</strong> ${debitExpenses}
+                      <strong>Debit Expenses: </strong> ${debitExpenses}
                     </li>
                     <li className="mb-2">
-                      <strong>E-Transfer Income:</strong> ${eTransferIncome}
+                      <strong>E-Transfer Income: </strong> ${eTransferIncome}
                     </li>
                     <li className="mb-2">
-                      <strong>E-Transfer Expenses:</strong> ${eTransferExpenses}
+                      <strong>E-Transfer Expenses: </strong> $
+                      {eTransferExpenses}
                     </li>
                   </ul>
                 </div>

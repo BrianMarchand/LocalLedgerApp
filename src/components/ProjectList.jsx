@@ -13,15 +13,18 @@ import { ProgressBar } from "react-loader-spinner";
 import { toastSuccess, toastError } from "../utils/toastNotifications"; // Import toast utilities
 import Swal from "sweetalert2"; // Import SweetAlert
 import "sweetalert2/dist/sweetalert2.min.css"; // Import SweetAlert Default Styles
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import {
   collection,
   getDocs,
   addDoc,
   deleteDoc,
-  doc,
+  doc, // <-- Keep the existing import
   updateDoc,
   onSnapshot,
+  query,
+  orderBy,
+  writeBatch, // <-- 
 } from "firebase/firestore";
 
 function ProjectList() {
@@ -56,18 +59,27 @@ function ProjectList() {
     return "new"; // Default fallback
   };
 
-  // --- Fetch Projects ---
   const fetchProjects = async () => {
     setLoading(true); // Start loading
     try {
-      const querySnapshot = await getDocs(collection(db, "projects"));
+      // Fetch projects sorted by 'order'
+      const querySnapshot = await getDocs(
+        query(collection(db, "projects"), orderBy("order"))
+      );
+
+      // Log fetched data to debug
+      console.log("Fetched Projects:", querySnapshot.docs.map((doc) => doc.data()));
+
+      // Map through projects and include their Firestore IDs
       const projectList = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
+
       setProjects(projectList); // Update project state
     } catch (error) {
-      console.error("Error fetching projects:", error);
+      console.error("Error fetching projects:", error.message); // Log the exact error
+      toastError("Failed to fetch projects. Please try again.");
     } finally {
       setLoading(false); // Stop loading after fetch
 
@@ -100,8 +112,25 @@ function ProjectList() {
   // --- Add New Project ---
   const addNewProject = async (newProject) => {
     try {
-      const docRef = await addDoc(collection(db, "projects"), newProject);
-      setProjects((prev) => [...prev, { id: docRef.id, ...newProject }]);
+      // Determine the order based on the length of current projects
+      const order = projects.length; // Sets the order as the last position
+
+      // Add 'order' to the new project
+      const projectWithOrder = {
+        ...newProject,
+        order, // Include order field
+      };
+
+      // Add the project to Firestore
+      const docRef = await addDoc(collection(db, "projects"), projectWithOrder);
+
+      // Update the local state with the new project
+      setProjects((prev) => [
+        ...prev,
+        { id: docRef.id, ...projectWithOrder }, // Preserve Firestore ID
+      ]);
+
+      // Reset editing and temporary project states
       setEditingProject(null);
       setTempProjects([]);
       handleModalClose();
@@ -522,31 +551,44 @@ function ProjectList() {
   };
 
   // --- Drag & Drop Cards ---
-  const handleDragEnd = (result) => {
-    const { destination, source } = result;
+  const handleDragEnd = async (result) => {
+    const { source, destination } = result;
 
-    // If there is no destination (the item is dropped outside)
-    if (!destination) return;
+    if (!destination) {
+      console.log("Dropped outside valid zones.");
+      return;
+    }
 
-    // If the item is dropped in the same position
-    if (destination.index === source.index) return;
+    // Reorder projects
+    const updatedProjects = Array.from(combinedProjects);
+    const [movedItem] = updatedProjects.splice(source.index, 1);
+    updatedProjects.splice(destination.index, 0, movedItem);
 
-    // Reorder the projects array
-    const reorderedProjects = Array.from(combinedProjects);
-    const [removed] = reorderedProjects.splice(source.index, 1);
-    reorderedProjects.splice(destination.index, 0, removed);
+    console.log("Projects After Move:", updatedProjects);
 
-    // Update the state with the new order
-    setCombinedProjects(reorderedProjects);
+    // Update Firestore order
+    try {
+      const batch = writeBatch(db); // FIXED batch creation
+      updatedProjects.forEach((project, index) => {
+        const projectRef = doc(db, "projects", project.id);
+        batch.update(projectRef, { order: index });
+      });
+      await batch.commit();
+      console.log("Firestore update successful!");
+    } catch (error) {
+      console.error("Failed to update order:", error);
+    }
+
+    setProjects(updatedProjects); // Update local state
   };
 
   return (
     <div>
       {/* --- Navbar --- */}
       <Navbar page="projectDashboard" />
-
       <div className="container mt-4">
         <h1 className="mb-4">Your current projects:</h1>
+
         {/* Show Projects */}
         {combinedProjects.length === 0 ? (
           <p>
@@ -556,221 +598,248 @@ function ProjectList() {
             </a>
           </p>
         ) : (
-          <div className="row">
-            {combinedProjects.map((project) => (
-              <div key={project.id} className="col-md-4 mb-4">
-                {/* SINGLE CARD - NO NESTED STRUCTURE */}
-                <div
-                  className={`card shadow-sm clickable-card ${
-                    project.status === "cancelled" ? "disabled" : ""
-                  }`}
-                  onClick={() => {
-                    if (project.status !== "cancelled") {
-                      navigate(`/project/${project.id}`);
-                    }
-                  }}
-                >
-                  {/* --- HEADER --- */}
-                  <div className="card-header d-flex justify-content-between align-items-center">
-                    <span>{project.name || "Unnamed Project"}</span>
-                    <span
-                      className={`badge bg-${getStatusColor(project.status)}`}
-                    >
-                      {project.status || "N/A"}
-                    </span>
-                  </div>
-
-                  {/* --- BODY --- */}
-                  <div className="card-body">
-                    <p>
-                      <i className="bi bi-geo-alt"></i>{" "}
-                      {project.location || "Location: N/A"}
-                    </p>
-                    <p>
-                      <i className="bi bi-currency-dollar"></i> Budget: $
-                      {project.budget || 0}
-                    </p>
-                    <p>
-                      <i className="bi bi-calendar"></i> Created:{" "}
-                      {formatDate(project.createdAt)}
-                    </p>
-                  </div>
-
-                  {/* --- FOOTER (BUTTON GROUP) --- */}
-                  <div className="card-footer d-flex flex-wrap gap-2">
-                    {/* Cancelled Projects */}
-                    {project.status === "cancelled" && (
-                      <button
-                        className="btn btn-warning"
-                        title="Reopen Project"
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent card click
-                          confirmReopen(project);
-                        }}
+          <div className="scroll-container">
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="projects">
+                {(provided) => (
+                  <div
+                    className="row"
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                  >
+                    {combinedProjects.map((project, index) => (
+                      <Draggable
+                        key={project.id}
+                        draggableId={project.id}
+                        index={index}
                       >
-                        <i className="bi bi-arrow-repeat"></i>
-                      </button>
-                    )}
+                        {(provided) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className="col-md-4 mb-4"
+                          >
+                            {/* SINGLE CARD */}
+                            <div
+                              className={`card shadow-sm clickable-card ${project.status === "cancelled" ? "disabled" : ""
+                                }`}
+                              onClick={() => {
+                                if (project.status !== "cancelled") {
+                                  navigate(`/project/${project.id}`);
+                                }
+                              }}
+                            >
+                              {/* --- HEADER --- */}
+                              <div className="card-header d-flex justify-content-between align-items-center">
+                                <span>{project.name || "Unnamed Project"}</span>
+                                <span
+                                  className={`badge bg-${getStatusColor(
+                                    project.status,
+                                  )}`}
+                                >
+                                  {project.status || "N/A"}
+                                </span>
+                              </div>
 
-                    {/* Completed Projects */}
-                    {project.status === "completed" && (
-                      <>
-                        <button
-                          className="btn btn-primary"
-                          title="View Project"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/project/${project.id}`);
-                          }}
-                        >
-                          <i className="bi bi-eye"></i>
-                        </button>
-                        <button
-                          className="btn btn-warning"
-                          title="Reopen Project"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            confirmReopen(project);
-                          }}
-                        >
-                          <i className="bi bi-arrow-repeat"></i>
-                        </button>
-                      </>
-                    )}
+                              {/* --- BODY --- */}
+                              <div className="card-body">
+                                <p>
+                                  <i className="bi bi-geo-alt"></i>{" "}
+                                  {project.location || "Location: N/A"}
+                                </p>
+                                <p>
+                                  <i className="bi bi-currency-dollar"></i> Budget: $
+                                  {project.budget || 0}
+                                </p>
+                                <p>
+                                  <i className="bi bi-calendar"></i> Created:{" "}
+                                  {formatDate(project.createdAt)}
+                                </p>
+                              </div>
 
-                    {/* On-Hold Projects */}
-                    {project.status === "on-hold" && (
-                      <>
-                        <button
-                          className="btn btn-primary"
-                          title="View Project"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/project/${project.id}`);
-                          }}
-                        >
-                          <i className="bi bi-eye"></i>
-                        </button>
-                        <button
-                          className="btn btn-secondary"
-                          title="Edit Project"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingProject(project);
-                          }}
-                        >
-                          <i className="bi bi-pencil-square"></i>
-                        </button>
-                        <button
-                          className="btn btn-warning"
-                          title="Reopen Project"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            confirmReopen(project);
-                          }}
-                        >
-                          <i className="bi bi-arrow-repeat"></i>
-                        </button>
-                      </>
-                    )}
+                              {/* --- FOOTER (BUTTON GROUP) --- */}
+                              <div className="card-footer d-flex flex-wrap gap-2">
+                                {/* Cancelled Projects */}
+                                {project.status === "cancelled" && (
+                                  <button
+                                    className="btn btn-warning"
+                                    title="Reopen Project"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      confirmReopen(project);
+                                    }}
+                                  >
+                                    <i className="bi bi-arrow-repeat"></i>
+                                  </button>
+                                )}
 
-                    {/* In-Progress Projects */}
-                    {project.status === "in-progress" && (
-                      <>
-                        <button
-                          className="btn btn-primary"
-                          title="View Project"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/project/${project.id}`);
-                          }}
-                        >
-                          <i className="bi bi-eye"></i>
-                        </button>
-                        <button
-                          className="btn btn-secondary"
-                          title="Edit Project"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingProject(project);
-                          }}
-                        >
-                          <i className="bi bi-pencil-square"></i>
-                        </button>
-                        <button
-                          className="btn btn-success"
-                          title="Mark as Complete"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            confirmComplete(project);
-                          }}
-                        >
-                          <i className="bi bi-check-circle"></i>
-                        </button>
-                        <button
-                          className="btn btn-danger"
-                          title="Cancel Project"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            confirmCancel(project);
-                          }}
-                        >
-                          <i className="bi bi-x-circle"></i>
-                        </button>
-                      </>
-                    )}
+                                {/* Completed Projects */}
+                                {project.status === "completed" && (
+                                  <>
+                                    <button
+                                      className="btn btn-primary"
+                                      title="View Project"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/project/${project.id}`);
+                                      }}
+                                    >
+                                      <i className="bi bi-eye"></i>
+                                    </button>
+                                    <button
+                                      className="btn btn-warning"
+                                      title="Reopen Project"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        confirmReopen(project);
+                                      }}
+                                    >
+                                      <i className="bi bi-arrow-repeat"></i>
+                                    </button>
+                                  </>
+                                )}
 
-                    {/* New Projects */}
-                    {project.status === "new" && (
-                      <>
-                        <button
-                          className="btn btn-primary"
-                          title="View Project"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/project/${project.id}`);
-                          }}
-                        >
-                          <i className="bi bi-eye"></i>
-                        </button>
-                        <button
-                          className="btn btn-secondary"
-                          title="Edit Project"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingProject(project);
-                          }}
-                        >
-                          <i className="bi bi-pencil-square"></i>
-                        </button>
-                        <button
-                          className="btn btn-danger"
-                          title="Cancel Project"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            confirmCancel(project);
-                          }}
-                        >
-                          <i className="bi bi-x-circle"></i>
-                        </button>
-                      </>
-                    )}
+                                {/* On-Hold Projects */}
+                                {project.status === "on-hold" && (
+                                  <>
+                                    <button
+                                      className="btn btn-primary"
+                                      title="View Project"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/project/${project.id}`);
+                                      }}
+                                    >
+                                      <i className="bi bi-eye"></i>
+                                    </button>
+                                    <button
+                                      className="btn btn-secondary"
+                                      title="Edit Project"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingProject(project);
+                                      }}
+                                    >
+                                      <i className="bi bi-pencil-square"></i>
+                                    </button>
+                                    <button
+                                      className="btn btn-warning"
+                                      title="Reopen Project"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        confirmReopen(project);
+                                      }}
+                                    >
+                                      <i className="bi bi-arrow-repeat"></i>
+                                    </button>
+                                  </>
+                                )}
 
-                    {/* Always Show Delete Button */}
-                    <button
-                      className="btn btn-danger"
-                      title="Delete Project"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        confirmDelete(project);
-                      }}
-                    >
-                      <i className="bi bi-trash"></i>
-                    </button>
+                                {/* In-Progress Projects */}
+                                {project.status === "in-progress" && (
+                                  <>
+                                    <button
+                                      className="btn btn-primary"
+                                      title="View Project"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/project/${project.id}`);
+                                      }}
+                                    >
+                                      <i className="bi bi-eye"></i>
+                                    </button>
+                                    <button
+                                      className="btn btn-secondary"
+                                      title="Edit Project"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingProject(project);
+                                      }}
+                                    >
+                                      <i className="bi bi-pencil-square"></i>
+                                    </button>
+                                    <button
+                                      className="btn btn-success"
+                                      title="Mark as Complete"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        confirmComplete(project);
+                                      }}
+                                    >
+                                      <i className="bi bi-check-circle"></i>
+                                    </button>
+                                    <button
+                                      className="btn btn-danger"
+                                      title="Cancel Project"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        confirmCancel(project);
+                                      }}
+                                    >
+                                      <i className="bi bi-x-circle"></i>
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* New Projects */}
+                                {project.status === "new" && (
+                                  <>
+                                    <button
+                                      className="btn btn-primary"
+                                      title="View Project"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/project/${project.id}`);
+                                      }}
+                                    >
+                                      <i className="bi bi-eye"></i>
+                                    </button>
+                                    <button
+                                      className="btn btn-secondary"
+                                      title="Edit Project"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingProject(project);
+                                      }}
+                                    >
+                                      <i className="bi bi-pencil-square"></i>
+                                    </button>
+                                    <button
+                                      className="btn btn-danger"
+                                      title="Cancel Project"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        confirmCancel(project);
+                                      }}
+                                    >
+                                      <i className="bi bi-x-circle"></i>
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* Always Show Delete Button */}
+                                <button
+                                  className="btn btn-danger"
+                                  title="Delete Project"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    confirmDelete(project);
+                                  }}
+                                >
+                                  <i className="bi bi-trash"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
                   </div>
-                </div>
-              </div>
-            ))}
+                )}
+              </Droppable>
+            </DragDropContext>
           </div>
         )}
       </div>

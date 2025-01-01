@@ -1,3 +1,78 @@
+
+
+/* --- SCROLL CONTAINER FIX --- */
+.droppable-container {
+  padding: 10px; /* Padding inside container */
+  box-sizing: border-box;
+  max-height: 75vh; /* Scrollable container */
+  overflow-y: auto; /* Enable scrolling */
+  overflow-x: hidden; /* Prevent horizontal scroll */
+  display: flex;
+  flex-direction: column; /* Vertical stacking */
+  gap: 10px; /* Consistent spacing */
+}
+
+/* --- DRAGGABLE CARD FIX --- */
+.draggable-card {
+  padding: 1rem; /* Original padding */
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  background: rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 0 4px 12px rgba(5, 95, 192, 0.1) !important;
+  backdrop-filter: blur(10px) !important;
+  cursor: grab;
+
+  /* --- Fix height issues --- */
+  height: 150px; /* Fixed height for consistent spacing */
+  overflow: hidden; /* Prevent content overflow */
+}
+
+/* Highlight dragged card */
+.dragging-card {
+  background: #f8f9fa !important; /* Highlight effect */
+  border: 1px dashed #007bff !important;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
+  opacity: 0.9;
+  cursor: grabbing;
+
+  /* --- Absolute Positioning for Drag Preview --- */
+  position: absolute !important;
+  width: 100%; /* Match width */
+  z-index: 9999 !important; /* Bring to front */
+}
+
+/* Drop Zone Debug (Optional) */
+.droppable-container > *:not(:last-child) {
+  margin-bottom: 0; /* Remove margin - use flex gap */
+}
+
+/* --- DISABLED CARD (Preserved Original) --- */
+.draggable-card.disabled {
+  pointer-events: none; /* Disable interaction */
+  opacity: 0.8 !important;
+  filter: grayscale(60%) !important;
+}
+
+/* --- HOVER EFFECT FIX --- */
+.draggable-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 8px 24px rgba(5, 95, 192, 0.2) !important;
+  border-color: rgba(5, 95, 192, 0.2) !important;
+}
+
+/* Debug Drop Zones */
+.droppable-container > div {
+  border: 1px dashed red; /* Add visible boundary for drop zones */
+  min-height: 150px; /* Ensure placeholder height is visible */
+}
+
+/* Highlight dragging card */
+.draggable-card.dragging-card {
+  z-index: 9999;
+  transform: scale(1.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
 /* Card Base Style */
 .clickable-card {
   position: relative;
