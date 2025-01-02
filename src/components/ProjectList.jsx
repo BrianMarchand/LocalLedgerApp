@@ -557,32 +557,44 @@ function ProjectList() {
   const handleDragEnd = async (result) => {
     const { source, destination } = result;
 
-    if (!destination) {
-      console.log("Dropped outside valid zones.");
+    // Debug Logs
+    console.log("Drag Start Index:", source.index);
+    console.log("Drop Destination Index:", destination?.index);
+    console.log("Projects Before Move:", projects);
+
+    // Cancel if dropped outside or at the same position
+    if (!destination || destination.index === source.index) {
+      console.log("Drop cancelled or same position.");
       return;
     }
 
-    // Reorder projects
-    const updatedProjects = Array.from(combinedProjects);
-    const [movedItem] = updatedProjects.splice(source.index, 1);
-    updatedProjects.splice(destination.index, 0, movedItem);
+    // Reorder the projects locally for immediate feedback
+    const reorderedProjects = Array.from(projects);
+    const [movedProject] = reorderedProjects.splice(source.index, 1);
+    reorderedProjects.splice(destination.index, 0, movedProject);
 
-    console.log("Projects After Move:", updatedProjects);
+    console.log("Projects After Move:", reorderedProjects);
 
-    // Update Firestore order
+    // Update local state (optimistic UI update)
+    setProjects(reorderedProjects);
+
     try {
-      const batch = writeBatch(db); // FIXED batch creation
-      updatedProjects.forEach((project, index) => {
-        const projectRef = doc(db, "projects", project.id);
-        batch.update(projectRef, { order: index });
+      // Update Firestore order
+      const batch = writeBatch(db);
+
+      reorderedProjects.forEach((proj, index) => {
+        const projRef = doc(db, "projects", proj.id);
+        batch.update(projRef, { order: index }); // Update order field
       });
-      await batch.commit();
+
+      await batch.commit(); // Save to Firestore
+      toastSuccess("Project order updated!");
+
       console.log("Firestore update successful!");
     } catch (error) {
-      console.error("Failed to update order:", error);
+      console.error("Batch Write Error:", error.message);
+      toastError(`Failed to save project order: ${error.message}`);
     }
-
-    setProjects(updatedProjects); // Update local state
   };
 
   return (
@@ -627,11 +639,6 @@ function ProjectList() {
                             className={`card shadow-sm clickable-card ${
                               project.status === "cancelled" ? "disabled" : ""
                             }`}
-                            onClick={() => {
-                              if (project.status !== "cancelled") {
-                                navigate(`/project/${project.id}`);
-                              }
-                            }}
                           >
                             {/* --- HEADER --- */}
                             <div className="card-header d-flex justify-content-between align-items-center">

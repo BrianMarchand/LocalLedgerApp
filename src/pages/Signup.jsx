@@ -3,6 +3,9 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { db } from "../firebaseConfig"; // Firestore instance
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -11,6 +14,10 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
+
+  const [emailError, setEmailError] = useState(false);
+  const [passwordError, setPasswordError] = useState(false);
+  const [confirmPasswordError, setConfirmPasswordError] = useState(false);
 
   // --- Email Validation ---
   const validateEmail = (email) => {
@@ -21,40 +28,81 @@ const Signup = () => {
   // --- Handle Form Submit ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-    toast.dismiss(); // Clear any previous toasts
+    toast.dismiss(); // Clear previous toasts
 
     // --- Input Validation ---
     if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
-      toast.error("Please fill in all fields!");
+      toast.error("Please fill in all fields!"); // Error Toast
       return;
     }
 
     if (!validateEmail(email)) {
-      toast.error("Invalid email format!");
+      toast.error("Invalid email format!"); // Error Toast
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match!");
-      return;
-    }
-
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters!");
+      toast.error("Passwords do not match!"); // Error Toast
       return;
     }
 
     try {
-      setLoading(true);
-      await signup(email, password);
-      toast.success("Account created successfully! 🎉");
-      navigate("/dashboard");
+      setLoading(true); // Start loading spinner
+
+      // --- Create user in Firebase Auth ---
+      const userCredential = await signup(email, password);
+      const user = userCredential.user; // Newly created user
+
+      // --- Add user to Firestore ---
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email, // Store email
+        displayName: "", // Optional field, can be updated later
+        role: "user", // Default role
+        createdAt: serverTimestamp(), // Timestamp
+      });
+
+      toast.success("Signup successful! 🎉"); // Success Toast
+      navigate("/dashboard"); // Redirect to Dashboard
     } catch (error) {
-      console.error("Signup Error:", error.message); // Log error
-      toast.error(error.message);
+      console.error("Signup Error:", error.code, error.message);
+
+      // --- Enhanced Error Messages ---
+      switch (error.code) {
+        case "auth/email-already-in-use":
+          toast.error(
+            "This email is already registered. Try logging in or resetting your password.",
+          );
+          break;
+        case "auth/invalid-email":
+          toast.error("Invalid email format.");
+          break;
+        case "auth/weak-password":
+          toast.error("Password is too weak. Use at least 6 characters.");
+          break;
+        default:
+          toast.error("Signup failed. Please try again later.");
+      }
     }
 
-    setLoading(false);
+    setLoading(false); // Stop loading spinner
+  };
+
+  // --- Send Password Reset ---
+  const resetPassword = async (email) => {
+    try {
+      await sendPasswordResetEmail(auth, email); // Firebase method
+    } catch (error) {
+      console.error("Password Reset Error:", error.message);
+
+      switch (error.code) {
+        case "auth/user-not-found":
+          throw new Error("No account found with this email.");
+        case "auth/invalid-email":
+          throw new Error("Invalid email format.");
+        default:
+          throw new Error("Failed to send password reset email.");
+      }
+    }
   };
 
   return (
@@ -63,7 +111,7 @@ const Signup = () => {
         <form onSubmit={handleSubmit} className="card p-4 shadow-sm">
           <h2 className="text-center mb-4">Sign Up</h2>
 
-          {/* Email */}
+          {/* --- Email Field --- */}
           <div className="mb-3">
             <label htmlFor="email" className="form-label">
               Email Address
@@ -71,13 +119,15 @@ const Signup = () => {
             <input
               type="email"
               id="email"
-              className="form-control"
+              className={`form-control ${emailError ? "is-invalid" : ""}`} // Highlight error
               value={email}
-              onChange={(e) => setEmail(e.target.value.trim())}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
             />
+            <div className="invalid-feedback">Invalid email format.</div>
           </div>
 
-          {/* Password */}
+          {/* --- Password Field --- */}
           <div className="mb-3">
             <label htmlFor="password" className="form-label">
               Password
@@ -85,13 +135,17 @@ const Signup = () => {
             <input
               type="password"
               id="password"
-              className="form-control"
+              className={`form-control ${passwordError ? "is-invalid" : ""}`}
               value={password}
-              onChange={(e) => setPassword(e.target.value.trim())}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
             />
+            <div className="invalid-feedback">
+              Password must be at least 6 characters.
+            </div>
           </div>
 
-          {/* Confirm Password */}
+          {/* --- Confirm Password Field --- */}
           <div className="mb-3">
             <label htmlFor="confirmPassword" className="form-label">
               Confirm Password
@@ -99,10 +153,12 @@ const Signup = () => {
             <input
               type="password"
               id="confirmPassword"
-              className="form-control"
+              className={`form-control ${confirmPasswordError ? "is-invalid" : ""}`}
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value.trim())}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm your password"
             />
+            <div className="invalid-feedback">Passwords do not match.</div>
           </div>
 
           {/* Submit Button */}

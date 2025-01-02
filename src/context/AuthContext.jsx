@@ -5,76 +5,81 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  updateEmail, // Import updateEmail
 } from "firebase/auth";
 
-// Create Auth Context
+// --- Auth Context ---
 const AuthContext = createContext();
 
-// Custom Hook
+// --- Hook to Access Auth Context ---
 export const useAuth = () => {
   return useContext(AuthContext);
 };
 
-// Provider Component
+// --- Provider ---
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null); // Current user state
+  const [loading, setLoading] = useState(true); // Loading state
 
   // --- Signup Function ---
-  const signup = (email, password) => {
-    return createUserWithEmailAndPassword(auth, email, password);
+  const signup = async (email, password) => {
+    return await createUserWithEmailAndPassword(auth, email, password);
   };
 
   // --- Login Function ---
   const login = async (email, password) => {
-    try {
-      return await signInWithEmailAndPassword(auth, email, password); // Firebase Login
-    } catch (error) {
-      console.error("Firebase Login Error:", error.code, error.message); // Log error details
-
-      // Handle specific Firebase errors
-      switch (error.code) {
-        case "auth/invalid-email":
-          throw new Error("Invalid email format.");
-        case "auth/user-disabled":
-          throw new Error("This account has been disabled.");
-        case "auth/user-not-found":
-          throw new Error("No account found with this email.");
-        case "auth/wrong-password":
-          throw new Error("Incorrect password. Please try again.");
-        case "auth/invalid-credential":
-          throw new Error("Invalid email or password. Please try again."); // NEW Error Code Handling
-        default:
-          throw new Error("Login failed. Please try again later.");
-      }
-    }
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password,
+    );
+    setCurrentUser(userCredential.user); // Sync session immediately
+    return userCredential.user;
   };
 
   // --- Logout Function ---
-  const logout = () => {
-    return signOut(auth);
+  const logout = async () => {
+    await signOut(auth);
+    setCurrentUser(null); // Clear local session
   };
 
-  // --- Track Auth State ---
+  // --- Update Email ---
+  const updateUserEmail = async (newEmail) => {
+    if (!auth.currentUser) throw new Error("No user logged in."); // Ensure user is logged in
+
+    try {
+      // Update email and reload user
+      await updateEmail(auth.currentUser, newEmail);
+      await auth.currentUser.reload(); // Ensure updated info is available
+      setCurrentUser(auth.currentUser); // Sync React state
+
+      console.log("Email updated to:", auth.currentUser.email); // Debugging log
+    } catch (error) {
+      console.error("Failed to update email:", error.message);
+      throw error;
+    }
+  };
+  // --- Listener for Auth State ---
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setLoading(false);
+      setCurrentUser(user); // Sync user state
+      setLoading(false); // Done loading
     });
-    return unsubscribe;
+    return unsubscribe; // Cleanup on unmount
   }, []);
 
-  // --- Provide Context Values ---
+  // --- Provide Context ---
   const value = {
-    currentUser,
+    currentUser, // Provide currentUser inside the context
     signup,
     login,
     logout,
+    updateUserEmail, // Export this for Profile.jsx
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {!loading && children} {/* Prevent rendering until loading completes */}
     </AuthContext.Provider>
   );
 };

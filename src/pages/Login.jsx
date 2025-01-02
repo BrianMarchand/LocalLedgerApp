@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { auth } from "../firebaseConfig";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -37,12 +38,27 @@ const Login = () => {
 
     try {
       setLoading(true); // Start loading spinner
+
+      // --- Attempt Login ---
       await login(email, password); // Firebase Auth
+
+      // --- Email Verification Check ---
+      if (!auth.currentUser.emailVerified) {
+        throw new Error("Please verify your email before logging in."); // Throw Error
+      }
+
+      // --- Success ---
       toast.success("Login successful! 🎉"); // Success Toast
       navigate("/dashboard"); // Redirect to Dashboard
     } catch (error) {
       console.error("Login Error:", error.message); // Debug Log
-      toast.error("Invalid email or password. Please try again."); // Error Toast
+
+      // --- Email Verification Error ---
+      if (error.message.includes("verify your email")) {
+        toast.error(error.message); // Display specific email verification error
+      } else {
+        toast.error("Invalid email or password. Please try again."); // General Error
+      }
     }
 
     setLoading(false); // Stop loading spinner
@@ -98,6 +114,13 @@ const Login = () => {
             Need an account?{" "}
             <a href="/signup" className="text-decoration-none">
               Sign Up
+            </a>
+          </p>
+
+          {/* --- Forgot Password Link --- */}
+          <p className="mt-2 text-center">
+            <a href="/forgot-password" className="text-decoration-none">
+              Forgot Password?
             </a>
           </p>
         </form>

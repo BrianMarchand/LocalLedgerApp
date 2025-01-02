@@ -37,6 +37,7 @@
   pointer-events: none; /* Disable interaction */
   opacity: 0.8 !important;
   filter: grayscale(60%) !important;
+  cursor: auto;
 }
 
 /* --- HOVER EFFECT FIX --- */

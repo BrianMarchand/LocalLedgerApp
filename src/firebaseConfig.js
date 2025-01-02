@@ -1,20 +1,20 @@
-// --- Import Firebase Dependencies ---
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyDQkgErcTqXqLl87E3YUrunkqPQo40CJvM",
+  authDomain: "localledger.app", // Matches your custom domain
+  projectId: "local-unlimited-tracker",
+  storageBucket: "localledger.appspot.com",
+  messagingSenderId: "792077217335",
+  appId: "1:792077217335:web:57fc86dacfa7db298b19b2",
 };
 
 // --- Initialize Firebase ---
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app); // Export Authentication
-export const db = getFirestore(app); // Export Firestore
-export default app; // Default Firebase export
+export const auth = getAuth(app);
+export const db = getFirestore(app); // Firestore export
+
+export default app;
