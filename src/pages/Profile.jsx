@@ -2,60 +2,17 @@ import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import {
-  updateEmail,
-  updatePassword,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-} from "firebase/auth";
-import { auth } from "../firebaseConfig";
+import { updatePassword } from "firebase/auth";
 
 const Profile = () => {
   const { logout, currentUser } = useAuth();
   const navigate = useNavigate();
 
   // --- State Management ---
-  const [newEmail, setNewEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-
-  // --- Update Email ---
-  const handleUpdateEmail = async () => {
-    setMessage("");
-    setError("");
-    if (!newEmail.trim() || !password.trim()) {
-      setError("Please fill out all fields.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      // --- Step 1: Re-authenticate User ---
-      const credential = EmailAuthProvider.credential(
-        currentUser.email,
-        password,
-      );
-      await reauthenticateWithCredential(auth.currentUser, credential);
-
-      console.log("Re-authentication successful!");
-
-      // --- Step 2: Update Email ---
-      await updateEmail(auth.currentUser, newEmail);
-      setMessage("Email updated successfully!");
-
-      // Log out user after update
-      await logout();
-      navigate("/login");
-    } catch (err) {
-      console.error("Email Update Error:", err.message);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // --- Update Password ---
   const handleUpdatePassword = async () => {
@@ -70,6 +27,7 @@ const Profile = () => {
       setLoading(true);
       await updatePassword(currentUser, password);
       setMessage("Password updated successfully!");
+      setPassword(""); // Clear field
     } catch (err) {
       console.error("Password Update Error:", err.message);
       setError(err.message);
@@ -94,29 +52,20 @@ const Profile = () => {
         {message && <div className="alert alert-success">{message}</div>}
         {error && <div className="alert alert-danger">{error}</div>}
 
-        {/* --- Update Email Section --- */}
+        {/* --- Email Section --- */}
         <div className="mb-4">
-          <label>New Email</label>
+          <label>Current Email Address</label>
           <input
             type="email"
-            value={newEmail}
-            onChange={(e) => setNewEmail(e.target.value)}
+            value={currentUser.email}
+            disabled
             className="form-control"
           />
-          <label>Current Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="form-control"
-          />
-          <button
-            onClick={handleUpdateEmail}
-            disabled={loading}
-            className="btn btn-primary mt-2"
-          >
-            {loading ? "Updating..." : "Update Email"}
-          </button>
+          <p className="text-muted mt-2">
+            Your current email address: <strong>{currentUser.email}</strong> is
+            locked and cannot be changed. If you would like to change this,
+            please contact support.
+          </p>
         </div>
 
         {/* --- Update Password Section --- */}
