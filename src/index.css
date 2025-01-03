@@ -27,10 +27,10 @@ body {
   box-sizing: border-box;
 
   /* Background Image */
-  background-image: url('/images/bg-pale-blue.jpg');
-  background-size: cover;       /* Cover the entire page without stretching */
+  background-image: url("/images/bg-pale-blue.jpg");
+  background-size: cover; /* Cover the entire page without stretching */
   background-repeat: no-repeat; /* Prevent tiling */
-  background-position: center;  /* Center the image */
+  background-position: center; /* Center the image */
   background-attachment: fixed; /* Fixed background while scrolling */
   font-family: Arial, sans-serif;
   padding: 20px;
@@ -41,10 +41,10 @@ body {
 }
 
 /* Apply styles to the root container */
-#root, #app {
+#root,
+#app {
   height: 100%; /* Ensures the content stretches the full height */
 }
-
 
 h1,
 h2,

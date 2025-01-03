@@ -39,11 +39,6 @@ const QuickActionsDropdown = ({ onAddProject }) => {
             </>
           )}
         </Dropdown.Item>
-
-        {/* Placeholder */}
-        <Dropdown.Item disabled>
-          <i className="bi bi-tools me-2"></i>More Actions (Coming Soon)
-        </Dropdown.Item>
       </Dropdown.Menu>
     </Dropdown>
   );

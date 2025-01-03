@@ -10,14 +10,15 @@ export const ThemeProvider = ({ children }) => {
     localStorage.getItem("theme") === "dark",
   );
 
-  // Apply theme to <body> class
+  // Apply theme to the <html> tag
   useEffect(() => {
-    // Use Bootstrap's built-in theme attribute instead of custom classes
-    document.documentElement.setAttribute(
-      "data-bs-theme",
-      darkMode ? "dark" : "light",
-    );
-    localStorage.setItem("theme", darkMode ? "dark" : "light");
+    const theme = darkMode ? "dark" : "light";
+
+    // Set Bootstrap's theme attribute on <html>
+    document.documentElement.setAttribute("data-bs-theme", theme);
+
+    // Persist theme in localStorage
+    localStorage.setItem("theme", theme);
   }, [darkMode]);
 
   // Toggle the theme

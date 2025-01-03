@@ -1,3 +1,23 @@
+// 1. Bootstrap - Always Load First
+import "bootstrap/dist/css/bootstrap.min.css"; // Core Bootstrap CSS
+import "bootstrap/dist/js/bootstrap.bundle.min.js"; // Bootstrap JS (if needed)
+
+// 2. Third-Party Libraries (Charts, Libraries, etc.)
+import { Pie } from "react-chartjs-2";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { useMemo } from "react";
+import { Line } from "react-chartjs-2";
+import { ProgressBar } from "react-bootstrap";
+
+// 3. Global Styles - Apply Globals Before Component-Specific Styles
+import "../../styles/global.css";
+import "../../styles/theme.css";
+import "../../styles/utilities.css";
+
+// 4. Component-Specific Styles - Load Last
+import "./Dashboard.css"; // Dashboard Specific Styles
+
+// 5. React Components and App Logic
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProjects } from "../../context/ProjectsContext";
@@ -6,18 +26,14 @@ import { collection, getDocs } from "firebase/firestore";
 import Navbar from "../../components/Navbar";
 import AddProjectModal from "../../components/AddProjectModal";
 import { Button, Spinner, Card } from "react-bootstrap";
-import "./Dashboard.css";
-import { Pie } from "react-chartjs-2";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
-import { useMemo } from "react";
-import { Line } from "react-chartjs-2";
-import { ProgressBar } from "react-bootstrap";
+
+// 6. Chart.js Config (After Components)
 import {
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
-  Filler, // Register Filler plugin
+  Filler,
 } from "chart.js";
 
 // Register Chart.js components
@@ -38,21 +54,15 @@ const Dashboard = () => {
   const [expenseData, setExpenseData] = useState([0, 0, 0]);
   const [monthlyTotals, setMonthlyTotals] = useState({});
   const chartColors = ["#007bff", "#ffc107", "#28a745"];
-  const {
-    projects, // Context-managed projects
-    loading, // Context loading state
-    error, // Context error handling
-    addProject, // Context function to add a project
-    deleteProject, // Context function to delete a project
-    updateProject, // Context function to update a project
-  } = useProjects(); // <-- Pull from context
+  const { projects, loading, error } = useProjects();
+
   const [expenseChartData, setExpenseChartData] = useState({
-    labels: ["Labor", "Materials", "Overhead"], // Set labels initially
+    labels: ["Labor", "Materials", "Overhead"],
     datasets: [
       {
         label: "Expenses",
-        data: [0, 0, 0], // Start with empty data
-        backgroundColor: ["#007bff", "#ffc107", "#28a745"],
+        data: [0, 0, 0],
+        backgroundColor: chartColors,
         hoverOffset: 10,
       },
     ],
@@ -63,6 +73,7 @@ const Dashboard = () => {
     datasets: [],
   });
 
+  // Apply Filters
   const applyFilters = () => {
     let filtered = projects;
 
@@ -92,13 +103,7 @@ const Dashboard = () => {
     setFilteredProjects(filtered);
   };
 
-  const handleFilterChange = (e) => {
-    setFilterStatus(e.target.value); // Update the filter status
-  };
-
-  useEffect(() => {
-    console.log(`Filter changed to: ${filterStatus}`);
-  }, [filterStatus]); // Runs when filter changes
+  const handleFilterChange = (e) => setFilterStatus(e.target.value);
 
   useEffect(() => {
     const labels = Object.keys(monthlyTotals).sort();
@@ -120,23 +125,20 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (expenseData.some((val) => val > 0)) {
-      // Update only when data is valid
       const updatedChartData = {
-        labels: ["Labor", "Materials", "Overhead"], // Ensure labels are set
+        labels: ["Labor", "Materials", "Overhead"],
         datasets: [
           {
             label: "Expenses",
-            data: expenseData, // Use the latest expense data
-            backgroundColor: ["#007bff", "#ffc107", "#28a745"],
+            data: expenseData,
+            backgroundColor: chartColors,
             hoverOffset: 10,
           },
         ],
       };
       setExpenseChartData(updatedChartData);
-      console.log("Chart Updated - Expense Chart Data:", updatedChartData); // Debugging log
-      console.log("Rendering Pie Chart with:", expenseChartData);
     }
-  }, [expenseData]); // Depend only on valid data
+  }, [expenseData]);
 
   const progressVariant =
     budgetUtilization > 80
@@ -145,346 +147,113 @@ const Dashboard = () => {
         ? "warning"
         : "success";
 
-  // Apply filters when projects or filter status changes
   useEffect(() => {
-    applyFilters(); // Safe call
-  }, [projects, filterStatus]); // ✅ Correct dependencies
-
-  useEffect(() => {
-    fetchStats(); // Fetch immediately on page load
-  }, []); // Empty dependency array means it runs only once
-
-  // Fetch stats from Firestore
-  console.log("Starting fetchStats...");
-
-  const fetchStats = async () => {
-    try {
-      console.log("Fetching projects...");
-
-      // Fetch projects
-      const querySnapshot = await getDocs(collection(db, "projects"));
-      const projects = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      console.log("Fetched Projects:", projects);
-
-      // Filter projects based on the selected status
-      const filteredProjects =
-        filterStatus === "all"
-          ? projects
-          : projects.filter((proj) => proj.status === filterStatus);
-
-      console.log("Filtered Projects:", filteredProjects);
-
-      // Initialize totals
-      const categoryTotals = { Labour: 0, Materials: 0, Overhead: 0 };
-      const updatedMonthlyTotals = {}; // Local variable for monthly totals
-
-      let totalBudget = 0;
-      let actualExpenses = 0;
-
-      for (const proj of filteredProjects) {
-        totalBudget += proj.budget || 0;
-
-        // Fetch transactions for the project
-        const transactionsSnapshot = await getDocs(
-          collection(db, `projects/${proj.id}/transactions`),
-        );
-        const transactions =
-          transactionsSnapshot.docs.map((doc) => doc.data()) || [];
-
-        // Process transactions
-        transactions.forEach((txn) => {
-          const date = new Date(txn.date);
-          const monthYear = `${date.getFullYear()}-${date.getMonth() + 1}`;
-
-          if (!updatedMonthlyTotals[monthYear]) {
-            updatedMonthlyTotals[monthYear] = 0; // Initialize missing month
-          }
-
-          // Determine if it's an expense
-          const isExpense =
-            txn.type === "VISA" ||
-            txn.type === "Debit" ||
-            (txn.type === "Cash" && txn.category !== "Client Payment");
-
-          if (isExpense) {
-            updatedMonthlyTotals[monthYear] += Number(txn.amount); // Update local totals
-            actualExpenses += Number(txn.amount); // Increment total expenses
-          }
-
-          // **Category totals** for the pie chart
-          if (txn.category === "Labour")
-            categoryTotals.Labour += Number(txn.amount);
-          if (txn.category === "Materials")
-            categoryTotals.Materials += Number(txn.amount);
-          if (txn.category === "Misc Expense")
-            categoryTotals.Overhead += Number(txn.amount);
-        });
-      }
-
-      // Update state for chart data
-      setExpenseData([
-        categoryTotals.Labour,
-        categoryTotals.Materials,
-        categoryTotals.Overhead,
-      ]);
-
-      // **LOG the updated expense data**
-      console.log("Expense Data Updated:", [
-        categoryTotals.Labour,
-        categoryTotals.Materials,
-        categoryTotals.Overhead,
-      ]);
-
-      // Update React state after processing
-      setProjects(filteredProjects); // Update projects
-      setProjectsCount(filteredProjects.length);
-      setTotalExpenses(actualExpenses);
-      setAvailableFunds(totalBudget - actualExpenses);
-
-      setBudgetUtilization(
-        totalBudget > 0 ? ((actualExpenses / totalBudget) * 100).toFixed(2) : 0,
-      );
-
-      // Update monthly totals for trends chart
-      setMonthlyTotals(updatedMonthlyTotals); // Sync React state
-
-      console.log("Finished processing data.");
-    } catch (err) {
-      console.error("Error fetching data:", err);
-      setError(`Failed to fetch data: ${err.message}`);
-    } finally {
-      setLoading(false); // Stop spinner
-    }
-  };
-
-  // --- Monthly Trends ---
-  const trendsData = useMemo(() => {
-    const labels = Object.keys(monthlyTotals).sort();
-    const data = labels.map((key) => monthlyTotals[key] || 0);
-
-    return {
-      labels,
-      datasets: [
-        {
-          label: "Expenses",
-          data,
-          borderColor: "#007bff",
-          backgroundColor: "rgba(0, 123, 255, 0.2)",
-          fill: true,
-        },
-      ],
-    };
-  }, [monthlyTotals]); // Only recalculate if monthlyTotals changes
-
-  // Tooltip Configuration
-  const expenseChartOptions = {
-    plugins: {
-      tooltip: {
-        callbacks: {
-          label: (tooltipItem) => {
-            const value = tooltipItem.raw || 0; // Use 'raw' for Chart.js 3+
-            const total = expenseData.reduce((sum, val) => sum + val, 0);
-            const percentage =
-              total > 0 ? ((value / total) * 100).toFixed(2) : 0;
-            return `$${value.toLocaleString()} (${percentage}%)`;
-          },
-        },
-      },
-    },
-  };
+    applyFilters();
+  }, [projects, filterStatus]);
 
   // Modal Handlers
   const handleModalOpen = () => setShowModal(true);
   const handleModalClose = () => setShowModal(false);
 
   return (
-    <div>
+    <div className="dashboard-container">
       <Navbar page="dashboard" />
-      <div className="container py-4">
-        {/* Header Row with Filter Dropdown */}
-        <Card className="shadow-sm p-4 mb-4 border-0">
-          <Card.Body>
-            <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
-              {/* Dashboard Title */}
-              <h2 className="mb-0 text-primary fw-bold">Dashboard</h2>
 
-              {/* Filter and Actions */}
-              <div className="d-flex flex-wrap gap-3 align-items-center">
-                {/* Filter Dropdown */}
-                <select
-                  className="form-select w-auto shadow-sm"
-                  value={filterStatus}
-                  onChange={handleFilterChange}
-                >
-                  <option value="all">All</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+      {/* Dashboard Header */}
+      <div className="dashboard-header shadow-sm p-4 mb-4">
+        <h2 className="dashboard-title">Dashboard</h2>
 
-                {/* Buttons */}
-                <Button
-                  variant="outline-primary"
-                  className="shadow-sm"
-                  onClick={() => navigate("/projects")}
-                >
-                  View Projects
-                </Button>
-                <Button
-                  variant="primary"
-                  className="shadow-sm"
-                  onClick={handleModalOpen}
-                >
-                  Add New Project
-                </Button>
-              </div>
-            </div>
-          </Card.Body>
-        </Card>
-
-        {/* Loading Spinner */}
-        {loading ? (
-          <div className="text-center py-5">
-            <Spinner animation="border" variant="primary" />
-            <p>Loading stats...</p>
-          </div>
-        ) : error ? (
-          <div className="alert alert-danger text-center py-5">{error}</div>
-        ) : filteredProjects.length === 0 ? (
-          <div className="text-center my-4">
-            <p className="text-muted">No projects found for this filter.</p>
-          </div>
-        ) : (
-          <div>
-            {/* Cards Section */}
-            <div className="row g-4 mt-4">
-              {/* Total Projects */}
-              <div className="col-md-4">
-                <Card className="shadow-sm text-center p-4 border-0">
-                  <Card.Body>
-                    <Card.Title className="fw-semibold">Projects</Card.Title>
-                    <Card.Text className="display-6">{projectsCount}</Card.Text>
-                    <small className="text-muted">View all projects</small>
-                  </Card.Body>
-                </Card>
-              </div>
-              {/* Total Expenses */}
-              <div className="col-md-4">
-                <Card className="shadow-sm text-center p-4 border-0">
-                  <Card.Body>
-                    <Card.Title className="fw-semibold">
-                      Total Expenses
-                    </Card.Title>
-                    <Card.Text className="display-6">
-                      ${totalExpenses}
-                    </Card.Text>
-                    <small className="text-muted">
-                      Check expense breakdown
-                    </small>
-                  </Card.Body>
-                </Card>
-              </div>
-              {/* Available Funds */}
-              <div className="col-md-4">
-                <Card className="shadow-sm text-center p-4 border-0">
-                  <Card.Body>
-                    <Card.Title className="fw-semibold">
-                      Available Funds
-                    </Card.Title>
-                    <Card.Text className="display-6">
-                      ${availableFunds}
-                    </Card.Text>
-                    <small className="text-muted">Review budgets</small>
-                  </Card.Body>
-                </Card>
-              </div>
-            </div>
-
-            {/* Budget Utilization */}
-            <div className="row mt-5">
-              <div className="col-md-12">
-                <Card className="shadow-sm p-4 text-center border-0">
-                  <Card.Body>
-                    <Card.Title className="fw-semibold mb-3">
-                      Budget Utilization
-                    </Card.Title>
-
-                    {/* Progress Percentage */}
-                    <h2 className="display-6 mb-3">{budgetUtilization}%</h2>
-
-                    {/* Progress Bar */}
-                    <ProgressBar
-                      now={budgetUtilization}
-                      label={`${budgetUtilization}%`}
-                      variant={progressVariant}
-                      className="progress-bar-container progress-bar-text"
-                      style={{ height: "25px", fontSize: "1rem" }}
-                    />
-                  </Card.Body>
-                </Card>
-              </div>
-            </div>
-
-            {/* Charts Section */}
-            <div className="row mt-5 g-4">
-              {/* Expense Breakdown Chart */}
-              <div className="col-md-6">
-                <Card className="shadow-sm p-3 border-0">
-                  <Card.Body>
-                    <Card.Title className="text-center fw-semibold mb-3">
-                      Expense Breakdown
-                    </Card.Title>
-                    <div
-                      className="chart-container"
-                      style={{
-                        width: "100%", // Adjust to fit inside column
-                        height: "400px",
-                        margin: "0 auto",
-                      }}
-                    >
-                      {expenseChartData.datasets[0].data.some(
-                        (val) => val > 0,
-                      ) ? (
-                        <Pie
-                          data={expenseChartData}
-                          options={expenseChartOptions}
-                        />
-                      ) : (
-                        <p className="text-center">Loading chart data...</p>
-                      )}
-                    </div>
-                  </Card.Body>
-                </Card>
-              </div>
-
-              {/* Monthly Expense Trends */}
-              <div className="col-md-6">
-                <Card className="shadow-sm p-3 border-0">
-                  <Card.Body>
-                    <Card.Title className="text-center fw-semibold mb-3">
-                      Monthly Expense Trends
-                    </Card.Title>
-                    <div
-                      className="chart-container"
-                      style={{
-                        width: "100%",
-                        height: "400px",
-                        margin: "0 auto",
-                      }}
-                    >
-                      <Line data={monthlyTrendsData} />
-                    </div>
-                  </Card.Body>
-                </Card>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Filter and Actions */}
+        <div className="dashboard-actions d-flex flex-wrap gap-3 align-items-center">
+          <select
+            className="dashboard-select"
+            value={filterStatus}
+            onChange={handleFilterChange}
+          >
+            <option value="all">All</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <button
+            className="dashboard-btn outline"
+            onClick={() => navigate("/projects")}
+          >
+            View Projects
+          </button>
+          <button className="dashboard-btn primary" onClick={handleModalOpen}>
+            Add New Project
+          </button>
+        </div>
       </div>
+
+      {/* Dashboard Content */}
+      {loading ? (
+        <div className="text-center py-5">
+          <Spinner animation="border" />
+          <p>Loading stats...</p>
+        </div>
+      ) : error ? (
+        <div className="alert alert-danger text-center py-5">{error}</div>
+      ) : (
+        <div className="dashboard-content">
+          {/* Stats Section */}
+          <div className="row g-4 mt-4">
+            <div className="col-md-4">
+              <div className="dashboard-card shadow-sm text-center p-4">
+                <h3 className="dashboard-card-title">Projects</h3>
+                <p className="dashboard-stat">{projectsCount}</p>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <div className="dashboard-card shadow-sm text-center p-4">
+                <h3 className="dashboard-card-title">Total Expenses</h3>
+                <p className="dashboard-stat">${totalExpenses}</p>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <div className="dashboard-card shadow-sm text-center p-4">
+                <h3 className="dashboard-card-title">Available Funds</h3>
+                <p className="dashboard-stat">${availableFunds}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Budget Utilization */}
+          <div className="row mt-5">
+            <div className="col-12">
+              <div className="dashboard-progress-container shadow-sm p-4 text-center">
+                <h3 className="dashboard-card-title">Budget Utilization</h3>
+                <h2 className="dashboard-percentage">{budgetUtilization}%</h2>
+                <ProgressBar
+                  now={budgetUtilization}
+                  label={`${budgetUtilization}%`}
+                  variant={progressVariant}
+                  className="dashboard-progress"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Charts Section */}
+          <div className="row mt-5 g-4">
+            <div className="col-md-6">
+              <div className="dashboard-chart-card shadow-sm p-3">
+                <h4 className="chart-title">Expense Breakdown</h4>
+                <Pie data={expenseChartData} />
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="dashboard-chart-card shadow-sm p-3">
+                <h4 className="chart-title">Monthly Trends</h4>
+                <Line data={monthlyTrendsData} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Project Modal */}
       <AddProjectModal show={showModal} handleClose={handleModalClose} />
     </div>
   );
