@@ -1,32 +1,30 @@
 import React, { useState, useEffect } from "react";
+import { db } from "../firebaseConfig"; // Adjust the path based on your project structure
 import { Modal, Button, Form } from "react-bootstrap";
-import { toastSuccess, toastError } from "../utils/toastNotifications"; // Import toast utilities
-
-import { db } from "../firebaseConfig";
+import { toast } from "react-toastify";
+import { toastSuccess, toastError } from "../utils/toastNotifications";
+import { useProjects } from "../context/ProjectsContext";
 import {
-  addDoc,
-  updateDoc,
   doc,
-  collection,
+  setDoc,
   serverTimestamp,
+  getDocs,
+  collection,
 } from "firebase/firestore";
-
-const AddProjectModal = ({
-  show,
-  handleClose,
-  saveProject,
-  editingProject,
-}) => {
+const AddProjectModal = ({ show, handleClose, editingProject }) => {
   // --- State ---
   const [projectName, setProjectName] = useState("");
   const [location, setLocation] = useState("");
   const [budget, setBudget] = useState("");
-  const [status, setStatus] = useState("new"); // Default status is "new"
+  const [status, setStatus] = useState("new");
   const [statusNote, setStatusNote] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // --- Validation State ---
+  // Validation State
   const [errors, setErrors] = useState({});
+
+  // Context methods
+  const { addProject, updateProject, projects } = useProjects();
 
   // --- Pre-fill Fields if Editing ---
   useEffect(() => {
@@ -37,28 +35,38 @@ const AddProjectModal = ({
       setStatus(editingProject.status || "new");
       setStatusNote(editingProject.statusNote || "");
     } else {
-      // Clear fields for new projects
-      setProjectName("");
-      setLocation("");
-      setBudget("");
-      setStatus("new");
-      setStatusNote("");
-      setErrors({}); // Clear errors
+      resetForm(); // Reset fields for new project
     }
   }, [editingProject, show]);
 
-  // --- Validation Function ---
+  // --- Dynamic Validation for Status Notes ---
+  useEffect(() => {
+    if (status === "cancelled" && !statusNote.trim()) {
+      setErrors((prev) => ({
+        ...prev,
+        statusNote: "Reason for cancellation is required.",
+      }));
+    } else {
+      setErrors((prev) => {
+        const updated = { ...prev };
+        delete updated.statusNote;
+        return updated;
+      });
+    }
+  }, [status, statusNote]);
+
+  // --- Form Validation ---
   const validateForm = () => {
     const newErrors = {};
 
     if (!projectName.trim())
       newErrors.projectName = "Project Name is required.";
     if (!location.trim()) newErrors.location = "Location is required.";
-    if (!budget || parseFloat(budget) <= 0)
+    if (!budget || isNaN(budget) || parseFloat(budget) <= 0)
       newErrors.budget = "Budget must be greater than 0.";
     if (!status) newErrors.status = "Status is required.";
 
-    // Validate notes if status is "cancelled"
+    // Notes required for "cancelled" status
     if (status === "cancelled" && !statusNote.trim()) {
       newErrors.statusNote = "Reason for cancellation is required.";
     }
@@ -69,94 +77,69 @@ const AddProjectModal = ({
 
   // --- Handle Save ---
   const handleSave = async () => {
-    if (!validateForm()) {
-      toastError("Please check the input!");
-      return;
-    }
-
-    setLoading(true); // Start spinner
     try {
-      let newProject;
+      setLoading(true);
 
-      if (editingProject && !editingProject.id.startsWith("temp-")) {
-        // --- UPDATE EXISTING PROJECT ---
-        const projectRef = doc(db, "projects", editingProject.id);
-        await updateDoc(projectRef, {
-          name: projectName,
-          location,
-          budget: parseFloat(budget),
-          status,
-          statusNote,
-          updatedAt: serverTimestamp(),
-        });
-
-        newProject = {
-          id: editingProject.id,
-          name: projectName,
-          location,
-          budget: parseFloat(budget),
-          status,
-          statusNote,
-          updatedAt: new Date().toISOString(),
-        };
-
-        toastSuccess("Project updated successfully!");
-      } else {
-        // --- ADD NEW PROJECT ---
-        const docRef = await addDoc(collection(db, "projects"), {
-          name: projectName,
-          location,
-          budget: parseFloat(budget),
-          status,
-          statusNote,
-          createdAt: serverTimestamp(),
-        });
-
-        newProject = {
-          id: docRef.id, // Firestore-generated ID
-          name: projectName,
-          location,
-          budget: parseFloat(budget),
-          status,
-          statusNote,
-          createdAt: new Date().toISOString(),
-        };
-
-        toastSuccess("Project added successfully!");
+      if (!validateForm()) {
+        setLoading(false);
+        return;
       }
 
-      // --- Update Parent State ---
-      if (saveProject) {
-        saveProject(newProject);
-      }
+      // Fetch existing projects to calculate order dynamically
+      const querySnapshot = await getDocs(collection(db, "projects"));
+      const maxOrder = querySnapshot.empty
+        ? 0 // If no projects exist, default order to 0
+        : Math.max(...querySnapshot.docs.map((doc) => doc.data().order || 0));
 
-      handleClose(); // Close modal
+      const projectRef = editingProject
+        ? doc(db, "projects", editingProject.id) // Use existing ID if editing
+        : doc(collection(db, "projects")); // Auto-generate new Firestore ID
+
+      // Save the new project with the order field
+      await setDoc(
+        projectRef,
+        {
+          name: projectName,
+          location,
+          budget: parseFloat(budget) || 0,
+          status,
+          statusNote,
+          createdAt: editingProject?.createdAt || serverTimestamp(),
+          order: maxOrder + 1,
+        },
+        { merge: true },
+      );
+
+      toastSuccess("Project saved successfully!");
+      handleCloseModal();
     } catch (error) {
-      console.error("Error saving project: ", error);
-      toastError("Failed to save project. Please try again.");
+      console.error("Error saving project:", error);
+      toastError(`Error saving project: ${error.message}`);
     } finally {
-      setLoading(false); // Stop spinner
+      setLoading(false);
     }
   };
 
-  const addProjectToList = (newProject) => {
-    setProjects((prevProjects) => {
-      // Prevent duplicate entries by checking IDs
-      const exists = prevProjects.some((p) => p.id === newProject.id);
-      if (exists) return prevProjects;
-
-      return [...prevProjects, newProject]; // Add to state dynamically
-    });
-
-    const handleCloseModal = () => {
-      handleClose(); // Close modal
-      setLoading(false); // Reset loading state
-      setShowLoading(false); // Stop animation in parent
-    };
+  // --- Reset Form ---
+  const resetForm = () => {
+    setProjectName("");
+    setLocation("");
+    setBudget("");
+    setStatus("new");
+    setStatusNote("");
+    setErrors({});
+    setLoading(false);
   };
 
+  // --- Close Modal and Reset ---
+  const handleCloseModal = () => {
+    handleClose(); // Close modal
+    resetForm(); // Reset form fields
+  };
+
+  // --- Render Modal ---
   return (
-    <Modal show={show} onHide={handleClose} backdrop="static" centered>
+    <Modal show={show} onHide={handleCloseModal} backdrop="static" centered>
       <Modal.Header closeButton>
         <Modal.Title>
           {editingProject ? "Edit Project" : "Add New Project"}
@@ -170,24 +153,8 @@ const AddProjectModal = ({
             type="text"
             placeholder="Enter project name"
             value={projectName}
-            isInvalid={!!errors.projectName} // Highlight invalid field
-            onChange={(e) => {
-              setProjectName(e.target.value);
-
-              // Dynamic validation
-              if (!e.target.value.trim()) {
-                setErrors((prev) => ({
-                  ...prev,
-                  projectName: "Project Name is required.",
-                }));
-              } else {
-                setErrors((prev) => {
-                  const updated = { ...prev };
-                  delete updated.projectName; // Remove error if valid
-                  return updated;
-                });
-              }
-            }}
+            isInvalid={!!errors.projectName}
+            onChange={(e) => setProjectName(e.target.value)}
           />
           <Form.Control.Feedback type="invalid">
             {errors.projectName}
@@ -202,21 +169,7 @@ const AddProjectModal = ({
             placeholder="Enter location"
             value={location}
             isInvalid={!!errors.location}
-            onChange={(e) => {
-              setLocation(e.target.value);
-              if (!e.target.value.trim()) {
-                setErrors((prev) => ({
-                  ...prev,
-                  location: "Location is required.",
-                }));
-              } else {
-                setErrors((prev) => {
-                  const updated = { ...prev };
-                  delete updated.location;
-                  return updated;
-                });
-              }
-            }}
+            onChange={(e) => setLocation(e.target.value)}
           />
           <Form.Control.Feedback type="invalid">
             {errors.location}
@@ -231,21 +184,7 @@ const AddProjectModal = ({
             placeholder="Enter budget"
             value={budget}
             isInvalid={!!errors.budget}
-            onChange={(e) => {
-              setBudget(e.target.value);
-              if (!e.target.value || parseFloat(e.target.value) <= 0) {
-                setErrors((prev) => ({
-                  ...prev,
-                  budget: "Budget must be greater than 0.",
-                }));
-              } else {
-                setErrors((prev) => {
-                  const updated = { ...prev };
-                  delete updated.budget;
-                  return updated;
-                });
-              }
-            }}
+            onChange={(e) => setBudget(e.target.value)}
           />
           <Form.Control.Feedback type="invalid">
             {errors.budget}
@@ -260,42 +199,35 @@ const AddProjectModal = ({
             isInvalid={!!errors.status}
             onChange={(e) => setStatus(e.target.value)}
           >
-            <option value="new">New</option>
-            <option value="in-progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="on-hold">On Hold</option>
-            <option value="cancelled">Cancelled</option>
+            {["new", "in-progress", "completed", "on-hold", "cancelled"].map(
+              (statusKey) => (
+                <option key={statusKey} value={statusKey}>
+                  {statusKey
+                    .replace("-", " ")
+                    .replace(/\b\w/g, (l) => l.toUpperCase())}
+                </option>
+              ),
+            )}
           </Form.Select>
           <Form.Control.Feedback type="invalid">
             {errors.status}
           </Form.Control.Feedback>
         </Form.Group>
-        {/* Notes */}
+
+        {/* Status Note */}
         <Form.Group className="mb-3">
           <Form.Label>Notes</Form.Label>
           <Form.Control
             as="textarea"
             rows={3}
-            placeholder="Add notes (optional)"
+            placeholder={
+              status === "cancelled"
+                ? "Provide reason for cancellation"
+                : "Add notes (optional)"
+            }
             value={statusNote}
-            isInvalid={!!errors.statusNote} // Validation for required notes
-            onChange={(e) => {
-              setStatusNote(e.target.value);
-
-              // Validate dynamically for "Cancelled" status
-              if (status === "cancelled" && !e.target.value.trim()) {
-                setErrors((prev) => ({
-                  ...prev,
-                  statusNote: "Reason for cancellation is required.",
-                }));
-              } else {
-                setErrors((prev) => {
-                  const updated = { ...prev };
-                  delete updated.statusNote; // Clear errors when valid
-                  return updated;
-                });
-              }
-            }}
+            isInvalid={!!errors.statusNote}
+            onChange={(e) => setStatusNote(e.target.value)}
           />
           <Form.Control.Feedback type="invalid">
             {errors.statusNote}
@@ -303,12 +235,9 @@ const AddProjectModal = ({
         </Form.Group>
       </Modal.Body>
       <Modal.Footer>
-        {/* Cancel Button */}
-        <Button variant="secondary" onClick={handleClose}>
+        <Button variant="secondary" onClick={handleCloseModal}>
           Cancel
         </Button>
-
-        {/* Save Button */}
         <Button
           variant="primary"
           onClick={handleSave}
@@ -319,12 +248,6 @@ const AddProjectModal = ({
       </Modal.Footer>
     </Modal>
   );
-  <AddProjectModal
-    show={showModal}
-    handleClose={handleCloseModal} // Custom callback
-    saveProject={addProjectToList} // Update parent list
-    editingProject={editingProject}
-  />;
 };
 
 export default AddProjectModal;

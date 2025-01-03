@@ -176,33 +176,66 @@ function ProjectDashboard() {
 
   // --- Handle Manual Status Change ---
   const handleStatusChange = async (newStatus) => {
-    let note = ""; // For optional status notes
-    let confirmed = true; // Default confirmation
+    let note = ""; // Optional status notes
+    let confirmed = true; // Default to allow status change
 
-    // --- Handle special cases ---
-    if (newStatus === "cancelled") {
-      note = prompt("Reason for cancellation:"); // Ask for cancellation note
-      confirmed = window.confirm(
-        "Are you sure you want to cancel this project?",
+    try {
+      // --- Fetch Latest Transactions --- (Ensure data is fresh)
+      const querySnapshot = await getDocs(
+        collection(db, `projects/${project.id}/transactions`),
       );
-    } else if (newStatus === "on-hold") {
-      note = prompt("Add a note for placing the project on hold:"); // Optional note
-    } else if (newStatus === "completed") {
-      confirmed = window.confirm(
-        "Mark this project as completed? This action is final.",
-      );
-    }
+      const latestTransactions = querySnapshot.docs.map((doc) => doc.data());
 
-    if (confirmed) {
-      try {
-        // --- Update Firestore with the new status ---
+      // --- Validation Logic ---
+
+      // 'In-Progress' Validation: Check for a 'Deposit'
+      if (newStatus === "in-progress") {
+        const hasDeposit = latestTransactions.some(
+          (t) =>
+            t.category === "Client Payment" &&
+            t.name.toLowerCase().includes("deposit"),
+        );
+        if (!hasDeposit) {
+          toast.error("Cannot mark as 'In Progress'. A deposit is required!");
+          return; // Stop status change
+        }
+      }
+
+      // 'Completed' Validation: Ensure Client Paid in Full
+      if (newStatus === "completed") {
+        const totalIncome = latestTransactions
+          .filter((t) => t.category === "Client Payment")
+          .reduce((sum, t) => sum + Number(t.amount), 0);
+
+        if (totalIncome < project.budget) {
+          toast.error(
+            `Cannot mark as 'Completed'. Client still owes $${
+              project.budget - totalIncome
+            }!`,
+          );
+          return; // Stop status change
+        }
+      }
+
+      // --- Handle Special Cases ---
+      if (newStatus === "cancelled") {
+        note = prompt("Reason for cancellation:"); // Ask for cancellation note
+        confirmed = window.confirm(
+          "Are you sure you want to cancel this project?",
+        );
+      } else if (newStatus === "on-hold") {
+        note = prompt("Add a note for placing the project on hold:"); // Optional note
+      }
+
+      // --- Proceed with Update if Confirmed ---
+      if (confirmed) {
         await updateDoc(doc(db, "projects", project.id), {
           status: newStatus,
           statusDate: new Date(),
           statusNote: note || "",
         });
 
-        // --- Update local state ---
+        // --- Update Local State ---
         setProject((prev) => ({
           ...prev,
           status: newStatus,
@@ -210,15 +243,17 @@ function ProjectDashboard() {
           statusNote: note || "",
         }));
 
+        toast.success(`Status updated to: ${newStatus}`);
         console.log(`Status updated to: ${newStatus}`);
 
-        // --- Redirect if status is cancelled ---
+        // --- Redirect if 'Cancelled' ---
         if (newStatus === "cancelled") {
-          navigate("/"); // Go back to project list
+          navigate("/"); // Go back to the project list
         }
-      } catch (error) {
-        console.error("Error updating status:", error);
       }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update status. Please try again.");
     }
   };
 
@@ -841,21 +876,39 @@ function ProjectDashboard() {
               <strong className="me-2">Status:</strong>
               <select
                 className="form-select form-select-sm me-2"
-                value={project?.status || "new"} // Default to 'new' if project is null
+                value={project?.status || "new"}
                 onChange={(e) => handleStatusChange(e.target.value)}
                 style={{
                   width: "130px",
                   fontSize: "0.9rem",
                   padding: "0.25rem 0.5rem",
                 }}
-                disabled={["cancelled", "completed"].includes(project?.status)} // Handle null
+                disabled={["cancelled", "completed"].includes(project?.status)} // Lock these statuses
               >
                 <option value="new">New</option>
-                <option value="in-progress">In Progress</option>
+                <option
+                  value="in-progress"
+                  disabled={
+                    transactions.length === 0 || // Disable if no transactions exist
+                    !transactions.some(
+                      (t) =>
+                        t.category === "Client Payment" &&
+                        t.name.toLowerCase().includes("deposit"),
+                    )
+                  }
+                >
+                  In Progress
+                </option>
+                <option
+                  value="completed"
+                  disabled={
+                    income < project?.budget // Disable if client hasn't paid in full
+                  }
+                >
+                  Completed
+                </option>
                 <option value="on-hold">On Hold</option>
                 <option value="cancelled">Cancelled</option>
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
               </select>
               {project.status === "cancelled" && (
                 <button

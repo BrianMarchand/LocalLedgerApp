@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useProjects } from "../../context/ProjectsContext";
 import { db } from "../../firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import Navbar from "../../components/Navbar";
@@ -27,12 +28,9 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   // States
-  const [projects, setProjects] = useState([]);
   const [projectsCount, setProjectsCount] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [availableFunds, setAvailableFunds] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [budgetUtilization, setBudgetUtilization] = useState(0);
   const [filterStatus, setFilterStatus] = useState("all");
@@ -40,6 +38,14 @@ const Dashboard = () => {
   const [expenseData, setExpenseData] = useState([0, 0, 0]);
   const [monthlyTotals, setMonthlyTotals] = useState({});
   const chartColors = ["#007bff", "#ffc107", "#28a745"];
+  const {
+    projects, // Context-managed projects
+    loading, // Context loading state
+    error, // Context error handling
+    addProject, // Context function to add a project
+    deleteProject, // Context function to delete a project
+    updateProject, // Context function to update a project
+  } = useProjects(); // <-- Pull from context
   const [expenseChartData, setExpenseChartData] = useState({
     labels: ["Labor", "Materials", "Overhead"], // Set labels initially
     datasets: [

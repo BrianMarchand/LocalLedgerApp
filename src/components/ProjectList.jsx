@@ -2,14 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom"; // <-- NEW
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext"; // Import Theme Hook
+import { useProjects } from "../context/ProjectsContext"; // Import Projects Context
 import { db } from "../firebaseConfig";
 import Navbar from "../components/Navbar"; // Import the Navbar component
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
-import * as bootstrap from "bootstrap"; // Explicitly import Bootstrap JS
 import "../ProjectList.css";
 import AddProjectModal from "../components/AddProjectModal";
-import { ProgressBar } from "react-loader-spinner";
+import { Spinner } from "react-bootstrap";
 import { toastSuccess, toastError } from "../utils/toastNotifications"; // Import toast utilities
 import Swal from "sweetalert2"; // Import SweetAlert
 import "sweetalert2/dist/sweetalert2.min.css"; // Import SweetAlert Default Styles
@@ -18,13 +18,10 @@ import {
   collection,
   getDocs,
   addDoc,
-  deleteDoc,
-  doc, // <-- Keep the existing import
+  doc,
   updateDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  writeBatch, // <--
+  writeBatch,
+  // <--
 } from "firebase/firestore";
 
 function ProjectList() {
@@ -38,8 +35,17 @@ function ProjectList() {
     return Math.min(Math.round(progress), 100); // Cap at 100%
   };
 
+  // --- Load Projects Using Context ---
+  const {
+    projects, // Managed by context
+    setProjects, // Managed by context
+    loading, // Managed by context
+    addProject, // Add project function
+    updateProject, // Update project function
+    deleteProject, // Delete project function
+  } = useProjects(); // Use Projects Context
+
   // --- Loading Animation ---
-  const [loading, setLoading] = useState(true); // Tracks loading state
   const [showLoading, setShowLoading] = useState(true); // Adds delay for animation
 
   // --- Modal Window: Projects ---
@@ -48,7 +54,6 @@ function ProjectList() {
   const handleModalClose = () => setShowModal(false);
 
   // --- State Management ---
-  const [projects, setProjects] = useState([]); // Store projects from Firestore
   const [editingProject, setEditingProject] = useState(null); // Track project being edited
 
   // --- Save Project (Dynamic State Update) ---
@@ -80,82 +85,16 @@ function ProjectList() {
     return "new"; // Default fallback
   };
 
-  // --- Project Fetching Logic For Modal ---
-  useEffect(() => {
-    const unsubscribe = onSnapshot(
-      query(collection(db, "projects"), orderBy("order", "asc")), // Default sort by "order"
-      async (snapshot) => {
-        try {
-          const projectList = await Promise.all(
-            snapshot.docs.map(async (doc) => {
-              const project = { id: doc.id, ...doc.data() };
-
-              // Fetch transactions for each project
-              const transactionsSnapshot = await getDocs(
-                collection(db, `projects/${project.id}/transactions`),
-              );
-              const transactions = transactionsSnapshot.docs.map((doc) =>
-                doc.data(),
-              );
-
-              const totalExpenses = transactions
-                .filter((t) => t.category !== "Client Payment")
-                .reduce((sum, t) => sum + Number(t.amount), 0);
-
-              return { ...project, totalExpenses };
-            }),
-          );
-
-          // Combine Firestore projects with temporary ones
-          setProjects(projectList);
-        } catch (error) {
-          console.error("Error fetching projects:", error);
-          toastError("Failed to load projects.");
-        } finally {
-          setLoading(false);
-          setShowLoading(false);
-        }
-      },
-    );
-
-    return () => unsubscribe();
-  }, []);
-
   const { darkMode, toggleTheme } = useTheme(); // Get theme state and toggle function
 
   // --- Add New Project ---
   const addNewProject = async (newProject) => {
     try {
-      // Determine the order based on the length of current projects
-      const order = projects.length; // Sets the order as the last position
-
-      // Add 'order' to the new project
-      const projectWithOrder = {
-        ...newProject,
-        order, // Include order field
-      };
-
-      // Add the project to Firestore
-      const docRef = await addDoc(collection(db, "projects"), projectWithOrder);
-
-      // Update the local state with the new project
-      setProjects((prev) => [
-        ...prev,
-        { id: docRef.id, ...projectWithOrder }, // Preserve Firestore ID
-      ]);
-
-      // Reset editing and temporary project states
-      setEditingProject(null);
-      setTempProjects([]);
-      handleModalClose();
-
-      // Toast Notification (Success)
+      await addProject(newProject); // Use context method
       toastSuccess("Project added successfully!");
     } catch (error) {
-      console.error("Error adding project: ", error);
-
-      // Toast Notification (Error)
-      toastError("Failed to add project. Please try again.");
+      console.error("Error adding project:", error);
+      toastError("Failed to add project.");
     }
   };
 
@@ -163,10 +102,9 @@ function ProjectList() {
     const querySnapshot = await getDocs(collection(db, "projects"));
     querySnapshot.forEach(async (docSnap, index) => {
       const project = docSnap.data();
-      if (!project.order) {
-        // Only fix missing order
+      if (project.order !== index) {
         const projectRef = doc(db, "projects", docSnap.id);
-        await updateDoc(projectRef, { order: index }); // Add incremental order
+        await updateDoc(projectRef, { order: index }); // Fix order dynamically
       }
     });
     console.log("Order field updated!");
@@ -175,23 +113,11 @@ function ProjectList() {
   // --- Edit Existing Project (For Inline Editing) ---
   const editProject = async (updatedProject) => {
     try {
-      const docRef = doc(db, "projects", updatedProject.id);
-      await updateDoc(docRef, updatedProject);
-
-      setProjects((prev) =>
-        prev.map((proj) =>
-          proj.id === updatedProject.id ? updatedProject : proj,
-        ),
-      );
-      setEditingProject(null);
-
-      // Toast Notification (Success)
+      await updateProject(updatedProject.id, updatedProject); // Use context method
       toastSuccess("Project updated successfully!");
     } catch (error) {
-      console.error("Error updating project: ", error);
-
-      // Toast Notification (Error)
-      toastError("Failed to update project. Please try again.");
+      console.error("Error updating project:", error);
+      toastError("Failed to update project.");
     }
   };
 
@@ -272,42 +198,58 @@ function ProjectList() {
 
   // --- Cancel Project ---
   const cancelProject = async (project) => {
-    const confirmCancel = async (project) => {
-      const result = await Swal.fire({
-        title: "Cancel Project?",
-        text: `Are you sure you want to cancel "${project.name}"? This cannot be undone.`,
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#3085d6",
-        confirmButtonText: "Yes, cancel it!",
-        cancelButtonText: "No, keep it",
-      });
+    // Step 1: Confirm the cancel action using SweetAlert2
+    const result = await Swal.fire({
+      title: "Cancel Project?",
+      text: `Are you sure you want to cancel "${project.name}"? This cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33", // Red for destructive actions
+      cancelButtonColor: "#3085d6", // Default blue
+      confirmButtonText: "Yes, cancel it!",
+      cancelButtonText: "No, keep it",
+    });
 
-      if (result.isConfirmed) {
-        await cancelProject(project); // Call existing function
-        toastSuccess(`Project "${project.name}" has been cancelled.`);
-      } else {
-        toastError("Action cancelled!");
+    // Step 2: Check if the user confirmed the action
+    if (result.isConfirmed) {
+      try {
+        // Step 3: Update Firestore to set status as 'cancelled'
+        const docRef = doc(db, "projects", project.id);
+        await updateDoc(docRef, {
+          status: "cancelled",
+          statusDate: new Date(),
+          statusNote: "Project cancelled by user.", // Optional note
+        });
+
+        // Step 4: Refresh the projects list after update
+        fetchProjects();
+
+        // Step 5: Show success feedback with SweetAlert2
+        await Swal.fire({
+          title: "Cancelled!",
+          text: `Project "${project.name}" has been cancelled successfully.`,
+          icon: "success",
+          confirmButtonText: "OK",
+        });
+      } catch (error) {
+        console.error("Error cancelling project:", error);
+
+        // Step 6: Show error feedback with SweetAlert2
+        await Swal.fire({
+          title: "Error!",
+          text: `Failed to cancel "${project.name}". Please try again.`,
+          icon: "error",
+          confirmButtonText: "OK",
+        });
       }
-    };
-
-    try {
-      const docRef = doc(db, "projects", project.id);
-      await updateDoc(docRef, {
-        status: "cancelled",
-        statusDate: new Date(),
+    } else {
+      // Step 7: Show cancellation feedback if user backs out
+      await Swal.fire({
+        title: "Cancelled",
+        text: "No changes were made to the project.",
+        icon: "info",
+        confirmButtonText: "OK",
       });
-
-      fetchProjects();
-
-      // Toast Notification (Success)
-      toastSuccess(`Project "${project.name}" has been cancelled.`);
-    } catch (error) {
-      console.error("Error cancelling project:", error);
-
-      // Toast Notification (Error)
-      toastError(`Failed to cancel "${project.name}". Please try again.`);
     }
   };
 
@@ -414,24 +356,20 @@ function ProjectList() {
   };
 
   // --- Delete Project with Confirmation ---
-  const [deleting, setDeleting] = useState(false);
-
-  const deleteProject = async (id) => {
-    if (deleting) return; // Prevent duplicate calls
-    setDeleting(true); // Start deletion
-
+  const handleDeleteProject = async (id) => {
     try {
-      const docRef = doc(db, "projects", id);
-      await deleteDoc(docRef);
-
+      await deleteProject(id); // Delete project
+      await checkOrderFields(); // Debug order fields
+      await fixOrderFields(); // Fix order fields if missing
+      // Immediately remove the deleted project from local state
       setProjects((prevProjects) =>
         prevProjects.filter((project) => project.id !== id),
       );
+
+      toastSuccess("Project deleted successfully!");
     } catch (error) {
       console.error("Error deleting project:", error);
-      toastError("Failed to delete project. Please try again.");
-    } finally {
-      setDeleting(false); // Reset state after attempt
+      toastError("Failed to delete project.");
     }
   };
 
@@ -490,25 +428,11 @@ function ProjectList() {
   const combinedProjects = projects; // Use only saved projects
 
   // --- Check Loading State ---
-  if (loading || showLoading) {
+  if (loading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          flexDirection: "column",
-        }}
-      >
-        <ProgressBar
-          height="80"
-          width="200"
-          ariaLabel="progress-bar-loading"
-          borderColor="#4A90E2"
-          barColor="#4A90E2"
-        />
-        <p style={{ marginTop: "10px" }}>Loading Your Projects...</p>
+      <div className="text-center py-5">
+        <Spinner animation="border" variant="primary" />
+        <p>Loading Your Projects...</p>
       </div>
     );
   }
@@ -528,7 +452,8 @@ function ProjectList() {
 
     if (result.isConfirmed) {
       try {
-        await deleteProject(project.id); // Ensure this awaits completion
+        // Call the deleteProject() function from context
+        await deleteProject(project.id); // <-- Use the context function!
 
         toastSuccess(`Project "${project.name}" has been deleted.`);
       } catch (error) {
@@ -536,7 +461,7 @@ function ProjectList() {
         toastError(`Failed to delete "${project.name}". Please try again.`);
       }
     } else {
-      toastError("Action cancelled!"); // Feedback for cancelled operation
+      toastError("Action cancelled!");
     }
   };
 
@@ -619,30 +544,30 @@ function ProjectList() {
   const confirmReopen = async (project) => {
     console.log("Attempting to reopen project:", project.name); // Debugging log
 
+    // Step 1: Confirm the action using SweetAlert2
     const result = await Swal.fire({
       title: "Reopen Project?",
       text: `Are you sure you want to reopen "${project.name}"?`,
       icon: "info",
       showCancelButton: true,
-      confirmButtonColor: "#ffc107",
-      cancelButtonColor: "#3085d6",
+      confirmButtonColor: "#ffc107", // Yellow for caution
+      cancelButtonColor: "#3085d6", // Default blue
       confirmButtonText: "Yes, reopen it!",
       cancelButtonText: "Cancel",
     });
 
     if (result.isConfirmed) {
       try {
-        // --- Optimistic UI Update ---
-        console.log("Updating UI before Firestore..."); // Debugging
+        // Step 2: Optimistic UI Update
         const updatedProjects = projects.map((p) =>
           p.id === project.id
             ? { ...p, status: "in-progress", statusDate: new Date() }
             : p,
         );
-        setProjects(updatedProjects); // Optimistic update for UI
+        setProjects(updatedProjects); // Update UI immediately
         console.log("UI updated successfully."); // Debugging
 
-        // --- Firestore Update ---
+        // Step 3: Update Firestore status to 'in-progress'
         const docRef = doc(db, "projects", project.id);
         await updateDoc(docRef, {
           status: "in-progress",
@@ -651,26 +576,58 @@ function ProjectList() {
         });
         console.log("Firestore updated successfully."); // Debugging
 
-        // --- Success Toast ---
-        toastSuccess(`Project "${project.name}" has been reopened!`);
+        // Step 4: Enforce rules after reopening
+        // Check if deposit transaction exists
+        const transactionsSnapshot = await getDocs(
+          collection(db, `projects/${project.id}/transactions`),
+        );
+        const transactions = transactionsSnapshot.docs.map((doc) => doc.data());
+
+        const hasDeposit = transactions.some(
+          (t) =>
+            t.category === "Client Payment" &&
+            t.name.toLowerCase().includes("deposit"),
+        );
+
+        // Warn the user if no deposit is found
+        if (!hasDeposit) {
+          await Swal.fire({
+            title: "Important!",
+            text: "This project does not have a 'deposit' transaction yet. It will remain in 'new' status until a deposit is added.",
+            icon: "warning",
+            confirmButtonText: "Understood",
+          });
+        }
+
+        // Step 5: Success Feedback
+        await Swal.fire({
+          title: "Reopened!",
+          text: `Project "${project.name}" has been reopened successfully.`,
+          icon: "success",
+          confirmButtonText: "OK",
+        });
       } catch (error) {
         console.error("Error during Firestore update:", error); // Debugging
 
-        // --- Error Toast (only for true Firestore failures) ---
-        toastError(`Failed to reopen "${project.name}". Please try again.`);
+        // Error Feedback
+        await Swal.fire({
+          title: "Error!",
+          text: `Failed to reopen "${project.name}". Please try again.`,
+          icon: "error",
+          confirmButtonText: "OK",
+        });
       }
 
+      // Step 6: Refresh the project list silently (no error blocking)
       try {
-        // --- Fetch Updated Projects in Background (No Errors Affect UI) ---
         console.log("Refreshing projects list..."); // Debugging
-        await fetchProjects(); // Refresh data silently
+        await fetchProjects(); // Refresh data
         console.log("Projects refreshed successfully."); // Debugging
       } catch (fetchError) {
         console.warn(
           "Fetch projects failed, but Firestore update was successful.",
           fetchError,
         ); // Debugging
-        // Avoid showing errors here – it doesn't block functionality
       }
     } else {
       console.log("Reopen action cancelled."); // Debugging
@@ -1061,7 +1018,7 @@ function ProjectList() {
                                 title="Delete Project"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  confirmDelete(project);
+                                  confirmDelete(project); // Keep SweetAlert confirmation
                                 }}
                               >
                                 <i className="bi bi-trash"></i>
