@@ -51,6 +51,20 @@ function ProjectList() {
   const [projects, setProjects] = useState([]); // Store projects from Firestore
   const [editingProject, setEditingProject] = useState(null); // Track project being edited
 
+  // --- Save Project (Dynamic State Update) ---
+  const addProjectToList = (newProject) => {
+    setProjects((prevProjects) => {
+      const exists = prevProjects.some((p) => p.id === newProject.id);
+      if (exists) return prevProjects;
+
+      return [...prevProjects, newProject]; // Add to state dynamically
+    });
+
+    // Reset parent loading spinner
+    setLoading(false); // Spinner disappears
+    setShowLoading(false); // Ensure animation stops
+  };
+
   // --- Update Status Dynamically Based on Transactions ---
   const determineStatus = (transactions) => {
     if (!transactions || transactions.length === 0) return "new";
@@ -69,7 +83,7 @@ function ProjectList() {
   // --- Project Fetching Logic For Modal ---
   useEffect(() => {
     const unsubscribe = onSnapshot(
-      query(collection(db, "projects"), orderBy("order")),
+      query(collection(db, "projects"), orderBy("order", "asc")), // Default sort by "order"
       async (snapshot) => {
         try {
           const projectList = await Promise.all(
@@ -84,29 +98,28 @@ function ProjectList() {
                 doc.data(),
               );
 
-              // Calculate total expenses
               const totalExpenses = transactions
                 .filter((t) => t.category !== "Client Payment")
                 .reduce((sum, t) => sum + Number(t.amount), 0);
 
-              return { ...project, totalExpenses }; // Attach expenses
+              return { ...project, totalExpenses };
             }),
           );
 
-          setProjects(projectList); // Update the project list
-          setLoading(false); // STOP LOADING
-          setShowLoading(false); // <-- Add this line to fix the loop!
+          // Combine Firestore projects with temporary ones
+          setProjects(projectList);
         } catch (error) {
           console.error("Error fetching projects:", error);
           toastError("Failed to load projects.");
-          setLoading(false); // STOP LOADING even if an error occurs
-          setShowLoading(false); // <-- Also stop the animation on error
+        } finally {
+          setLoading(false);
+          setShowLoading(false);
         }
       },
     );
 
-    return () => unsubscribe(); // Cleanup listener on unmount
-  }, []); // <-- Only runs once
+    return () => unsubscribe();
+  }, []);
 
   const { darkMode, toggleTheme } = useTheme(); // Get theme state and toggle function
 
@@ -144,6 +157,19 @@ function ProjectList() {
       // Toast Notification (Error)
       toastError("Failed to add project. Please try again.");
     }
+  };
+
+  const fixOrderField = async () => {
+    const querySnapshot = await getDocs(collection(db, "projects"));
+    querySnapshot.forEach(async (docSnap, index) => {
+      const project = docSnap.data();
+      if (!project.order) {
+        // Only fix missing order
+        const projectRef = doc(db, "projects", docSnap.id);
+        await updateDoc(projectRef, { order: index }); // Add incremental order
+      }
+    });
+    console.log("Order field updated!");
   };
 
   // --- Edit Existing Project (For Inline Editing) ---
@@ -388,38 +414,24 @@ function ProjectList() {
   };
 
   // --- Delete Project with Confirmation ---
-  const deleteProject = async (id) => {
-    const confirmDelete = async (project) => {
-      const result = await Swal.fire({
-        title: "Delete Project?",
-        text: `Are you sure you want to delete "${project.name}"? This action cannot be undone.`,
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#3085d6",
-        confirmButtonText: "Yes, delete it!",
-        cancelButtonText: "Cancel",
-      });
+  const [deleting, setDeleting] = useState(false);
 
-      if (result.isConfirmed) {
-        deleteProject(project.id); // Existing function
-      } else {
-        toastError("Action cancelled!");
-      }
-    };
+  const deleteProject = async (id) => {
+    if (deleting) return; // Prevent duplicate calls
+    setDeleting(true); // Start deletion
 
     try {
       const docRef = doc(db, "projects", id);
       await deleteDoc(docRef);
-      fetchProjects();
 
-      // Toast Notification (Success)
-      toastSuccess("Project deleted successfully!");
+      setProjects((prevProjects) =>
+        prevProjects.filter((project) => project.id !== id),
+      );
     } catch (error) {
       console.error("Error deleting project:", error);
-
-      // Toast Notification (Error)
       toastError("Failed to delete project. Please try again.");
+    } finally {
+      setDeleting(false); // Reset state after attempt
     }
   };
 
@@ -1068,10 +1080,10 @@ function ProjectList() {
         )}
         {/* Add Project Modal */}
         <AddProjectModal
-          show={showModal} // Modal visibility state
-          handleClose={handleModalClose} // Modal close handler
-          saveProject={saveProject} // Save logic for the modal
-          editingProject={editingProject} // Pass editing project
+          show={showModal}
+          handleClose={handleModalClose}
+          saveProject={addProjectToList} // Fix: Pass local update function
+          editingProject={editingProject}
         />
       </div>
     </div>

@@ -70,14 +70,16 @@ const AddProjectModal = ({
   // --- Handle Save ---
   const handleSave = async () => {
     if (!validateForm()) {
-      toastWarning("Please check the input!");
+      toastError("Please check the input!");
       return;
     }
 
-    setLoading(true);
+    setLoading(true); // Start spinner
     try {
-      if (editingProject) {
-        // Update existing project
+      let newProject;
+
+      if (editingProject && !editingProject.id.startsWith("temp-")) {
+        // --- UPDATE EXISTING PROJECT ---
         const projectRef = doc(db, "projects", editingProject.id);
         await updateDoc(projectRef, {
           name: projectName,
@@ -87,10 +89,21 @@ const AddProjectModal = ({
           statusNote,
           updatedAt: serverTimestamp(),
         });
+
+        newProject = {
+          id: editingProject.id,
+          name: projectName,
+          location,
+          budget: parseFloat(budget),
+          status,
+          statusNote,
+          updatedAt: new Date().toISOString(),
+        };
+
         toastSuccess("Project updated successfully!");
       } else {
-        // Add new project
-        await addDoc(collection(db, "projects"), {
+        // --- ADD NEW PROJECT ---
+        const docRef = await addDoc(collection(db, "projects"), {
           name: projectName,
           location,
           budget: parseFloat(budget),
@@ -98,16 +111,48 @@ const AddProjectModal = ({
           statusNote,
           createdAt: serverTimestamp(),
         });
+
+        newProject = {
+          id: docRef.id, // Firestore-generated ID
+          name: projectName,
+          location,
+          budget: parseFloat(budget),
+          status,
+          statusNote,
+          createdAt: new Date().toISOString(),
+        };
+
         toastSuccess("Project added successfully!");
       }
 
-      handleClose();
+      // --- Update Parent State ---
+      if (saveProject) {
+        saveProject(newProject);
+      }
+
+      handleClose(); // Close modal
     } catch (error) {
       console.error("Error saving project: ", error);
       toastError("Failed to save project. Please try again.");
     } finally {
-      setLoading(false);
+      setLoading(false); // Stop spinner
     }
+  };
+
+  const addProjectToList = (newProject) => {
+    setProjects((prevProjects) => {
+      // Prevent duplicate entries by checking IDs
+      const exists = prevProjects.some((p) => p.id === newProject.id);
+      if (exists) return prevProjects;
+
+      return [...prevProjects, newProject]; // Add to state dynamically
+    });
+
+    const handleCloseModal = () => {
+      handleClose(); // Close modal
+      setLoading(false); // Reset loading state
+      setShowLoading(false); // Stop animation in parent
+    };
   };
 
   return (
@@ -274,6 +319,12 @@ const AddProjectModal = ({
       </Modal.Footer>
     </Modal>
   );
+  <AddProjectModal
+    show={showModal}
+    handleClose={handleCloseModal} // Custom callback
+    saveProject={addProjectToList} // Update parent list
+    editingProject={editingProject}
+  />;
 };
 
 export default AddProjectModal;
