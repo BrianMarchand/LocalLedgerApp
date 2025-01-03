@@ -7,6 +7,9 @@
   box-shadow: 0 4px 12px rgba(5, 95, 192, 0.1) !important;
   backdrop-filter: blur(10px) !important;
   cursor: grab;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 
   /* --- Fix height issues --- */
   height: 150px; /* Fixed height for consistent spacing */
@@ -14,17 +17,15 @@
 }
 
 /* Highlight dragged card */
+/* Fixes the "sticky" feeling */
 .dragging-card {
-  background: #f8f9fa !important; /* Highlight effect */
-  border: 1px dashed #007bff !important;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
-  opacity: 0.9;
-  cursor: grabbing;
-
-  /* --- Absolute Positioning for Drag Preview --- */
   position: absolute !important;
-  width: 100%; /* Match width */
-  z-index: 9999 !important; /* Bring to front */
+  width: 300px; /* Match grid width */
+  z-index: 9999 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transform: scale(1.05); /* Slight lift effect */
+  opacity: 0.9; /* Semi-transparent */
+  cursor: grabbing;
 }
 
 /* Drop Zone Debug (Optional) */
@@ -58,6 +59,33 @@
   z-index: 9999;
   transform: scale(1.05);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* Flex direction during dragging */
+.droppable-wrapper {
+  display: grid; /* Keeps grid look */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Responsive */
+  gap: 1rem; /* Consistent spacing */
+  padding: 1rem; /* Adds padding inside drop zone */
+}
+
+/* Ensure flex behavior for DnD */
+.droppable {
+  display: flex;
+  flex-direction: column; /* Simulate vertical flow */
+  gap: 1rem; /* Match spacing */
+}
+
+/* Optional Debugging Borders */
+.droppable-container > *:not(:last-child) {
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .droppable-wrapper {
+    display: flex;
+    flex-direction: column; /* Enforce stacking */
+  }
 }
 
 /* Card Base Style */
@@ -185,6 +213,11 @@
 
 .card-body p:last-child {
   margin-bottom: 0 !important; /* Removes bottom padding for the last <p> */
+}
+
+.custom-progress-bar {
+  margin-top: 10px; /* Add spacing */
+  padding-top: 10px; /* Optional extra padding */
 }
 
 /* --- CARD FOOTER --- */

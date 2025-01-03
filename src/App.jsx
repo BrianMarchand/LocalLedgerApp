@@ -14,7 +14,7 @@ import ProjectList from "./components/ProjectList";
 import ProjectDashboard from "./components/ProjectDashboard";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./components/Dashboard/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword"; // Import ForgotPassword
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext"; // Import AuthProvider
@@ -45,7 +45,8 @@ function App() {
               transition={Slide}
             />
             <Routes>
-              <Route path="/" element={<ProjectList />} />
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/projects" element={<ProjectList />} />
               <Route path="/project/:id" element={<ProjectDashboard />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/login" element={<Login />} />

@@ -30,6 +30,13 @@ import {
 function ProjectList() {
   const navigate = useNavigate();
   const location = useLocation(); // <-- This MUST stay here at the top!
+  const calculateProgress = (project) => {
+    const totalBudget = project.budget || 0; // Fallback if budget is undefined
+    const totalExpenses = project.totalExpenses || 0; // Add expenses to project data
+    const progress = totalBudget > 0 ? (totalExpenses / totalBudget) * 100 : 0;
+
+    return Math.min(Math.round(progress), 100); // Cap at 100%
+  };
 
   // --- Loading Animation ---
   const [loading, setLoading] = useState(true); // Tracks loading state
@@ -59,57 +66,48 @@ function ProjectList() {
     return "new"; // Default fallback
   };
 
-  const fetchProjects = async () => {
-    setLoading(true); // Start loading
-    try {
-      // Fetch projects sorted by 'order'
-      const querySnapshot = await getDocs(
-        query(collection(db, "projects"), orderBy("order")),
-      );
-
-      // Log fetched data to debug
-      console.log(
-        "Fetched Projects:",
-        querySnapshot.docs.map((doc) => doc.data()),
-      );
-
-      // Map through projects and include their Firestore IDs
-      const projectList = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      setProjects(projectList); // Update project state
-    } catch (error) {
-      console.error("Error fetching projects:", error.message); // Log the exact error
-      toastError("Failed to fetch projects. Please try again.");
-    } finally {
-      setLoading(false); // Stop loading after fetch
-
-      // Force spinner visibility for at least 1.5 seconds
-      setTimeout(() => {
-        setShowLoading(false); // Stop delay
-      }, 1500);
-    }
-  };
-
   // --- Project Fetching Logic For Modal ---
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "projects"), (snapshot) => {
-      const projectList = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setProjects(projectList); // Update state dynamically
-    });
+    const unsubscribe = onSnapshot(
+      query(collection(db, "projects"), orderBy("order")),
+      async (snapshot) => {
+        try {
+          const projectList = await Promise.all(
+            snapshot.docs.map(async (doc) => {
+              const project = { id: doc.id, ...doc.data() };
 
-    return () => unsubscribe(); // Cleanup listener
-  }, []);
+              // Fetch transactions for each project
+              const transactionsSnapshot = await getDocs(
+                collection(db, `projects/${project.id}/transactions`),
+              );
+              const transactions = transactionsSnapshot.docs.map((doc) =>
+                doc.data(),
+              );
 
-  // --- Load Data on Component Mount ---
-  useEffect(() => {
-    fetchProjects(); // Fetch projects initially
-  }, []);
+              // Calculate total expenses
+              const totalExpenses = transactions
+                .filter((t) => t.category !== "Client Payment")
+                .reduce((sum, t) => sum + Number(t.amount), 0);
+
+              return { ...project, totalExpenses }; // Attach expenses
+            }),
+          );
+
+          setProjects(projectList); // Update the project list
+          setLoading(false); // STOP LOADING
+          setShowLoading(false); // <-- Add this line to fix the loop!
+        } catch (error) {
+          console.error("Error fetching projects:", error);
+          toastError("Failed to load projects.");
+          setLoading(false); // STOP LOADING even if an error occurs
+          setShowLoading(false); // <-- Also stop the animation on error
+        }
+      },
+    );
+
+    return () => unsubscribe(); // Cleanup listener on unmount
+  }, []); // <-- Only runs once
+
   const { darkMode, toggleTheme } = useTheme(); // Get theme state and toggle function
 
   // --- Add New Project ---
@@ -193,10 +191,25 @@ function ProjectList() {
     const isValid = await validateStatusChange(project, "completed");
     if (!isValid) return;
 
-    const confirmed = window.confirm(
-      "Are you sure you want to mark this project as Complete?",
-    );
-    if (!confirmed) return;
+    const confirmComplete = async (project) => {
+      const result = await Swal.fire({
+        title: "Mark as Complete?",
+        text: `Mark "${project.name}" as complete? This action cannot be undone.`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#28a745",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, complete it!",
+        cancelButtonText: "Cancel",
+      });
+
+      if (result.isConfirmed) {
+        await markAsComplete(project); // Existing function
+        toastSuccess(`Project "${project.name}" marked as complete!`);
+      } else {
+        toastError("Action cancelled!");
+      }
+    };
 
     try {
       const docRef = doc(db, "projects", project.id);
@@ -233,10 +246,25 @@ function ProjectList() {
 
   // --- Cancel Project ---
   const cancelProject = async (project) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to cancel this project? This cannot be undone.",
-    );
-    if (!confirmed) return;
+    const confirmCancel = async (project) => {
+      const result = await Swal.fire({
+        title: "Cancel Project?",
+        text: `Are you sure you want to cancel "${project.name}"? This cannot be undone.`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, cancel it!",
+        cancelButtonText: "No, keep it",
+      });
+
+      if (result.isConfirmed) {
+        await cancelProject(project); // Call existing function
+        toastSuccess(`Project "${project.name}" has been cancelled.`);
+      } else {
+        toastError("Action cancelled!");
+      }
+    };
 
     try {
       const docRef = doc(db, "projects", project.id);
@@ -282,9 +310,12 @@ function ProjectList() {
       if (targetStatus === "completed") {
         // 1. Block if remaining client payment > 0
         if (remainingClientPayment > 0) {
-          alert(
-            `Cannot complete project. Remaining client payment must be $0. Current balance: $${remainingClientPayment}`,
-          );
+          await Swal.fire({
+            title: "Cannot Complete Project",
+            text: `Remaining client payment must be $0. Current balance: $${remainingClientPayment.toLocaleString()}`,
+            icon: "error",
+            confirmButtonText: "OK",
+          });
           return false;
         }
 
@@ -296,9 +327,12 @@ function ProjectList() {
         );
 
         if (!hasDeposit) {
-          alert(
-            "Cannot complete project. At least one 'deposit' transaction is required.",
-          );
+          await Swal.fire({
+            title: "Cannot Complete Project",
+            text: "At least one 'deposit' transaction is required.",
+            icon: "error",
+            confirmButtonText: "OK",
+          });
           return false;
         }
       }
@@ -355,10 +389,24 @@ function ProjectList() {
 
   // --- Delete Project with Confirmation ---
   const deleteProject = async (id) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this project? This action cannot be undone.",
-    );
-    if (!confirmed) return;
+    const confirmDelete = async (project) => {
+      const result = await Swal.fire({
+        title: "Delete Project?",
+        text: `Are you sure you want to delete "${project.name}"? This action cannot be undone.`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, delete it!",
+        cancelButtonText: "Cancel",
+      });
+
+      if (result.isConfirmed) {
+        deleteProject(project.id); // Existing function
+      } else {
+        toastError("Action cancelled!");
+      }
+    };
 
     try {
       const docRef = doc(db, "projects", id);
@@ -467,9 +515,16 @@ function ProjectList() {
     });
 
     if (result.isConfirmed) {
-      deleteProject(project.id); // Call your delete function
+      try {
+        await deleteProject(project.id); // Ensure this awaits completion
+
+        toastSuccess(`Project "${project.name}" has been deleted.`);
+      } catch (error) {
+        console.error("Error deleting project:", error);
+        toastError(`Failed to delete "${project.name}". Please try again.`);
+      }
     } else {
-      toastError("Action cancelled!"); // Optional feedback
+      toastError("Action cancelled!"); // Feedback for cancelled operation
     }
   };
 
@@ -488,10 +543,16 @@ function ProjectList() {
 
     if (result.isConfirmed) {
       try {
-        await cancelProject(project); // Call existing cancel function
+        const docRef = doc(db, "projects", project.id);
+        await updateDoc(docRef, {
+          status: "cancelled",
+          statusDate: new Date(),
+        });
+
         toastSuccess(`Project "${project.name}" has been cancelled.`);
       } catch (error) {
-        toastError(`Failed to cancel "${project.name}".`);
+        console.error("Error cancelling project:", error);
+        toastError(`Failed to cancel "${project.name}". Please try again.`);
       }
     } else {
       toastError("Action cancelled!");
@@ -513,21 +574,42 @@ function ProjectList() {
 
     if (result.isConfirmed) {
       try {
-        await markAsComplete(project); // Call existing complete function
+        // Step 1: VALIDATE BEFORE ACTION
+        const isValid = await validateStatusChange(project, "completed");
+        if (!isValid) {
+          // Validation failed—return early.
+          toastError(`Cannot mark "${project.name}" as complete.`);
+          return;
+        }
+
+        // Step 2: UPDATE FIRESTORE STATUS
+        const docRef = doc(db, "projects", project.id);
+        await updateDoc(docRef, {
+          status: "completed",
+          statusDate: new Date(),
+        });
+
+        // Step 3: SUCCESS MESSAGE
         toastSuccess(`Project "${project.name}" marked as complete!`);
       } catch (error) {
-        toastError(`Failed to complete "${project.name}".`);
+        console.error("Error marking project as complete:", error);
+
+        // Step 4: ERROR MESSAGE (Only on actual failure)
+        toastError(`Failed to mark "${project.name}" as complete.`);
       }
     } else {
+      // Cancelled action
       toastError("Action cancelled!");
     }
   };
 
   // --- Confirm Re-Open Project ---
   const confirmReopen = async (project) => {
+    console.log("Attempting to reopen project:", project.name); // Debugging log
+
     const result = await Swal.fire({
       title: "Reopen Project?",
-      text: `Are you sure you want to reopen "${project.name}"? This will reset its status.`,
+      text: `Are you sure you want to reopen "${project.name}"?`,
       icon: "info",
       showCancelButton: true,
       confirmButtonColor: "#ffc107",
@@ -538,15 +620,79 @@ function ProjectList() {
 
     if (result.isConfirmed) {
       try {
-        setEditingProject({
-          ...project,
+        // --- Optimistic UI Update ---
+        console.log("Updating UI before Firestore..."); // Debugging
+        const updatedProjects = projects.map((p) =>
+          p.id === project.id
+            ? { ...p, status: "in-progress", statusDate: new Date() }
+            : p,
+        );
+        setProjects(updatedProjects); // Optimistic update for UI
+        console.log("UI updated successfully."); // Debugging
+
+        // --- Firestore Update ---
+        const docRef = doc(db, "projects", project.id);
+        await updateDoc(docRef, {
           status: "in-progress",
           statusDate: new Date(),
-          statusNote: "Reopened for further work",
+          statusNote: "Reopened for further work.",
         });
-        toastSuccess(`Project "${project.name}" has been reopened.`);
+        console.log("Firestore updated successfully."); // Debugging
+
+        // --- Success Toast ---
+        toastSuccess(`Project "${project.name}" has been reopened!`);
       } catch (error) {
-        toastError(`Failed to reopen "${project.name}".`);
+        console.error("Error during Firestore update:", error); // Debugging
+
+        // --- Error Toast (only for true Firestore failures) ---
+        toastError(`Failed to reopen "${project.name}". Please try again.`);
+      }
+
+      try {
+        // --- Fetch Updated Projects in Background (No Errors Affect UI) ---
+        console.log("Refreshing projects list..."); // Debugging
+        await fetchProjects(); // Refresh data silently
+        console.log("Projects refreshed successfully."); // Debugging
+      } catch (fetchError) {
+        console.warn(
+          "Fetch projects failed, but Firestore update was successful.",
+          fetchError,
+        ); // Debugging
+        // Avoid showing errors here – it doesn't block functionality
+      }
+    } else {
+      console.log("Reopen action cancelled."); // Debugging
+      toastError("Action cancelled!");
+    }
+  };
+
+  // --- Confirm Put on Hold ---
+  const confirmPutOnHold = async (project) => {
+    const result = await Swal.fire({
+      title: "Put Project on Hold?",
+      text: `Are you sure you want to put "${project.name}" on hold?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#ffc107",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, put on hold!",
+      cancelButtonText: "Cancel",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const docRef = doc(db, "projects", project.id);
+        await updateDoc(docRef, {
+          status: "on-hold",
+          statusDate: new Date(),
+          statusNote: "Project paused by user.",
+        });
+        toastSuccess(`Project "${project.name}" is now on hold.`);
+      } catch (error) {
+        console.error("Error putting project on hold:", error);
+        toastError(
+          `Failed to put "${project.name}" on hold. Please try again.`,
+        );
       }
     } else {
       toastError("Action cancelled!");
@@ -654,18 +800,62 @@ function ProjectList() {
 
                             {/* --- BODY --- */}
                             <div className="card-body">
-                              <p>
-                                <i className="bi bi-geo-alt"></i>{" "}
-                                {project.location || "Location: N/A"}
+                              {/* Location */}
+                              <p className="mb-2">
+                                <i className="bi bi-geo-alt-fill text-primary me-2"></i>
+                                <strong>Location:</strong>{" "}
+                                {project.location || "N/A"}
                               </p>
-                              <p>
-                                <i className="bi bi-currency-dollar"></i>{" "}
-                                Budget: ${project.budget || 0}
+
+                              {/* Budget */}
+                              <p className="mb-2">
+                                <i className="bi bi-currency-dollar text-success me-2"></i>
+                                <strong>Budget:</strong> $
+                                {project.budget?.toLocaleString() || "0"}
                               </p>
-                              <p>
-                                <i className="bi bi-calendar"></i> Created:{" "}
+
+                              {/* Created Date */}
+                              <p className="mb-2">
+                                <i className="bi bi-calendar-check text-secondary me-2"></i>
+                                <strong>Created:</strong>{" "}
                                 {formatDate(project.createdAt)}
                               </p>
+
+                              {/* Progress Bar */}
+                              <div className="custom-progress-bar mb-3">
+                                <div className="d-flex justify-content-between align-items-center mb-1">
+                                  <small className="text-muted">
+                                    <i className="bi bi-graph-up-arrow me-1"></i>{" "}
+                                    Progress:
+                                  </small>
+                                  <small className="text-muted">
+                                    {calculateProgress(project)}%{" "}
+                                    {/* Display percentage */}
+                                  </small>
+                                </div>
+
+                                <div
+                                  className="progress"
+                                  style={{ height: "8px" }}
+                                >
+                                  <div
+                                    className={`progress-bar ${
+                                      calculateProgress(project) >= 100
+                                        ? "bg-success" // Green when complete
+                                        : calculateProgress(project) > 80
+                                          ? "bg-warning" // Yellow near budget
+                                          : "bg-primary" // Blue otherwise
+                                    }`}
+                                    role="progressbar"
+                                    style={{
+                                      width: `${calculateProgress(project)}%`,
+                                    }}
+                                    aria-valuenow={calculateProgress(project)}
+                                    aria-valuemin="0"
+                                    aria-valuemax="100"
+                                  ></div>
+                                </div>
+                              </div>
                             </div>
 
                             {/* --- FOOTER (BUTTON GROUP) --- */}
@@ -728,7 +918,19 @@ function ProjectList() {
                                     title="Edit Project"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setEditingProject(project);
+
+                                      console.log("Editing Project: ", project); // Log project details
+                                      setEditingProject(project); // Set editing project
+                                      console.log(
+                                        "Editing state set:",
+                                        project,
+                                      ); // Confirm state
+
+                                      setShowModal(true); // Open modal
+                                      console.log(
+                                        "Modal should be open now: ",
+                                        true,
+                                      ); // Confirm toggle
                                     }}
                                   >
                                     <i className="bi bi-pencil-square"></i>
@@ -746,6 +948,7 @@ function ProjectList() {
                                 </>
                               )}
 
+                              {/* In-Progress Projects */}
                               {/* In-Progress Projects */}
                               {project.status === "in-progress" && (
                                 <>
@@ -765,9 +968,20 @@ function ProjectList() {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setEditingProject(project);
+                                      handleModalOpen();
                                     }}
                                   >
                                     <i className="bi bi-pencil-square"></i>
+                                  </button>
+                                  <button
+                                    className="btn btn-warning"
+                                    title="Put on Hold"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      confirmPutOnHold(project); // <-- NEW FUNCTION TO HANDLE THIS ACTION
+                                    }}
+                                  >
+                                    <i className="bi bi-pause-circle"></i>
                                   </button>
                                   <button
                                     className="btn btn-success"
@@ -810,7 +1024,8 @@ function ProjectList() {
                                     title="Edit Project"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setEditingProject(project);
+                                      setEditingProject(project); // Sets the editing state
+                                      handleModalOpen(); // FIX: Opens the modal immediately
                                     }}
                                   >
                                     <i className="bi bi-pencil-square"></i>
@@ -851,6 +1066,13 @@ function ProjectList() {
             </Droppable>
           </DragDropContext>
         )}
+        {/* Add Project Modal */}
+        <AddProjectModal
+          show={showModal} // Modal visibility state
+          handleClose={handleModalClose} // Modal close handler
+          saveProject={saveProject} // Save logic for the modal
+          editingProject={editingProject} // Pass editing project
+        />
       </div>
     </div>
   );

@@ -92,18 +92,20 @@ const Navbar = () => {
           ) : (
             // If logged out, show Login and Signup buttons
             <>
-              <button
-                onClick={() => navigate("/login")}
-                className="btn btn-link"
-              >
-                Login
-              </button>
-              <button
-                onClick={() => navigate("/signup")}
-                className="btn btn-link"
-              >
-                Signup
-              </button>
+              <div className="auth-buttons">
+                <button
+                  className="btn btn-primary auth-btn"
+                  onClick={() => navigate("/login")}
+                >
+                  Login
+                </button>
+                <button
+                  className="btn btn-outline-primary auth-btn"
+                  onClick={() => navigate("/signup")}
+                >
+                  Sign Up
+                </button>
+              </div>
             </>
           )}
         </div>
