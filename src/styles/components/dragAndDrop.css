@@ -1,0 +1,34 @@
+/* --- DRAG-AND-DROP FUNCTIONAL STYLES --- */
+
+/* Base Drag-and-Drop Cards */
+.draggable-card {
+  cursor: grab; /* Enables dragging behavior */
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* While Dragging */
+.dragging-card {
+  position: absolute !important;
+  z-index: 9999 !important;
+  transform: scale(1.05); /* Slight lift effect */
+  opacity: 0.9; /* Semi-transparent */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2); /* Lifted shadow */
+}
+
+/* Drop Zones */
+.droppable-wrapper {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(300px, 1fr)
+  ); /* Responsive grid */
+  gap: 1rem;
+}
+
+/* Hover Effect While Dragging */
+.draggable-card:hover {
+  transform: translateY(-4px); /* Subtle lift */
+  box-shadow: 0 8px 24px rgba(5, 95, 192, 0.2); /* Bigger shadow */
+}

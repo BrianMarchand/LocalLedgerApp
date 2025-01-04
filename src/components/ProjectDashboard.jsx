@@ -36,6 +36,12 @@ import { useTheme } from "../context/ThemeContext"; // Theme context
 // --- Custom Components ---
 import Navbar from "../components/Navbar"; // Reusable navbar component
 
+// --- Import The Profress Details Card ---
+import ProjectDetailsCard from "../components/ProjectDetailsCard";
+
+// --- Format Utilities ---
+import { formatCurrency } from "../utils/formatUtils";
+
 // --- Debugging Mode ---
 const DEBUG_MODE = true; // Enable console logging for debugging
 
@@ -405,23 +411,78 @@ function ProjectDashboard() {
   // --- Financial Summary Calculations ---
 
   // --- Income ---
-  const income = transactions
-    .filter(
-      (t) => t.projectId === project?.id && t.category === "Client Payment",
-    ) // Filter for client payments
-    .reduce((sum, t) => sum + Number(t.amount), 0); // Sum up payment amounts
+  const income =
+    project && project.id
+      ? transactions
+          .filter(
+            (t) =>
+              t.projectId === project.id && t.category === "Client Payment",
+          )
+          .reduce((sum, t) => sum + Number(t.amount), 0)
+      : 0;
 
   // --- Expenses ---
   const expenses = transactions
     .filter(
       (t) => t.projectId === project?.id && t.category !== "Client Payment",
-    ) // Exclude client payments
-    .reduce((sum, t) => sum + Number(t.amount), 0); // Sum up expenses
+    )
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  // --- Profit ---
+  const profit = income - expenses; // FIX: Place this AFTER income and expenses
+
+  // ---Percentage Spent ---
+  const budgetSpentPercent =
+    project?.budget && expenses !== undefined
+      ? ((expenses / (project.budget || 1)) * 100).toFixed(2)
+      : 0;
+
+  console.log("Project Data:", project);
+  console.log("Budget:", project?.budget);
+
+  // --- Total Transactions ---
+  const totalTransactions = transactions.length;
+
+  // --- Normalize Dates to Midnight ---
+  const normalizeDate = (date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0); // Set time to midnight (00:00:00)
+    return d;
+  };
+
+  // --- Calculate Days in Progress ---
+  const today = normalizeDate(new Date()); // Normalize today's date
+  const startDate = project?.statusDate
+    ? normalizeDate(
+        project.statusDate.toDate
+          ? project.statusDate.toDate() // Handle Firestore Timestamp
+          : new Date(project.statusDate), // Handle string or ISO format
+      )
+    : today; // Default to today if no statusDate
+
+  const daysInProgress = Math.max(
+    0,
+    Math.floor((today - startDate) / (1000 * 60 * 60 * 24)),
+  );
 
   // --- Budget Metrics ---
-  const remainingBudget = (project?.budget || 0) - expenses; // Remaining budget based on project allocation
-  const availableFunds = income - expenses; // Available funds after deducting expenses
-  const remainingClientPayment = project?.budget - income; // Remaining amount client still owes
+  let remainingBudget = 0;
+  let availableFunds = 0;
+  let remainingClientPayment = 0;
+
+  if (project && project.budget) {
+    remainingBudget = ((project.budget || 0) - (expenses || 0)).toFixed(2);
+    availableFunds = ((income || 0) - (expenses || 0)).toFixed(2);
+    remainingClientPayment = ((project.budget || 0) - (income || 0)).toFixed(2);
+  }
+
+  // Calculate only if project exists
+  if (project && project.budget !== undefined) {
+    // Added check for project.budget
+    remainingBudget = ((project.budget || 0) - (expenses || 0)).toFixed(2);
+    availableFunds = ((income || 0) - (expenses || 0)).toFixed(2);
+    remainingClientPayment = ((project.budget || 0) - (income || 0)).toFixed(2);
+  }
 
   // --- Toast Notification Helpers ---
   const notifySuccess = (message) => toast.success(message);
@@ -430,14 +491,17 @@ function ProjectDashboard() {
   // --- Payment Breakdown by Type ---
 
   // Cash Received
-  const cashReceived = transactions
-    .filter(
-      (t) =>
-        t.projectId === project.id &&
-        t.type === "Cash" &&
-        t.category === "Client Payment",
-    ) // Cash payments
-    .reduce((sum, t) => sum + Number(t.amount), 0); // Sum up cash received
+  const cashReceived =
+    project && project.id
+      ? transactions
+          .filter(
+            (t) =>
+              t.projectId === project.id &&
+              t.type === "Cash" &&
+              t.category === "Client Payment",
+          )
+          .reduce((sum, t) => sum + Number(t.amount), 0)
+      : 0;
 
   // Cash Spent
   const cashSpent = transactions
@@ -479,738 +543,679 @@ function ProjectDashboard() {
     ) // E-Transfer expenses
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  // --- Render UI ---
+  // Payments Received
+  const paidPercentage =
+    project?.budget && income !== undefined
+      ? Math.round((income / (project.budget || 1)) * 100)
+      : 0;
+  // Largest Payment Received
+  const largestPayment = transactions
+    .filter((t) => t.category === "Client Payment")
+    .reduce((max, t) => Math.max(max, Number(t.amount)), 0);
 
-  // Loading State
-  console.log("Render Debug - Loading:", loading);
-  console.log("Render Debug - Project:", project);
-  console.log("Render Debug - Transactions:", transactions);
+  // Average Payment Received
+  const paymentTransactions = transactions.filter(
+    (t) => t.category === "Client Payment",
+  );
+  const averagePayment =
+    paymentTransactions.length > 0
+      ? paymentTransactions.reduce((sum, t) => sum + Number(t.amount), 0) /
+        paymentTransactions.length
+      : 0;
 
-  // --- Loading State with Spinner Delay ---
-  // Handle loading and missing project data
-  if (loading || showLoading || !project) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          flexDirection: "column",
-        }}
-      >
-        <ProgressBar
-          height="80"
-          width="200"
-          ariaLabel="progress-bar-loading"
-          borderColor="#4A90E2"
-          barColor="#4A90E2"
-        />
-        <p style={{ marginTop: "10px" }}>Loading project details...</p>
-      </div>
-    );
-  }
+  // Deposits Received
+  const totalDeposits = transactions
+    .filter(
+      (t) =>
+        t.category === "Client Payment" &&
+        t.name.toLowerCase().includes("deposit"),
+    )
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  //  Pending payments
+  const expenseCategories = transactions.reduce(
+    (acc, t) => {
+      if (t.category === "Labor") acc.labor += Number(t.amount);
+      else if (t.category === "Materials") acc.materials += Number(t.amount);
+      else acc.miscellaneous += Number(t.amount); // Catch-all
+      return acc;
+    },
+    { labor: 0, materials: 0, miscellaneous: 0 },
+  );
+
+  // ------------------ New Section ------------------
+
+  // --- Loading Spinner ---
+  const LoadingSpinner = () => (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+        flexDirection: "column",
+      }}
+    >
+      <ProgressBar
+        height="80"
+        width="200"
+        ariaLabel="progress-bar-loading"
+        borderColor="#4A90E2"
+        barColor="#4A90E2"
+      />
+      <p style={{ marginTop: "10px" }}>Loading project details...</p>
+    </div>
+  );
+
+  const isReadOnly = project?.status === "completed"; // Example: Lock editing for completed projects
 
   // --- Error State ---
-  if (error || !project) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        style={{ textAlign: "center", marginTop: "20px" }}
+  const ErrorState = ({ fetchProject }) => (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      style={{ textAlign: "center", marginTop: "20px" }}
+    >
+      <p style={{ color: "red" }}>Project not found!</p>
+      <button
+        style={{
+          padding: "10px 20px",
+          backgroundColor: "#007BFF",
+          color: "#FFF",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+          marginTop: "10px",
+        }}
+        onClick={fetchProject}
       >
-        <p style={{ color: "red" }}>Project not found!</p>
-        <button
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#007BFF",
-            color: "#FFF",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-            marginTop: "10px",
-          }}
-          onClick={fetchProject} // Retry button
-        >
-          Retry
-        </button>
-      </motion.div>
-    );
-  }
+        Retry
+      </button>
+    </motion.div>
+  );
 
-  // --- Utility to Render Transactions ---
-  const renderTransactions = (isMobile) => {
-    return transactions.map((t) =>
-      isMobile ? (
-        // --- MOBILE VIEW: Stacked Cards ---
-        <div key={t.id} className="card mb-2">
-          <div className="card-body">
-            {editingTransaction?.id === t.id ? (
-              // Edit Mode - Mobile
-              <>
-                <input
-                  type="date"
-                  className="form-control mb-2"
-                  value={
-                    editingTransaction.date
-                      ? new Date(editingTransaction.date)
-                          .toISOString()
-                          .split("T")[0]
-                      : ""
-                  }
-                  onChange={(e) =>
-                    setEditingTransaction({
-                      ...editingTransaction,
-                      date: new Date(e.target.value).toISOString(),
-                    })
-                  }
-                />
-                <input
-                  type="text"
-                  className="form-control mb-2"
-                  value={editingTransaction.name}
-                  onChange={(e) =>
-                    setEditingTransaction({
-                      ...editingTransaction,
-                      name: e.target.value,
-                    })
-                  }
-                />
-                <input
-                  type="number"
-                  className="form-control mb-2"
-                  value={editingTransaction.amount}
-                  onChange={(e) =>
-                    setEditingTransaction({
-                      ...editingTransaction,
-                      amount: e.target.value,
-                    })
-                  }
-                />
-                <select
-                  className="form-select mb-2"
-                  value={editingTransaction.category}
-                  onChange={(e) =>
-                    setEditingTransaction({
-                      ...editingTransaction,
-                      category: e.target.value,
-                    })
-                  }
-                >
-                  <option value="Client Payment">Client Payment</option>
-                  <option value="Labour">Labour</option>
-                  <option value="Materials">Materials</option>
-                  <option value="Misc Expense">Misc Expense</option>
-                </select>
-                <select
-                  className="form-select mb-2"
-                  value={editingTransaction.type}
-                  onChange={(e) =>
-                    setEditingTransaction({
-                      ...editingTransaction,
-                      type: e.target.value,
-                    })
-                  }
-                >
-                  <option value="Cash">Cash</option>
-                  <option value="VISA">VISA</option>
-                  <option value="E-Transfer">E-Transfer</option>
-                  <option value="Debit">Debit</option>
-                </select>
-                <div className="mt-2">
-                  <button
-                    className="btn btn-success btn-sm me-2"
-                    onClick={saveEditTransaction}
-                  >
-                    Save
-                  </button>
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={cancelEditTransaction}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </>
-            ) : (
-              // View Mode - Mobile
-              <>
-                <h6 className="card-title">{t.name || "Unnamed"}</h6>
-                <p className="card-text">
-                  <strong>Date:</strong> {t.date || "N/A"} <br />
-                  <strong>Amount:</strong> ${t.amount || 0} <br />
-                  <strong>Category:</strong> {t.category || "N/A"} <br />
-                  <strong>Type:</strong> {t.type || "N/A"}
-                </p>
-                <div>
-                  <div className="mt-2">
-                    {!isReadOnly && (
-                      <button
-                        className="btn btn-warning btn-sm me-2"
-                        onClick={() => startEditTransaction(t)}
-                      >
-                        Edit
-                      </button>
-                    )}
-
-                    {!isReadOnly && (
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => deleteTransaction(t.id)}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      ) : (
-        // --- DESKTOP VIEW: Table Rows ---
-        <tr
-          key={t.id}
-          className={editingTransaction?.id === t.id ? "editing-row" : ""}
-        >
-          {/* Date Cell */}
-          <td className={editingTransaction?.id === t.id ? "editing-cell" : ""}>
-            {editingTransaction?.id === t.id ? (
-              <input
-                type="date"
-                value={
-                  editingTransaction.date
-                    ? new Date(editingTransaction.date)
-                        .toISOString()
-                        .split("T")[0]
-                    : ""
-                }
-                className="form-control"
-                onChange={(e) =>
-                  setEditingTransaction({
-                    ...editingTransaction,
-                    date: new Date(e.target.value).toISOString(),
-                  })
-                }
-              />
-            ) : (
-              t.date // Show date in view mode
-            )}
-          </td>
-
-          {/* Description Cell */}
-          <td className={editingTransaction?.id === t.id ? "editing-cell" : ""}>
-            {editingTransaction?.id === t.id ? (
-              <input
-                type="text"
-                value={editingTransaction.name}
-                className="form-control"
-                onChange={(e) =>
-                  setEditingTransaction({
-                    ...editingTransaction,
-                    name: e.target.value,
-                  })
-                }
-              />
-            ) : (
-              t.name || "Unnamed"
-            )}
-          </td>
-
-          {/* Amount Cell */}
-          <td className={editingTransaction?.id === t.id ? "editing-cell" : ""}>
-            {editingTransaction?.id === t.id ? (
-              <input
-                type="number"
-                value={editingTransaction.amount}
-                className="form-control"
-                onChange={(e) =>
-                  setEditingTransaction({
-                    ...editingTransaction,
-                    amount: e.target.value,
-                  })
-                }
-              />
-            ) : (
-              `$${t.amount || 0}`
-            )}
-          </td>
-
-          {/* Category Cell */}
-          <td className={editingTransaction?.id === t.id ? "editing-cell" : ""}>
-            {editingTransaction?.id === t.id ? (
-              <select
-                className="form-select"
-                value={editingTransaction.category}
-                onChange={(e) =>
-                  setEditingTransaction({
-                    ...editingTransaction,
-                    category: e.target.value,
-                  })
-                }
-              >
-                <option value="Client Payment">Client Payment</option>
-                <option value="Labour">Labour</option>
-                <option value="Materials">Materials</option>
-                <option value="Misc Expense">Misc Expense</option>
-              </select>
-            ) : (
-              t.category || "N/A"
-            )}
-          </td>
-
-          {/* Type Cell */}
-          <td className={editingTransaction?.id === t.id ? "editing-cell" : ""}>
-            {editingTransaction?.id === t.id ? (
-              <select
-                className="form-select"
-                value={editingTransaction.type}
-                onChange={(e) =>
-                  setEditingTransaction({
-                    ...editingTransaction,
-                    type: e.target.value,
-                  })
-                }
-              >
-                <option value="Cash">Cash</option>
-                <option value="VISA">VISA</option>
-                <option value="E-Transfer">E-Transfer</option>
-                <option value="Debit">Debit</option>
-              </select>
-            ) : (
-              t.type || "N/A"
-            )}
-          </td>
-
-          {/* Actions */}
-          {!isReadOnly && (
-            <td
-              className={editingTransaction?.id === t.id ? "editing-cell" : ""}
-            >
-              {editingTransaction?.id === t.id ? (
-                <>
-                  <button
-                    className="btn btn-success btn-sm me-2"
-                    onClick={saveEditTransaction}
-                  >
-                    Save
-                  </button>
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={cancelEditTransaction}
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    className="btn btn-warning btn-sm me-2"
-                    onClick={() => startEditTransaction(t)}
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => deleteTransaction(t.id)}
-                  >
-                    Delete
-                  </button>
-                </>
-              )}
-            </td>
+  // --- Render Transactions Table ---
+  const TransactionsTable = ({
+    transactions,
+    editingTransaction,
+    isReadOnly,
+    setEditingTransaction,
+    saveEditTransaction,
+    cancelEditTransaction,
+    deleteTransaction,
+    formatCurrency,
+  }) => {
+    return transactions.map((t) => (
+      <tr
+        key={t.id}
+        className={editingTransaction?.id === t.id ? "editing-row" : ""}
+      >
+        {/* Date */}
+        <td>
+          {editingTransaction?.id === t.id ? (
+            <input
+              type="date"
+              value={
+                editingTransaction.date
+                  ? new Date(editingTransaction.date)
+                      .toISOString()
+                      .split("T")[0]
+                  : ""
+              }
+              className="form-control"
+              onChange={(e) =>
+                setEditingTransaction({
+                  ...editingTransaction,
+                  date: e.target.value,
+                })
+              }
+            />
+          ) : (
+            t.date || "N/A"
           )}
-        </tr>
-      ),
-    );
+        </td>
+
+        {/* Description */}
+        <td>
+          {editingTransaction?.id === t.id ? (
+            <input
+              type="text"
+              value={editingTransaction.name}
+              className="form-control"
+              onChange={(e) =>
+                setEditingTransaction({
+                  ...editingTransaction,
+                  name: e.target.value,
+                })
+              }
+            />
+          ) : (
+            t.name || "Unnamed"
+          )}
+        </td>
+
+        {/* Amount */}
+        <td>
+          {editingTransaction?.id === t.id ? (
+            <input
+              type="number"
+              value={editingTransaction.amount}
+              className="form-control"
+              onChange={(e) =>
+                setEditingTransaction({
+                  ...editingTransaction,
+                  amount: e.target.value,
+                })
+              }
+            />
+          ) : (
+            formatCurrency(t.amount)
+          )}
+        </td>
+
+        {/* Actions */}
+        {!isReadOnly && (
+          <td>
+            {editingTransaction?.id === t.id ? (
+              <>
+                <button
+                  className="btn btn-success btn-sm me-2"
+                  onClick={saveEditTransaction}
+                >
+                  Save
+                </button>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={cancelEditTransaction}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="btn btn-warning btn-sm me-2"
+                  onClick={() => setEditingTransaction(t)}
+                >
+                  Edit
+                </button>
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={() => deleteTransaction(t.id)}
+                >
+                  Delete
+                </button>
+              </>
+            )}
+          </td>
+        )}
+      </tr>
+    ));
   };
 
-  // Calculate progress dynamically
+  // --- Progress Calculation ---
   const progress = project?.budget
-    ? Math.round((expenses / project.budget) * 100)
+    ? Math.round(((expenses || 0) / (project.budget || 1)) * 100) // Prevent divide by 0
     : 0;
 
-  const cappedProgress = Math.min(progress, 100); // Prevent exceeding 100%
-  // Place this after loading and project are finalized, before the return
-  const isReadOnly = project?.status === "completed";
+  const cappedProgress = Math.min(progress, 100); // Ensure <= 100
+
+  // --- Render UI ---
+  // --- Loading State with Spinner Delay ---
+  if (loading || showLoading) return <LoadingSpinner />;
+  if (error || !project || !project.budget)
+    return <ErrorState fetchProject={fetchProject} />;
 
   return (
     <div>
-      {/* --- Navbar --- */}
-      <Navbar page="projectDashboard" progress={progress} />
-
-      <div className="container py-4 mt-5">
-        {/* --- Project Details Card --- */}
-        <div className="card mb-4 position-relative">
-          {" "}
-          {/* Enables relative positioning for ribbon */}
-          {/* Ribbon for Status */}
-          <div
-            className={`position-absolute top-0 end-0 mt-2 me-2 badge bg-${statusColor(
-              project?.status || "new", // Default status to 'new'
-            )}`}
-          >
-            {project?.status?.toUpperCase() || "NEW"}
+      <Navbar page="projectDashboard" progress={cappedProgress} />
+      <div className="container mt-5">
+        <h1>Project Details Page</h1>
+        <p class="mb-5">This is some placeholder copy for this page.</p>
+        {/* Row for Side-by-Side Layout */}
+        <div className="row g-4 mb-2">
+          {/* Left Column: Project Details */}
+          <div className="col-md-6">
+            <ProjectDetailsCard
+              project={project}
+              handleStatusChange={handleStatusChange}
+            />
           </div>
-          {/* Header */}
-          <div className="card-header bg-primary">
-            <h5 className="mb-0">Project Details</h5>
-          </div>
-          {/* Body */}
-          <div className="card-body">
-            {/* Project Info */}
-            <p className="mb-2">
-              <strong>Project:</strong> {project.name}
-            </p>
-            <p className="mb-2">
-              <strong>Location:</strong> {project.location}
-            </p>
-            <p className="mb-2">
-              <strong>Budget:</strong> ${project?.budget ?? "N/A"}
-            </p>
 
-            {/* Status Dropdown - Inline */}
-            <div className="d-flex align-items-center">
-              <strong className="me-2">Status:</strong>
-              <select
-                className="form-select form-select-sm me-2"
-                value={project?.status || "new"}
-                onChange={(e) => handleStatusChange(e.target.value)}
-                style={{
-                  width: "130px",
-                  fontSize: "0.9rem",
-                  padding: "0.25rem 0.5rem",
-                }}
-                disabled={["cancelled", "completed"].includes(project?.status)} // Lock these statuses
-              >
-                <option value="new">New</option>
-                <option
-                  value="in-progress"
-                  disabled={
-                    transactions.length === 0 || // Disable if no transactions exist
-                    !transactions.some(
-                      (t) =>
-                        t.category === "Client Payment" &&
-                        t.name.toLowerCase().includes("deposit"),
-                    )
-                  }
-                >
-                  In Progress
-                </option>
-                <option
-                  value="completed"
-                  disabled={
-                    income < project?.budget // Disable if client hasn't paid in full
-                  }
-                >
-                  Completed
-                </option>
-                <option value="on-hold">On Hold</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-              {project.status === "cancelled" && (
-                <button
-                  className="btn btn-warning btn-sm ms-3"
-                  onClick={() => handleStatusChange("in-progress")} // Reopen project
-                >
-                  Reopen
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* --- Add Transaction Form --- */}
-        {!isReadOnly && (
-          <div className="card mb-4">
-            <div className="card-header">
-              <h5 className="mb-0">Add New Transaction</h5>
-            </div>
-            <div className="card-body">
-              <div className="row g-2 align-items-center">
-                {/* Date Input */}
-                <div className="col-lg-2 col-md-3 col-6">
-                  <input
-                    type="date"
-                    className={`form-control ${errors.date ? "is-invalid" : ""}`}
-                    value={newTransaction.date}
-                    onChange={(e) => {
-                      setNewTransaction({
-                        ...newTransaction,
-                        date: e.target.value,
-                      });
-
-                      // Dynamic validation
-                      setErrors((prev) => ({
-                        ...prev,
-                        date: !e.target.value ? "Date is required" : "", // Clear error if valid
-                      }));
-                    }}
-                  />
-                  {errors.date && (
-                    <div className="invalid-feedback">{errors.date}</div>
-                  )}
+          {/* Right Column: Add Transaction */}
+          {!isReadOnly && (
+            <div className="col-md-6">
+              <div className="global-card">
+                {/* Card Header */}
+                <div className="card-header d-flex align-items-center justify-content-between">
+                  <h5 className="mb-0">Add Transaction</h5>
                 </div>
 
-                {/* Description Input */}
-                <div className="col-lg-3 col-md-3 col-6">
-                  <input
-                    type="text"
-                    className={`form-control ${errors.name ? "is-invalid" : ""}`}
-                    placeholder="Description"
-                    value={newTransaction.name}
-                    onChange={(e) => {
-                      const value = e.target.value;
+                {/* Card Body */}
+                <div className="card-body">
+                  <form>
+                    {/* Row 1: Date Field */}
+                    <div className="row mb-2">
+                      <div className="col-md-12">
+                        <input
+                          type="date"
+                          className={`form-control ${
+                            errors.date ? "is-invalid" : ""
+                          }`}
+                          value={newTransaction.date}
+                          onChange={(e) =>
+                            setNewTransaction({
+                              ...newTransaction,
+                              date: e.target.value,
+                            })
+                          }
+                          placeholder="Date"
+                        />
+                      </div>
+                    </div>
 
-                      // Update the description in state
-                      setNewTransaction({
-                        ...newTransaction,
-                        name: value,
-                      });
+                    {/* Row 2: Description and Amount */}
+                    <div className="row g-2 mb-2 align-items-center">
+                      {/* Description Field */}
+                      <div className="col-md-8">
+                        <input
+                          type="text"
+                          className={`form-control ${
+                            errors.name ? "is-invalid" : ""
+                          }`}
+                          placeholder="Description"
+                          value={newTransaction.name}
+                          onChange={(e) =>
+                            setNewTransaction({
+                              ...newTransaction,
+                              name: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
 
-                      // Dynamic validation - Add or remove error
-                      setErrors((prev) => {
-                        const updatedErrors = { ...prev };
-                        if (!value.trim())
-                          updatedErrors.name = "Description is required";
-                        else delete updatedErrors.name; // Remove error if valid
-                        return updatedErrors;
-                      });
-                    }}
-                  />
-                  {errors.name && (
-                    <div className="invalid-feedback">{errors.name}</div>
-                  )}
-                </div>
+                      {/* Amount Field */}
+                      <div className="col-md-4">
+                        <input
+                          type="number"
+                          className={`form-control ${
+                            errors.amount ? "is-invalid" : ""
+                          }`}
+                          placeholder="Amount"
+                          value={newTransaction.amount}
+                          onChange={(e) =>
+                            setNewTransaction({
+                              ...newTransaction,
+                              amount: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
 
-                {/* Amount Input */}
-                <div className="col-lg-2 col-md-2 col-6">
-                  <input
-                    type="number"
-                    className={`form-control ${errors.amount ? "is-invalid" : ""}`}
-                    placeholder="Amount"
-                    value={newTransaction.amount}
-                    onChange={(e) => {
-                      const value = e.target.value;
+                    {/* Row 3: Category, Type, and Add Button */}
+                    <div className="row g-2 align-items-center">
+                      {/* Category Field */}
+                      <div className="col-md-5">
+                        <select
+                          className={`form-select ${
+                            errors.category ? "is-invalid" : ""
+                          }`}
+                          value={newTransaction.category}
+                          onChange={(e) =>
+                            setNewTransaction({
+                              ...newTransaction,
+                              category: e.target.value,
+                            })
+                          }
+                        >
+                          <option value="">Category</option>
+                          <option value="Client Payment">Client Payment</option>
+                          <option value="Labor">Labor</option>
+                          <option value="Materials">Materials</option>
+                          <option value="Miscellaneous">Miscellaneous</option>
+                        </select>
+                      </div>
 
-                      // Update the amount in state
-                      setNewTransaction({
-                        ...newTransaction,
-                        amount: value,
-                      });
+                      {/* Type Field */}
+                      <div className="col-md-5">
+                        <select
+                          className={`form-select ${
+                            errors.type ? "is-invalid" : ""
+                          }`}
+                          value={newTransaction.type}
+                          onChange={(e) =>
+                            setNewTransaction({
+                              ...newTransaction,
+                              type: e.target.value,
+                            })
+                          }
+                        >
+                          <option value="">Type</option>
+                          <option value="Cash">Cash</option>
+                          <option value="VISA">VISA</option>
+                          <option value="Debit">Debit</option>
+                          <option value="E-Transfer">E-Transfer</option>
+                        </select>
+                      </div>
 
-                      // Dynamic validation - Add or remove error
-                      setErrors((prev) => {
-                        const updatedErrors = { ...prev };
-                        if (!value || Number(value) <= 0)
-                          updatedErrors.amount = "Please enter an amount";
-                        else delete updatedErrors.amount; // Remove error if valid
-                        return updatedErrors;
-                      });
-                    }}
-                  />
-                  {errors.amount && (
-                    <div className="invalid-feedback">{errors.amount}</div>
-                  )}
-                </div>
-
-                {/* Category Dropdown */}
-                <div className="col-lg-2 col-md-3 col-6">
-                  <select
-                    className={`form-select ${errors.category ? "is-invalid" : ""}`}
-                    value={newTransaction.category || ""}
-                    onChange={(e) => {
-                      const value = e.target.value;
-
-                      // Update the selected category
-                      setNewTransaction({
-                        ...newTransaction,
-                        category: value,
-                      });
-
-                      // Dynamic validation - Add or remove error
-                      setErrors((prev) => {
-                        const updatedErrors = { ...prev };
-                        if (!value)
-                          updatedErrors.category = "Select a category";
-                        else delete updatedErrors.category; // Remove error if valid
-                        return updatedErrors;
-                      });
-                    }}
-                  >
-                    <option value="">Select Category</option>
-                    <option value="Client Payment">Client Payment</option>
-                    <option value="Labour">Labour</option>
-                    <option value="Materials">Materials</option>
-                    <option value="Misc Expense">Misc Expense</option>
-                  </select>
-                  {errors.category && (
-                    <div className="invalid-feedback">{errors.category}</div>
-                  )}
-                </div>
-                {/* Payment Type Dropdown */}
-                <div className="col-lg-2 col-md-3 col-6">
-                  <select
-                    className={`form-select ${errors.type ? "is-invalid" : ""}`}
-                    value={newTransaction.type || ""}
-                    onChange={(e) => {
-                      const value = e.target.value;
-
-                      // Update the selected payment type
-                      setNewTransaction({
-                        ...newTransaction,
-                        type: value,
-                      });
-
-                      // Dynamic validation - Add or remove error
-                      setErrors((prev) => {
-                        const updatedErrors = { ...prev };
-                        if (!value)
-                          updatedErrors.type = "Select a payment type";
-                        else delete updatedErrors.type; // Remove error if valid
-                        return updatedErrors;
-                      });
-                    }}
-                  >
-                    <option value="">Select Type</option>
-                    <option value="Cash">Cash</option>
-                    <option value="VISA">VISA</option>
-                    <option value="E-Transfer">E-Transfer</option>
-                    <option value="Debit">Debit</option>
-                  </select>
-                  {errors.type && (
-                    <div className="invalid-feedback">{errors.type}</div>
-                  )}
-                </div>
-
-                {/* Add Button */}
-                <div className="col-lg-1 col-md-3 col-6 text-end">
-                  {!isReadOnly && (
-                    <button
-                      className="btn btn-primary btn-sm w-100"
-                      onClick={addTransaction} // Rely on validateForm() instead
-                    >
-                      Add
-                    </button>
-                  )}
+                      {/* Add Transaction Button */}
+                      <div className="col-md-2 d-flex align-items-center">
+                        <button
+                          type="button"
+                          className="btn btn-success btn-md d-flex align-items-center justify-content-center w-100"
+                          onClick={addTransaction}
+                          title="Add Transaction"
+                        >
+                          <p>add</p>
+                        </button>
+                      </div>
+                    </div>
+                  </form>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-        {/* --- Transactions Section --- */}
-        <div className="card mb-4">
+          )}
+        </div>
+
+        {/* Transactions */}
+        <div className="global-card mb-4">
           <div className="card-header">
-            <h5 className="mb-0">Current Transactions</h5>
+            <h5 className="mb-0">Transactions</h5>
           </div>
           <div className="card-body">
-            {transactions.length === 0 || !project?.id ? (
-              <p className="text-center text-muted">
-                There are no transactions to display.
-              </p>
+            {project && Array.isArray(transactions) ? (
+              transactions.length === 0 ? (
+                // --- No Transactions Fallback ---
+                <p className="text-center text-muted">
+                  No transactions available.
+                </p>
+              ) : (
+                <>
+                  {/* --- Desktop Table View --- */}
+                  <div className="d-none d-md-block">
+                    <table className="table table-striped table-hover">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Description</th>
+                          <th>Amount</th>
+                          <th>Category</th>
+                          <th>Type</th>
+                          {!isReadOnly && <th>Actions</th>}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {transactions.map((t) => (
+                          <tr key={t.id}>
+                            <td>{t.date || "N/A"}</td>
+                            <td>{t.name || "Unnamed"}</td>
+                            <td>{formatCurrency(t.amount)}</td>
+                            <td>{t.category || "N/A"}</td>
+                            <td>{t.type || "N/A"}</td>
+                            {!isReadOnly && (
+                              <td>
+                                <button
+                                  className="btn btn-warning btn-sm me-2"
+                                  onClick={() => startEditTransaction(t)}
+                                  title="Edit Transaction"
+                                >
+                                  <i className="bi bi-pencil-square"></i>
+                                </button>
+                                <button
+                                  className="btn btn-danger btn-sm"
+                                  onClick={() => deleteTransaction(t.id)}
+                                  title="Delete Transaction"
+                                >
+                                  <i className="bi bi-trash"></i>
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* --- Mobile Card View --- */}
+                  <div className="d-md-none">
+                    {transactions.map((t) => (
+                      <div
+                        key={t.id}
+                        className="mobile-card mb-3 p-3 border rounded shadow-sm"
+                      >
+                        {/* Date */}
+                        <p className="mb-2">
+                          <i className="bi bi-calendar3 me-2"></i>
+                          <strong>Date:</strong> {t.date || "N/A"}
+                        </p>
+
+                        {/* Description */}
+                        <p className="mb-2">
+                          <i className="bi bi-pencil me-2"></i>
+                          <strong>Description:</strong> {t.name || "Unnamed"}
+                        </p>
+
+                        {/* Amount */}
+                        <p className="mb-2">
+                          <i className="bi bi-currency-dollar me-2"></i>
+                          <strong>Amount:</strong> {formatCurrency(t.amount)}
+                        </p>
+
+                        {/* Category */}
+                        <p className="mb-2">
+                          <i className="bi bi-tag-fill me-2"></i>
+                          <strong>Category:</strong> {t.category || "N/A"}
+                        </p>
+
+                        {/* Type */}
+                        <p className="mb-2">
+                          <i className="bi bi-credit-card me-2"></i>
+                          <strong>Type:</strong> {t.type || "N/A"}
+                        </p>
+
+                        {/* Divider */}
+                        <hr className="my-3" />
+
+                        {/* Actions */}
+                        {!isReadOnly && (
+                          <div className="d-flex align-items-center">
+                            <button
+                              className="btn btn-warning btn-sm me-2"
+                              onClick={() => startEditTransaction(t)}
+                              title="Edit Transaction"
+                            >
+                              <i className="bi bi-pencil-square me-2"></i>
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              className="btn btn-danger btn-sm"
+                              onClick={() => deleteTransaction(t.id)}
+                              title="Delete Transaction"
+                            >
+                              <i className="bi bi-trash me-2"></i>
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )
             ) : (
-              <>
-                {/* --- Desktop View --- */}
-                <div className="d-none d-md-block table-responsive">
-                  <table className="table table-striped table-hover">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Description</th>
-                        <th>Amount</th>
-                        <th>Category</th>
-                        <th>Type</th>
-                        {!isReadOnly && <th>Actions</th>}{" "}
-                        {/* Only show if editable */}
-                      </tr>
-                    </thead>
-                    <tbody>{renderTransactions(false)}</tbody>
-                  </table>
-                </div>
-                {/* --- Mobile View --- */}
-                <div className="d-block d-md-none">
-                  {renderTransactions(true)}
-                </div>
-              </>
+              // --- Loading State ---
+              <p className="text-center text-muted">Loading transactions...</p>
             )}
           </div>
         </div>
 
-        {/* --- Financial Summary - Dynamic Visibility --- */}
-        {transactions.length > 0 && (
-          <div className="card mb-4 financial-summary-container">
-            <div className="card-header">
-              <h5 className="mb-0">Financial Summary</h5>
-            </div>
-            <div className="card-body">
-              <div className="row mb-3">
-                {/* Overview */}
-                <div className="col-md-6">
-                  <h6 className="text-primary mb-3">Overview</h6>
-                  <ul className="list-unstyled mb-0">
-                    <li className="mb-2">
-                      <strong>Total Income:</strong> ${income}
-                    </li>
-                    <li className="mb-2">
-                      <strong>Total Expenses:</strong> ${expenses}
-                    </li>
-                    <li className="mb-2">
-                      <strong>Remaining Budget:</strong> ${remainingBudget}
-                    </li>
-                    <li className="mb-2">
-                      <strong>Available Funds:</strong> ${availableFunds}
-                    </li>
-                    <li className="mb-2">
-                      <strong>Remaining Client Payment:</strong> $
-                      {remainingClientPayment}
-                    </li>
-                  </ul>
+        {/* Financial Summary and Payment Breakdown */}
+        {project &&
+          typeof project.budget === "number" && // Ensure project.budget exists
+          Array.isArray(transactions) &&
+          transactions.length > 0 &&
+          typeof income === "number" &&
+          typeof expenses === "number" && (
+            <div className="row mb-4">
+              {/* Financial Summary */}
+              <div className="col-sm-12 col-md-6 mb-4">
+                <div className="global-card">
+                  <div className="card-header">
+                    <h5 className="mb-0">
+                      <i className="bi bi-graph-up-arrow me-2"></i>Financial
+                      Summary
+                    </h5>
+                  </div>
+                  <div className="card-body">
+                    <ul className="mb-0">
+                      <li>
+                        <i className="bi bi-cash-coin me-2"></i>
+                        <strong>Total Income:</strong>
+                        <span className="ms-2 text-success">
+                          {formatCurrency(income ?? 0)}
+                        </span>
+                      </li>
+                      <li>
+                        <i className="bi bi-cart-dash me-2"></i>
+                        <strong>Total Expenses:</strong>
+                        <span className="ms-2 text-danger">
+                          {formatCurrency(expenses ?? 0)}
+                        </span>
+                      </li>
+                      <li>
+                        <i className="bi bi-wallet2 me-2"></i>
+                        <strong>Remaining Budget:</strong>
+                        <span className="ms-2">
+                          {formatCurrency(remainingBudget ?? 0)}
+                        </span>
+                      </li>
+                      <li>
+                        <i className="bi bi-bank me-2"></i>
+                        <strong>Available Funds:</strong>
+                        <span className="ms-2">
+                          {formatCurrency(availableFunds ?? 0)}
+                        </span>
+                      </li>
+                      <li>
+                        <i className="bi bi-cash-stack me-2"></i>
+                        <strong>Remaining Client Payment:</strong>
+                        <span className="ms-2">
+                          {formatCurrency(remainingClientPayment ?? 0)}
+                        </span>
+                      </li>
+                      <li>
+                        <i className="bi bi-coin me-2"></i>
+                        <strong>Profit (Net Balance):</strong>
+                        <span
+                          className={`ms-2 ${
+                            profit >= 0 ? "text-success" : "text-danger"
+                          }`}
+                        >
+                          {formatCurrency(profit ?? 0)}
+                        </span>
+                      </li>
+                      <hr />
+                      <li>
+                        <i className="bi bi-bar-chart-line me-2"></i>
+                        <strong>Budget Spent:</strong>
+                        <span className="ms-2">{budgetSpentPercent ?? 0}%</span>
+                      </li>
+                      <li>
+                        <i className="bi bi-list-check me-2"></i>
+                        <strong>Total Transactions:</strong>
+                        <span className="ms-2">{totalTransactions ?? 0}</span>
+                      </li>
+                      <li>
+                        <i className="bi bi-calendar-check me-2"></i>
+                        <strong>Days in Progress:</strong>
+                        <span className="ms-2">{daysInProgress ?? 0}</span> days
+                      </li>
+                    </ul>
+                  </div>
                 </div>
+              </div>
 
-                {/* Payment Breakdown */}
-                <div className="col-md-6">
-                  <h6 className="text-success mb-3">Payment Breakdown</h6>
-                  <ul className="list-unstyled mb-0">
-                    <li className="mb-2">
-                      <strong>Cash Received: </strong> ${cashReceived}
-                    </li>
-                    <li className="mb-2">
-                      <strong>Cash Spent: </strong> ${cashSpent}
-                    </li>
-                    <li className="mb-2">
-                      <strong>VISA Expenses: </strong> ${visaExpenses}
-                    </li>
-                    <li className="mb-2">
-                      <strong>Debit Expenses: </strong> ${debitExpenses}
-                    </li>
-                    <li className="mb-2">
-                      <strong>E-Transfer Income: </strong> ${eTransferIncome}
-                    </li>
-                    <li className="mb-2">
-                      <strong>E-Transfer Expenses: </strong> $
-                      {eTransferExpenses}
-                    </li>
-                  </ul>
+              {/* Payment Breakdown */}
+              <div className="col-sm-12 col-md-6 mb-4">
+                <div className="global-card">
+                  <div className="card-header">
+                    <h5 className="mb-0">
+                      <i className="bi bi-cash-stack me-2"></i>Payment Breakdown
+                    </h5>
+                  </div>
+                  <div className="card-body">
+                    <ul className="mb-0">
+                      <li>
+                        <i className="bi bi-cash me-2"></i>
+                        <strong>Cash Received:</strong>
+                        <span className="ms-2">
+                          {formatCurrency(cashReceived ?? 0)}
+                        </span>
+                      </li>
+                      <li>
+                        <i className="bi bi-wallet me-2"></i>
+                        <strong>Cash Spent:</strong>
+                        <span className="ms-2">
+                          {formatCurrency(cashSpent ?? 0)}
+                        </span>
+                      </li>
+                      <li>
+                        <i className="bi bi-credit-card-2-back me-2"></i>
+                        <strong>VISA Expenses:</strong>
+                        <span className="ms-2">
+                          {formatCurrency(visaExpenses ?? 0)}
+                        </span>
+                      </li>
+                      <li>
+                        <i className="bi bi-credit-card me-2"></i>
+                        <strong>Debit Expenses:</strong>
+                        <span className="ms-2">
+                          {formatCurrency(debitExpenses ?? 0)}
+                        </span>
+                      </li>
+                      <li>
+                        <i className="bi bi-arrow-down-circle me-2"></i>
+                        <strong>E-Transfer Income:</strong>
+                        <span className="ms-2">
+                          {formatCurrency(eTransferIncome ?? 0)}
+                        </span>
+                      </li>
+                      <li>
+                        <i className="bi bi-arrow-up-circle me-2"></i>
+                        <strong>E-Transfer Expenses:</strong>
+                        <span className="ms-2">
+                          {formatCurrency(eTransferExpenses ?? 0)}
+                        </span>
+                      </li>
+                      <hr />
+                      <li>
+                        <i className="bi bi-exclamation-circle me-2"></i>
+                        <strong>Unpaid Balance:</strong>
+                        <span className="ms-2">
+                          {formatCurrency(remainingClientPayment ?? 0)}
+                        </span>
+                      </li>
+                      <li>
+                        <i className="bi bi-bar-chart me-2"></i>
+                        <strong>Payments Received:</strong>
+                        <span className="ms-2">
+                          {paidPercentage ?? 0}% of Budget
+                        </span>
+                      </li>
+                      <li>
+                        <i className="bi bi-piggy-bank-fill me-2"></i>
+                        <strong>Largest Payment:</strong>
+                        <span className="ms-2">
+                          {formatCurrency(largestPayment ?? 0)}
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-        <ToastContainer
-          position="top-center"
-          autoClose={3000}
-          hideProgressBar={true}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-          transition={Bounce}
-        />
+          )}
       </div>
     </div>
   );

@@ -1,12 +1,206 @@
-.card {
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(5, 95, 192, 0.1);
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+/* --- Global Card Style --- */
+.global-card {
+  position: relative; /* Required for background layering */
+  padding: 1rem; /* Reduced padding for a more compact layout */
+  margin-bottom: 1rem; /* Match vertical spacing between cards */
+  border-radius: 12px; /* Rounded corners */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  overflow: hidden; /* Prevents content spill */
+  transition: all 0.2s ease-in-out; /* Smooth transition */
+  background: rgba(255, 255, 255, 0.7); /* Transparent glass effect */
+  backdrop-filter: blur(8px); /* Frosted glass effect */
+  -webkit-backdrop-filter: blur(8px); /* Safari support */
 }
 
-.card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 24px rgba(5, 95, 192, 0.2);
+/* Hover Effect */
+.disabled .global-card:hover {
+  transform: translateY(-5px); /* Lift effect */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); /* Enhanced shadow */
+}
+
+/* Background Overlay (Frosted Glass Texture) */
+.global-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%; /* Cover full card */
+  height: 100%; /* Match card size */
+  background: url("/src/assets/img/glass-noise.jpg") repeat; /* Background texture */
+  background-size: cover; /* Fill the card */
+  border-radius: inherit; /* Match parent radius */
+  pointer-events: none; /* Prevents interaction */
+  z-index: 0; /* Keep it behind content */
+  opacity: 0.2; /* Subtle effect */
+}
+
+/* Ensure Content Stays Above Background */
+.global-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* --- Header Style --- */
+.global-card .card-header {
+  padding: 0.75rem 1rem; /* Compact padding */
+  font-weight: 700; /* Bold headings */
+  display: flex;
+  justify-content: space-between; /* Aligns title and badge */
+  align-items: center; /* Vertical alignment */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* Separator line */
+  background: transparent; /* Keep glass effect visible */
+}
+
+/* --- Badge Placement --- */
+.global-card .badge {
+  font-size: 0.75rem; /* Slightly smaller badge */
+  padding: 0.3em 0.6em; /* Balanced padding */
+  border-radius: 8px; /* Rounded corners */
+  font-weight: 600; /* Bold text */
+  line-height: 1; /* Prevent badge from expanding vertically */
+}
+
+/* --- Card Body --- */
+.global-card .card-body {
+  padding: 0.75rem; /* Smaller padding for tighter content */
+  display: flex;
+  flex-direction: column; /* Stack content vertically */
+  gap: 0.4rem; /* Reduced spacing between items */
+}
+
+/* List Style for Breakdown and Summary */
+.global-card .list-unstyled li {
+  display: flex; /* Use flexbox for alignment */
+  justify-content: space-between; /* Pushes title and value apart */
+  padding: 0.25rem 0; /* Vertical padding */
+  font-size: 0.95rem; /* Slightly smaller text */
+}
+
+.global-card .list-unstyled strong {
+  font-weight: 600; /* Emphasize labels */
+}
+
+/* --- Progress Bar --- */
+.custom-progress-bar {
+  margin-top: 0.75rem; /* Smaller margin */
+}
+
+.custom-progress-bar .progress {
+  height: 8px; /* Thinner bar */
+  border-radius: 4px; /* Slightly rounded */
+}
+
+.custom-progress-bar .progress-bar {
+  transition: width 0.4s ease-in-out; /* Smooth progress animation */
+}
+
+/* --- Footer Style --- */
+.global-card .card-footer {
+  padding: 0.75rem 1rem; /* Compact padding */
+  background-color: rgba(245, 245, 245, 0.8); /* Softer footer background */
+  display: flex;
+  flex-wrap: wrap; /* Wrap buttons if needed */
+  gap: 0.5rem; /* Space between buttons */
+  justify-content: flex-start; /* Align buttons to the left */
+  border-top: 1px solid rgba(0, 0, 0, 0.1); /* Subtle separator */
+}
+
+/* Disabled Card State */
+.global-card.disabled {
+  pointer-events: none; /* Disable clicks */
+  opacity: 0.8; /* Dim effect */
+  filter: grayscale(60%); /* Grayscale for visual feedback */
+}
+
+/* --- Buttons --- */
+.btn {
+  border-radius: 8px; /* Rounded buttons for consistency */
+  padding: 0.4rem 0.8rem; /* Smaller buttons for compact layout */
+  transition: all 0.2s ease-in-out; /* Smooth hover effect */
+}
+
+/* Button Hover Effect */
+.btn:hover {
+  transform: translateY(-2px); /* Slight lift effect */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Shadow for hover */
+}
+
+/* --- Primary Button --- */
+.btn-primary {
+  background: #9b51e0 !important; /* Bright purple */
+  border: none !important;
+  color: #fff !important;
+}
+
+.btn-primary:hover {
+  background: #7b3ab5 !important; /* Darker purple */
+}
+
+/* --- Secondary Button --- */
+.btn-secondary {
+  background: #17a2b8 !important; /* Teal */
+  border: none !important;
+  color: #fff !important;
+}
+
+.btn-secondary:hover {
+  background: #138496 !important; /* Darker teal */
+}
+
+/* --- Success Button --- */
+.btn-success {
+  background: #28e07b !important; /* Lime green */
+  border: none !important;
+  color: #fff !important;
+}
+
+.btn-success:hover {
+  background: #1e9f5f !important; /* Darker green */
+}
+
+/* --- Danger Button --- */
+.btn-danger {
+  background: #ff007f !important; /* Neon pink */
+  border: none !important;
+  color: #fff !important;
+}
+
+.btn-danger:hover {
+  background: #cc0066 !important; /* Darker pink */
+}
+
+/* --- Warning Button --- */
+.btn-warning {
+  background: #ffa500 !important; /* Bright orange */
+  border: none !important;
+  color: #212529 !important;
+}
+
+.btn-warning:hover {
+  background: #cc8400 !important; /* Darker orange */
+}
+
+/* --- Fix for Bootstrap Icon Issues --- */
+
+.bi {
+  display: inline-block !important;
+  font-style: normal !important;
+  vertical-align: -0.125em !important; /* Aligns with text */
+  text-rendering: auto !important; /* Ensures rendering */
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+@font-face {
+  font-family: "Bootstrap Icons";
+  src:
+    url("../node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff2")
+      format("woff2"),
+    url("../node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff")
+      format("woff");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.bi {
+  font-family: "Bootstrap Icons" !important;
 }
