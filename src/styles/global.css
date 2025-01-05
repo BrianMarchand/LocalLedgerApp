@@ -64,22 +64,14 @@ body {
 
 /* --- Header Style --- */
 .global-card .card-header {
-  padding: 0.75rem 1rem; /* Compact padding */
+  padding: 12px 10px !important; /* Adjust padding */
+  margin: 0.75rem !important; /* Smaller margin */
   font-weight: 700; /* Bold headings */
   display: flex;
   justify-content: space-between; /* Aligns title and badge */
   align-items: center; /* Vertical alignment */
   border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* Separator line */
   background: transparent; /* Keep glass effect visible */
-}
-
-/* --- Badge Placement --- */
-.global-card .badge {
-  font-size: 0.75rem; /* Slightly smaller badge */
-  padding: 0.3em 0.6em; /* Balanced padding */
-  border-radius: 8px; /* Rounded corners */
-  font-weight: 600; /* Bold text */
-  line-height: 1; /* Prevent badge from expanding vertically */
 }
 
 /* --- Card Body --- */
@@ -102,18 +94,59 @@ body {
   font-weight: 600; /* Emphasize labels */
 }
 
+/* --- Progress Bar Container --- */
+/* --- Progress Bar Container (Glass Effect) --- */
+.progress-container {
+  width: 100%;
+  height: 40px; /* Optimized height */
+  border-radius: 8px; /* Rounded corners */
+  overflow: hidden; /* Prevent overflow */
+  background: rgba(255, 255, 255, 0.1); /* Semi-transparent background */
+  backdrop-filter: blur(12px) saturate(150%); /* Glass effect */
+  -webkit-backdrop-filter: blur(12px) saturate(150%); /* Safari support */
+  border: 1px solid rgba(255, 255, 255, 0.3); /* Subtle border */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Softer shadow for depth */
+}
+
 /* --- Progress Bar --- */
-.custom-progress-bar {
-  margin-top: 0.75rem; /* Smaller margin */
+.progress-bar {
+  height: 100%;
+  border-radius: 8px; /* Match container */
+  transition: width 0.4s ease-in-out; /* Smooth animation */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Light shadow for visibility */
+  font-weight: 500; /* Slightly bold */
+  font-size: 0.85rem; /* Optimized text size */
+  text-align: center; /* Center-align text */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff; /* White text for readability */
 }
 
-.custom-progress-bar .progress {
-  height: 8px; /* Thinner bar */
-  border-radius: 4px; /* Slightly rounded */
+/* --- Progress States --- */
+.progress-bar-normal {
+  background: linear-gradient(90deg, #007bff, #00c6ff); /* Blue gradient */
 }
 
-.custom-progress-bar .progress-bar {
-  transition: width 0.4s ease-in-out; /* Smooth progress animation */
+.progress-bar-complete {
+  background: linear-gradient(90deg, #28a745, #34d058); /* Green gradient */
+}
+
+.progress-bar-over {
+  background: linear-gradient(90deg, #dc3545, #ff6b6b); /* Red gradient */
+}
+
+/* --- Optional Glow Enhancements --- */
+.progress-bar-glow {
+  box-shadow: 0 0 10px rgba(0, 198, 255, 0.8); /* Blue glow */
+}
+
+.progress-bar-glow-complete {
+  box-shadow: 0 0 10px rgba(52, 208, 88, 0.8); /* Green glow */
+}
+
+.progress-bar-glow-over {
+  box-shadow: 0 0 10px rgba(255, 107, 107, 0.8); /* Red glow */
 }
 
 /* --- Footer Style --- */
@@ -317,7 +350,7 @@ li {
 
 /* --- Buttons --- */
 .btn {
-  border-radius: 8px; /* Rounded buttons for consistency */
+  border-radius: 5px; /* Rounded buttons for consistency */
   padding: 0.4rem 0.8rem; /* Smaller buttons for compact layout */
   transition: all 0.2s ease-in-out; /* Smooth hover effect */
 }
@@ -325,6 +358,8 @@ li {
 /* Button Hover Effect */
 .btn:hover {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Shadow for hover */
+  backdrop-filter: blur(10px); /* Frosted glass effect */
+  -webkit-backdrop-filter: blur(px); /* Safari support */
 }
 
 /* --- Primary Button --- */
@@ -507,12 +542,68 @@ li {
   overflow: visible !important; /* Allow content to extend outside */
 }
 
+/* Badge Styles - Global */
+.badge {
+  display: inline-flex !important;
+  align-items: right !important;
+  justify-content: center !important;
+  padding: 0.3rem 0.3rem !important;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0.25rem !important;
+  text-transform: capitalize;
+  letter-spacing: 0.5px;
+}
+
+/* Default Badge Colors */
+.badge-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.badge-success {
+  background-color: #28a745;
+  color: white;
+}
+
+.badge-warning {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.badge-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.badge-info {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.badge-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.badge-dark {
+  background-color: #343a40;
+  color: white;
+}
+
+/* Add Hover Effects */
+.badge:hover {
+  opacity: 0.9;
+  transform: scale(1.05);
+  transition: all 0.2s ease-in-out;
+}
+
 /* --- Fix for Bootstrap Icon Issues --- */
 
 .bi {
   display: inline-block !important;
   font-style: normal !important;
-  vertical-align: -0.125em !important; /* Aligns with text */
+  vertical-align: 0em !important; /* Aligns with text */
   text-rendering: auto !important; /* Ensures rendering */
   -webkit-font-smoothing: antialiased !important;
   -moz-osx-font-smoothing: grayscale !important;

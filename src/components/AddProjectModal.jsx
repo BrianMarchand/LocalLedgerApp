@@ -85,7 +85,7 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
 
       // --- Confetti Trigger Logic ---
       let triggerConfetti = false;
-      if (projectData.budget > 100000) {
+      if (projectData.budget > 99999) {
         triggerConfetti = true; // Confetti trigger
         console.log("Confetti Triggered!"); // Debugging log
       }

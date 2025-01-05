@@ -72,19 +72,19 @@ function ProjectDashboard() {
   const statusColor = (status) => {
     switch (status) {
       case "new":
-        return "primary"; // Blue
+        return "badge-primary"; // Blue
       case "in-progress":
-        return "success"; // Green
+        return "badge-success"; // Green
       case "on-hold":
-        return "warning"; // Orange
+        return "badge-warning"; // Orange
       case "cancelled":
-        return "danger"; // Red
+        return "badge-danger"; // Red
       case "pending":
-        return "info"; // Light Blue
+        return "badge-info"; // Light Blue
       case "completed":
-        return "secondary"; // Gray
+        return "badge-secondary"; // Gray
       default:
-        return "dark";
+        return "badge-dark"; // Fallback
     }
   };
 
@@ -113,7 +113,7 @@ function ProjectDashboard() {
   };
 
   // --- Check and Update Status Based on Transactions ---
-  const checkAndUpdateStatus = async () => {
+  const checkAndUpdateStatus = async (newTransaction = null) => {
     // Prevent changes if status is locked
     const lockedStatuses = ["completed", "cancelled", "on-hold"]; // Add 'on-hold'
     if (lockedStatuses.includes(project.status)) {
@@ -121,15 +121,18 @@ function ProjectDashboard() {
       return; // Do nothing if status is locked
     }
 
-    // Check if a deposit exists
-    console.log("Transactions:", transactions);
-    const hasDeposit = transactions.some(
-      (t) =>
-        t.category === "Client Payment" &&
-        t.name.toLowerCase().includes("deposit"), // Look for 'deposit'
-    );
+    // Check if a deposit exists either in existing transactions or the new one
+    const hasDeposit =
+      transactions.some(
+        (t) =>
+          t.category === "Client Payment" &&
+          t.name.toLowerCase().includes("deposit"),
+      ) ||
+      (newTransaction &&
+        newTransaction.category === "Client Payment" &&
+        newTransaction.name.toLowerCase().includes("deposit")); // Check newTransaction
 
-    // Update status to 'in-progress' if no manual override and conditions are met
+    // Update status to 'in-progress' if conditions are met
     if (hasDeposit && project.status !== "in-progress") {
       try {
         // Update Firestore
@@ -146,8 +149,10 @@ function ProjectDashboard() {
         }));
 
         console.log("Status updated to In Progress.");
+        toast.success("Project status updated to In Progress!"); // Add notification
       } catch (error) {
         console.error("Error updating status:", error);
+        toast.error("Failed to update project status.");
       }
     }
   };
@@ -338,7 +343,7 @@ function ProjectDashboard() {
 
       // Refresh transactions and check status
       await fetchTransactions(); // Refresh transactions
-      await checkAndUpdateStatus(); // Immediately check and update status
+      await checkAndUpdateStatus(newTrans); // Pass the new transaction to check status
 
       // Reset form and errors
       setNewTransaction({
@@ -975,6 +980,7 @@ function ProjectDashboard() {
             <ProjectDetailsCard
               project={project}
               handleStatusChange={handleStatusChange}
+              transactions={transactions} // <-- Add this line
             />
           </div>
 
@@ -1438,7 +1444,7 @@ function ProjectDashboard() {
                       <li>
                         <i className="bi bi-calendar-check me-2"></i>
                         <strong>Days in Progress:</strong>
-                        <span className="ms-2">{daysInProgress ?? 0}</span> days
+                        <span className="ms-2">{daysInProgress ?? 0}</span>
                       </li>
                     </ul>
                   </div>
