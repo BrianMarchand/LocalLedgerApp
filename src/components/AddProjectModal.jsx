@@ -83,24 +83,34 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
         createdAt: new Date(), // Optional timestamp if needed
       };
 
+      // --- Confetti Trigger Logic ---
       let triggerConfetti = false;
       if (projectData.budget > 100000) {
         triggerConfetti = true; // Confetti trigger
+        console.log("Confetti Triggered!"); // Debugging log
       }
 
-      if (editingProject) {
+      // --- FIX: TEMP ID CHECK ---
+      const isTempId = editingProject?.id?.startsWith("temp-"); // Check for temp ID
+
+      if (editingProject && !isTempId) {
         // --- EDIT MODE ---
+        console.log("EDIT MODE: Updating existing project...");
+
         await updateProject(editingProject.id, projectData);
         toastSuccess("Project updated successfully!");
+
+        // Fetch latest projects
         await fetchProjects();
-        if (triggerConfetti) await startConfetti();
+
+        if (triggerConfetti) await startConfetti(); // Confetti animation
         handleClose();
         resetForm();
       } else {
         // --- CREATE MODE ---
         console.log("CREATE MODE: Adding new project...");
 
-        // 1. Fetch all projects and shift orders by +1
+        // Fetch all projects and shift orders by +1
         const snapshot = await getDocs(
           query(collection(db, "projects"), orderBy("order", "asc")),
         );
@@ -108,6 +118,7 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
         // --- Use ONE Batch to Update Orders + Add New Project ---
         const batch = writeBatch(db);
 
+        // Increment orders for existing projects
         snapshot.docs.forEach((docSnap) => {
           const data = docSnap.data();
           const projRef = doc(db, "projects", docSnap.id);
@@ -120,6 +131,7 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
 
         // Commit all updates in one batch
         await batch.commit();
+        console.log("Firestore Batch Commit Successful!");
 
         toastSuccess("Project created successfully!");
 
@@ -129,6 +141,7 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
 
         // Navigate to new project after modal closes
         setTimeout(() => {
+          console.log(`Navigating to new project: ${newProjectRef.id}`);
           navigate(`/project/${newProjectRef.id}`, { replace: true });
         }, 500); // Slight delay for modal animation
       }
@@ -136,7 +149,7 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
       console.error("Error saving project:", error);
       toastError(`Error saving project: ${error.message}`);
     } finally {
-      setLoading(false);
+      setLoading(false); // Ensure loading spinner resets
     }
   };
 
