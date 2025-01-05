@@ -1,30 +1,38 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebaseConfig"; // Adjust the path based on your project structure
+import {
+  collection,
+  getDocs,
+  addDoc,
+  doc,
+  updateDoc,
+  writeBatch,
+  orderBy,
+  query,
+} from "firebase/firestore";
+
+import { db } from "../firebaseConfig"; // Ensure Firestore DB is imported
 import { Modal, Button, Form } from "react-bootstrap";
-import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom"; // <-- React Router Hook
 import { toastSuccess, toastError } from "../utils/toastNotifications";
 import { useProjects } from "../context/ProjectsContext";
-import {
-  doc,
-  setDoc,
-  serverTimestamp,
-  getDocs,
-  collection,
-} from "firebase/firestore";
+import confetti from "canvas-confetti"; // Import confetti 🎉
+
 const AddProjectModal = ({ show, handleClose, editingProject }) => {
   // --- State ---
   const [projectName, setProjectName] = useState("");
   const [location, setLocation] = useState("");
   const [budget, setBudget] = useState("");
-  const [status, setStatus] = useState("new");
+  const [status, setStatus] = useState("new"); // Default status
   const [statusNote, setStatusNote] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Validation State
+  // Validation Errors
   const [errors, setErrors] = useState({});
 
-  // Context methods
-  const { addProject, updateProject, projects } = useProjects();
+  // Context Methods
+  const { addProject, updateProject } = useProjects();
+  const { fetchProjects } = useProjects(); // Get fetchProjects
+  const navigate = useNavigate(); // <-- Use navigate directly here!
 
   // --- Pre-fill Fields if Editing ---
   useEffect(() => {
@@ -39,40 +47,18 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
     }
   }, [editingProject, show]);
 
-  // --- Dynamic Validation for Status Notes ---
-  useEffect(() => {
-    if (status === "cancelled" && !statusNote.trim()) {
-      setErrors((prev) => ({
-        ...prev,
-        statusNote: "Reason for cancellation is required.",
-      }));
-    } else {
-      setErrors((prev) => {
-        const updated = { ...prev };
-        delete updated.statusNote;
-        return updated;
-      });
-    }
-  }, [status, statusNote]);
-
   // --- Form Validation ---
   const validateForm = () => {
     const newErrors = {};
-
     if (!projectName.trim())
       newErrors.projectName = "Project Name is required.";
     if (!location.trim()) newErrors.location = "Location is required.";
     if (!budget || isNaN(budget) || parseFloat(budget) <= 0)
       newErrors.budget = "Budget must be greater than 0.";
-    if (!status) newErrors.status = "Status is required.";
-
-    // Notes required for "cancelled" status
-    if (status === "cancelled" && !statusNote.trim()) {
+    if (status === "cancelled" && !statusNote.trim())
       newErrors.statusNote = "Reason for cancellation is required.";
-    }
-
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0; // Return true if valid
+    return Object.keys(newErrors).length === 0; // Valid if no errors
   };
 
   // --- Handle Save ---
@@ -80,38 +66,72 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
     try {
       setLoading(true);
 
+      // --- Validation Check ---
       if (!validateForm()) {
         setLoading(false);
         return;
       }
 
-      // Fetch existing projects to calculate order dynamically
-      const querySnapshot = await getDocs(collection(db, "projects"));
-      const maxOrder = querySnapshot.empty
-        ? 0 // If no projects exist, default order to 0
-        : Math.max(...querySnapshot.docs.map((doc) => doc.data().order || 0));
+      // --- Prepare Project Data ---
+      const projectData = {
+        name: projectName,
+        location,
+        budget: parseFloat(budget),
+        status,
+        statusNote,
+        order: 0, // <<--- Force new projects to start at the first position
+        createdAt: new Date(), // Optional timestamp if needed
+      };
 
-      const projectRef = editingProject
-        ? doc(db, "projects", editingProject.id) // Use existing ID if editing
-        : doc(collection(db, "projects")); // Auto-generate new Firestore ID
+      let triggerConfetti = false;
+      if (projectData.budget > 100000) {
+        triggerConfetti = true; // Confetti trigger
+      }
 
-      // Save the new project with the order field
-      await setDoc(
-        projectRef,
-        {
-          name: projectName,
-          location,
-          budget: parseFloat(budget) || 0,
-          status,
-          statusNote,
-          createdAt: editingProject?.createdAt || serverTimestamp(),
-          order: maxOrder + 1,
-        },
-        { merge: true },
-      );
+      if (editingProject) {
+        // --- EDIT MODE ---
+        await updateProject(editingProject.id, projectData);
+        toastSuccess("Project updated successfully!");
+        await fetchProjects();
+        if (triggerConfetti) await startConfetti();
+        handleClose();
+        resetForm();
+      } else {
+        // --- CREATE MODE ---
+        console.log("CREATE MODE: Adding new project...");
 
-      toastSuccess("Project saved successfully!");
-      handleCloseModal();
+        // 1. Fetch all projects and shift orders by +1
+        const snapshot = await getDocs(
+          query(collection(db, "projects"), orderBy("order", "asc")),
+        );
+
+        // --- Use ONE Batch to Update Orders + Add New Project ---
+        const batch = writeBatch(db);
+
+        snapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          const projRef = doc(db, "projects", docSnap.id);
+          batch.update(projRef, { order: data.order + 1 }); // Increment order
+        });
+
+        // Add the new project at order: 0
+        const newProjectRef = doc(collection(db, "projects"));
+        batch.set(newProjectRef, projectData);
+
+        // Commit all updates in one batch
+        await batch.commit();
+
+        toastSuccess("Project created successfully!");
+
+        if (triggerConfetti) await startConfetti(); // Confetti animation
+        handleClose();
+        resetForm();
+
+        // Navigate to new project after modal closes
+        setTimeout(() => {
+          navigate(`/project/${newProjectRef.id}`, { replace: true });
+        }, 500); // Slight delay for modal animation
+      }
     } catch (error) {
       console.error("Error saving project:", error);
       toastError(`Error saving project: ${error.message}`);
@@ -131,15 +151,48 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
     setLoading(false);
   };
 
-  // --- Close Modal and Reset ---
-  const handleCloseModal = () => {
-    handleClose(); // Close modal
-    resetForm(); // Reset form fields
+  const startConfetti = () => {
+    // Create a full-screen canvas dynamically
+    const canvas = document.createElement("canvas");
+    canvas.id = "confetti-canvas";
+    canvas.style.position = "fixed"; // Stay fixed on screen
+    canvas.style.top = "0";
+    canvas.style.left = "0";
+    canvas.style.width = "100vw"; // Full viewport width
+    canvas.style.height = "100vh"; // Full viewport height
+    canvas.style.pointerEvents = "none"; // Don't block clicks
+    canvas.style.zIndex = "9999"; // Always on top
+
+    // Append canvas to body
+    document.body.appendChild(canvas);
+
+    // Initialize confetti on this canvas
+    const confettiInstance = confetti.create(canvas, {
+      resize: true, // Dynamically resize with window
+      useWorker: true, // Boost performance
+    });
+
+    // Launch the confetti
+    confettiInstance({
+      particleCount: 300, // Number of particles
+      spread: 160, // Spread angle
+      startVelocity: 40, // Launch speed
+      scalar: 1.5, // Size of particles
+      gravity: 0.8, // Falling speed
+      ticks: 200, // Duration before particles disappear
+      origin: { x: 0.5, y: 0.5 }, // Start at the center
+    });
+
+    // Auto-remove canvas after 5 seconds
+    setTimeout(() => {
+      document.body.removeChild(canvas);
+    }, 5000); // 5 seconds
   };
 
   // --- Render Modal ---
   return (
-    <Modal show={show} onHide={handleCloseModal} backdrop="static" centered>
+    <Modal show={show} onHide={handleClose} backdrop="static" centered>
+      {" "}
       <Modal.Header closeButton>
         <Modal.Title>
           {editingProject ? "Edit Project" : "Add New Project"}
@@ -198,6 +251,11 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
             value={status}
             isInvalid={!!errors.status}
             onChange={(e) => setStatus(e.target.value)}
+            disabled={
+              !editingProject || // Lock when no project is being edited
+              ["completed", "cancelled"].includes(editingProject.status) || // Already locked cases
+              (editingProject.status === "new" && !editingProject.hasDeposit) // NEW: Lock if 'new' without deposit
+            }
           >
             {["new", "in-progress", "completed", "on-hold", "cancelled"].map(
               (statusKey) => (
@@ -213,29 +271,9 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
             {errors.status}
           </Form.Control.Feedback>
         </Form.Group>
-
-        {/* Status Note */}
-        <Form.Group className="mb-3">
-          <Form.Label>Notes</Form.Label>
-          <Form.Control
-            as="textarea"
-            rows={3}
-            placeholder={
-              status === "cancelled"
-                ? "Provide reason for cancellation"
-                : "Add notes (optional)"
-            }
-            value={statusNote}
-            isInvalid={!!errors.statusNote}
-            onChange={(e) => setStatusNote(e.target.value)}
-          />
-          <Form.Control.Feedback type="invalid">
-            {errors.statusNote}
-          </Form.Control.Feedback>
-        </Form.Group>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={handleCloseModal}>
+        <Button variant="secondary" onClick={handleClose}>
           Cancel
         </Button>
         <Button
@@ -243,7 +281,11 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
           onClick={handleSave}
           disabled={loading || Object.keys(errors).length > 0}
         >
-          {loading ? "Saving..." : "Save Project"}
+          {loading
+            ? "Saving..."
+            : editingProject
+              ? "Save Changes"
+              : "Create Project"}
         </Button>
       </Modal.Footer>
     </Modal>

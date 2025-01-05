@@ -171,6 +171,21 @@ export const ProjectsProvider = ({ children }) => {
     });
   };
 
+  const fetchProjects = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "projects"));
+      const projectList = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setProjects(projectList); // Update the context state
+      console.log("Fetched Projects from Firestore:", projectList);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+    }
+  };
+
   return (
     <ProjectsContext.Provider
       value={{
@@ -181,6 +196,7 @@ export const ProjectsProvider = ({ children }) => {
         addProject,
         updateProject,
         deleteProject,
+        fetchProjects, // <-- Add this line!
       }}
     >
       {children}

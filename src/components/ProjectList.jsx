@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom"; // <-- NEW
 import { useNavigate } from "react-router-dom";
+import { startTransition } from "react";
 import { useTheme } from "../context/ThemeContext"; // Import Theme Hook
 import { useProjects } from "../context/ProjectsContext"; // Import Projects Context
 import { db } from "../firebaseConfig";
@@ -21,6 +22,9 @@ import {
   doc,
   updateDoc,
   writeBatch,
+  query,
+  orderBy,
+  runTransaction,
   // <--
 } from "firebase/firestore";
 
@@ -43,6 +47,7 @@ function ProjectList() {
     addProject, // Add project function
     updateProject, // Update project function
     deleteProject, // Delete project function
+    fetchProjects, // Fetch projects
   } = useProjects(); // Use Projects Context
 
   // --- Loading Animation ---
@@ -55,6 +60,35 @@ function ProjectList() {
 
   // --- State Management ---
   const [editingProject, setEditingProject] = useState(null); // Track project being edited
+
+  // --- Pause Fetching ---
+  const [pauseFetching, setPauseFetching] = useState(false); // Must be at the top
+
+  useEffect(() => {
+    if (pauseFetching) return; // Skip fetching while paused
+
+    const fetchProjectsFromDB = async () => {
+      try {
+        const snapshot = await getDocs(
+          query(collection(db, "projects"), orderBy("order", "asc")),
+        );
+        const projectList = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        // Always sort by 'order' field
+        projectList.sort((a, b) => a.order - b.order);
+        setProjects(projectList);
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+      }
+    };
+
+    fetchProjectsFromDB();
+
+    return () => {}; // Cleanup function
+  }, [pauseFetching, setProjects]); // Add all dependencies
 
   // --- Save Project (Dynamic State Update) ---
   const addProjectToList = (newProject) => {
@@ -90,8 +124,28 @@ function ProjectList() {
   // --- Add New Project ---
   const addNewProject = async (newProject) => {
     try {
-      await addProject(newProject); // Use context method
+      // --- Step 1: Shift Existing Projects Down ---
+      const snapshot = await getDocs(
+        query(collection(db, "projects"), orderBy("order", "asc")),
+      );
+      const batch = writeBatch(db); // Initialize batch
+
+      snapshot.docs.forEach((docSnap) => {
+        const projRef = doc(db, "projects", docSnap.id);
+        const currentOrder = docSnap.data().order || 0;
+        batch.update(projRef, { order: currentOrder + 1 }); // Shift down
+      });
+      await batch.commit(); // Commit order changes first
+
+      // --- Step 2: Add New Project at Top ---
+      const newDoc = await addDoc(collection(db, "projects"), {
+        ...newProject,
+        order: 0, // Add at position 0
+        createdAt: new Date(),
+      });
+
       toastSuccess("Project added successfully!");
+      fetchProjects(); // Refresh project list
     } catch (error) {
       console.error("Error adding project:", error);
       toastError("Failed to add project.");
@@ -110,10 +164,39 @@ function ProjectList() {
     console.log("Order field updated!");
   };
 
+  // --- Reopen Project ---
+  const reopenProject = async (project) => {
+    startTransition(() => setPauseFetching(true)); // Batch update
+
+    try {
+      const docRef = doc(db, "projects", project.id);
+      await updateDoc(docRef, { status: "in-progress" });
+      toastSuccess("Reopened successfully!");
+    } catch (error) {
+      toastError("Failed to reopen.");
+    } finally {
+      startTransition(() => setPauseFetching(false)); // Resume updates
+    }
+  };
+
   // --- Edit Existing Project (For Inline Editing) ---
   const editProject = async (updatedProject) => {
     try {
-      await updateProject(updatedProject.id, updatedProject); // Use context method
+      const docRef = doc(db, "projects", updatedProject.id);
+
+      // Preserve existing 'order' field
+      const docSnap = await getDoc(docRef);
+      const existingOrder = docSnap.data()?.order || 0; // Keep current order
+
+      await updateDoc(docRef, {
+        ...updatedProject,
+        order: existingOrder, // Maintain position
+      });
+
+      setProjects((prev) =>
+        prev.map((p) => (p.id === updatedProject.id ? updatedProject : p)),
+      );
+
       toastSuccess("Project updated successfully!");
     } catch (error) {
       console.error("Error updating project:", error);
@@ -340,7 +423,6 @@ function ProjectList() {
       }
 
       // Refresh the project list
-      await fetchProjects(); // Important: Ensure all data reloads
       setEditingProject(null); // Exit edit mode
     } catch (error) {
       console.error("Error saving project:", error);
@@ -541,97 +623,37 @@ function ProjectList() {
   };
 
   // --- Confirm Re-Open Project ---
-  const confirmReopen = async (project) => {
-    console.log("Attempting to reopen project:", project.name); // Debugging log
+  const handleReopen = async (project) => {
+    setPauseFetching(true); // Ensure this is outside async calls
 
-    // Step 1: Confirm the action using SweetAlert2
-    const result = await Swal.fire({
-      title: "Reopen Project?",
-      text: `Are you sure you want to reopen "${project.name}"?`,
-      icon: "info",
-      showCancelButton: true,
-      confirmButtonColor: "#ffc107", // Yellow for caution
-      cancelButtonColor: "#3085d6", // Default blue
-      confirmButtonText: "Yes, reopen it!",
-      cancelButtonText: "Cancel",
-    });
+    try {
+      const transactionsSnapshot = await getDocs(
+        collection(db, `projects/${project.id}/transactions`),
+      );
+      const transactions = transactionsSnapshot.docs.map((doc) => doc.data());
 
-    if (result.isConfirmed) {
-      try {
-        // Step 2: Optimistic UI Update
-        const updatedProjects = projects.map((p) =>
-          p.id === project.id
-            ? { ...p, status: "in-progress", statusDate: new Date() }
-            : p,
-        );
-        setProjects(updatedProjects); // Update UI immediately
-        console.log("UI updated successfully."); // Debugging
+      const hasDeposit = transactions.some(
+        (t) =>
+          t.category === "Client Payment" &&
+          t.name.toLowerCase().includes("deposit"),
+      );
 
-        // Step 3: Update Firestore status to 'in-progress'
-        const docRef = doc(db, "projects", project.id);
-        await updateDoc(docRef, {
-          status: "in-progress",
-          statusDate: new Date(),
-          statusNote: "Reopened for further work.",
-        });
-        console.log("Firestore updated successfully."); // Debugging
+      const updatedStatus = hasDeposit ? "in-progress" : "new";
 
-        // Step 4: Enforce rules after reopening
-        // Check if deposit transaction exists
-        const transactionsSnapshot = await getDocs(
-          collection(db, `projects/${project.id}/transactions`),
-        );
-        const transactions = transactionsSnapshot.docs.map((doc) => doc.data());
+      const docRef = doc(db, "projects", project.id);
+      await updateDoc(docRef, {
+        status: updatedStatus,
+        statusDate: new Date(),
+      });
 
-        const hasDeposit = transactions.some(
-          (t) =>
-            t.category === "Client Payment" &&
-            t.name.toLowerCase().includes("deposit"),
-        );
-
-        // Warn the user if no deposit is found
-        if (!hasDeposit) {
-          await Swal.fire({
-            title: "Important!",
-            text: "This project does not have a 'deposit' transaction yet. It will remain in 'new' status until a deposit is added.",
-            icon: "warning",
-            confirmButtonText: "Understood",
-          });
-        }
-
-        // Step 5: Success Feedback
-        await Swal.fire({
-          title: "Reopened!",
-          text: `Project "${project.name}" has been reopened successfully.`,
-          icon: "success",
-          confirmButtonText: "OK",
-        });
-      } catch (error) {
-        console.error("Error during Firestore update:", error); // Debugging
-
-        // Error Feedback
-        await Swal.fire({
-          title: "Error!",
-          text: `Failed to reopen "${project.name}". Please try again.`,
-          icon: "error",
-          confirmButtonText: "OK",
-        });
-      }
-
-      // Step 6: Refresh the project list silently (no error blocking)
-      try {
-        console.log("Refreshing projects list..."); // Debugging
-        await fetchProjects(); // Refresh data
-        console.log("Projects refreshed successfully."); // Debugging
-      } catch (fetchError) {
-        console.warn(
-          "Fetch projects failed, but Firestore update was successful.",
-          fetchError,
-        ); // Debugging
-      }
-    } else {
-      console.log("Reopen action cancelled."); // Debugging
-      toastError("Action cancelled!");
+      setProjects(reorderedProjects); // Force update local state first
+      setTimeout(() => fetchProjects(), 500); // Refresh list after sync
+      toastSuccess(`Project "${project.name}" reopened successfully.`);
+    } catch (error) {
+      console.error("Error reopening project:", error);
+      toastError("Failed to reopen project.");
+    } finally {
+      setPauseFetching(false); // Always resume fetching
     }
   };
 
@@ -672,43 +694,128 @@ function ProjectList() {
   const handleDragEnd = async (result) => {
     const { source, destination } = result;
 
-    // Debug Logs
-    console.log("Drag Start Index:", source.index);
-    console.log("Drop Destination Index:", destination?.index);
-    console.log("Projects Before Move:", projects);
+    // --- Cancel if dropped outside or same position ---
+    if (!destination || destination.index === source.index) return;
 
-    // Cancel if dropped outside or at the same position
-    if (!destination || destination.index === source.index) {
-      console.log("Drop cancelled or same position.");
-      return;
-    }
-
-    // Reorder the projects locally for immediate feedback
+    // --- Reorder Locally ---
     const reorderedProjects = Array.from(projects);
     const [movedProject] = reorderedProjects.splice(source.index, 1);
     reorderedProjects.splice(destination.index, 0, movedProject);
 
-    console.log("Projects After Move:", reorderedProjects);
-
-    // Update local state (optimistic UI update)
+    // --- Update State Immediately ---
     setProjects(reorderedProjects);
 
     try {
-      // Update Firestore order
-      const batch = writeBatch(db);
-
+      // --- Update Firestore Orders ---
+      const batch = writeBatch(db); // Initialize batch
       reorderedProjects.forEach((proj, index) => {
         const projRef = doc(db, "projects", proj.id);
-        batch.update(projRef, { order: index }); // Update order field
+
+        // --- Update only if order changed ---
+        if (proj.order !== index) {
+          batch.update(projRef, { order: index }); // Update Firestore order
+        }
       });
 
-      await batch.commit(); // Save to Firestore
+      await batch.commit(); // Commit Firestore updates
       toastSuccess("Project order updated!");
-
-      console.log("Firestore update successful!");
     } catch (error) {
-      console.error("Batch Write Error:", error.message);
-      toastError(`Failed to save project order: ${error.message}`);
+      console.error("Error saving order:", error);
+      toastError("Failed to update order.");
+    }
+  };
+
+  // --- Confirm Reopen ---
+  const confirmReopen = async (project) => {
+    console.log("Attempting to reopen project:", project.name);
+
+    setPauseFetching(true); // Pause fetching to prevent listener conflicts
+
+    const result = await Swal.fire({
+      title: "Reopen Project?",
+      text: `Are you sure you want to reopen "${project.name}"?`,
+      icon: "info",
+      showCancelButton: true,
+      confirmButtonColor: "#ffc107",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, reopen it!",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) {
+      console.log("Reopen action cancelled.");
+      toastError("Action cancelled!");
+      setPauseFetching(false); // Resume fetching
+      return; // Exit function
+    }
+
+    try {
+      // --- Firestore Transaction ---
+      await runTransaction(db, async (transaction) => {
+        // <-- Fix Here
+        const docRef = doc(db, "projects", project.id);
+
+        // Fetch latest project snapshot inside transaction
+        const docSnapshot = await transaction.get(docRef);
+        const projectData = docSnapshot.data();
+
+        // --- Fetch Transactions ---
+        const transactionsSnapshot = await getDocs(
+          collection(db, `projects/${project.id}/transactions`),
+        );
+        const transactions = transactionsSnapshot.docs.map((doc) => doc.data());
+
+        // --- Validate Deposit ---
+        const hasDeposit = transactions.some(
+          (t) =>
+            t.category === "Client Payment" &&
+            t.name.toLowerCase().includes("deposit"),
+        );
+
+        // --- Determine New Status ---
+        const updatedStatus = hasDeposit ? "in-progress" : "new";
+        const updatedNote = hasDeposit
+          ? "Reopened for further work."
+          : "Reopened without deposit transaction.";
+
+        // --- Apply Update in Transaction ---
+        transaction.update(docRef, {
+          status: updatedStatus,
+          statusDate: new Date(),
+          statusNote: updatedNote,
+        });
+
+        console.log("Firestore transaction committed.");
+      });
+
+      // --- Pause Warning if No Deposit ---
+      const transactionsSnapshot = await getDocs(
+        collection(db, `projects/${project.id}/transactions`),
+      );
+      const transactions = transactionsSnapshot.docs.map((doc) => doc.data());
+
+      const hasDeposit = transactions.some(
+        (t) =>
+          t.category === "Client Payment" &&
+          t.name.toLowerCase().includes("deposit"),
+      );
+
+      if (!hasDeposit) {
+        await Swal.fire({
+          title: "Important!",
+          text: "This project does not have a 'deposit' transaction yet. It will remain in 'new' status until a deposit is added.",
+          icon: "warning",
+          confirmButtonText: "Understood",
+        });
+      }
+
+      // Show Success Toast
+      toastSuccess(`Project "${project.name}" reopened successfully!`);
+    } catch (error) {
+      console.error("Error reopening project:", error);
+      toastError(`Failed to reopen "${project.name}". Please try again.`);
+    } finally {
+      setPauseFetching(false); // Resume fetching after operation
     }
   };
 
@@ -780,7 +887,10 @@ function ProjectList() {
                               <p className="mb-2">
                                 <i className="bi bi-currency-dollar text-success me-2"></i>
                                 <strong>Budget:</strong> $
-                                {project.budget?.toLocaleString() || "0"}
+                                {Number(project.budget)?.toLocaleString() ||
+                                  "0"}
+                                {Number(project.budget) > 100000 && " 🎉"}{" "}
+                                {/* Emoji for budgets > $100,000 */}
                               </p>
 
                               {/* Created Date */}
@@ -883,28 +993,6 @@ function ProjectList() {
                                     <i className="bi bi-eye"></i>
                                   </button>
                                   <button
-                                    className="btn btn-secondary"
-                                    title="Edit Project"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-
-                                      console.log("Editing Project: ", project); // Log project details
-                                      setEditingProject(project); // Set editing project
-                                      console.log(
-                                        "Editing state set:",
-                                        project,
-                                      ); // Confirm state
-
-                                      setShowModal(true); // Open modal
-                                      console.log(
-                                        "Modal should be open now: ",
-                                        true,
-                                      ); // Confirm toggle
-                                    }}
-                                  >
-                                    <i className="bi bi-pencil-square"></i>
-                                  </button>
-                                  <button
                                     className="btn btn-warning"
                                     title="Reopen Project"
                                     onClick={(e) => {
@@ -917,7 +1005,6 @@ function ProjectList() {
                                 </>
                               )}
 
-                              {/* In-Progress Projects */}
                               {/* In-Progress Projects */}
                               {project.status === "in-progress" && (
                                 <>
@@ -994,24 +1081,43 @@ function ProjectList() {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setEditingProject(project); // Sets the editing state
-                                      handleModalOpen(); // FIX: Opens the modal immediately
+                                      handleModalOpen(); // Opens modal
                                     }}
                                   >
                                     <i className="bi bi-pencil-square"></i>
+                                  </button>
+                                  <button
+                                    className="btn btn-warning"
+                                    title="Put on Hold"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      confirmPutOnHold(project); // Call put on hold function
+                                    }}
+                                  >
+                                    <i className="bi bi-pause-circle"></i>
+                                  </button>
+                                  <button
+                                    className="btn btn-success"
+                                    title="Mark as Complete"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      confirmComplete(project); // Call complete function
+                                    }}
+                                  >
+                                    <i className="bi bi-check-circle"></i>
                                   </button>
                                   <button
                                     className="btn btn-danger"
                                     title="Cancel Project"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      confirmCancel(project);
+                                      confirmCancel(project); // Call cancel function
                                     }}
                                   >
                                     <i className="bi bi-x-circle"></i>
                                   </button>
                                 </>
                               )}
-
                               {/* Always Show Delete Button */}
                               <button
                                 className="btn btn-danger"

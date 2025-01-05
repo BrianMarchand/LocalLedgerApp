@@ -18,6 +18,12 @@ const ProjectDetailsCard = ({ project }) => {
     }
   };
 
+  // Emoji Logic for Budget
+  const formatBudgetWithEmoji = (budget) => {
+    const formattedBudget = `$${budget?.toLocaleString() || "0"}`;
+    return budget > 100000 ? `${formattedBudget} 🎉` : formattedBudget; // Add emoji dynamically
+  };
+
   return (
     <div className="global-card">
       <div className="card-header d-flex justify-content-between align-items-center">
@@ -30,8 +36,10 @@ const ProjectDetailsCard = ({ project }) => {
         <p>
           <strong>Location:</strong> {project.location || "N/A"}
         </p>
-        <p>
-          <strong>Budget:</strong> ${project.budget?.toLocaleString() || "0"}
+        {/* Budget */}
+        <p className="mb-2">
+          <i className="bi bi-currency-dollar text-success me-2"></i>
+          <strong>Budget:</strong> {formatBudgetWithEmoji(project.budget)}
         </p>
         <p>
           <strong>Created:</strong>{" "}
