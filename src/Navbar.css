@@ -55,11 +55,11 @@
   font-size: 1rem;
   transition: all 0.2s ease-in-out;
   border-radius: 8px;
-  background-color: #D2F7F7;
+  background-color: #d2f7f7;
   font-weight: 500;
   color: #495057;
   box-sizing: border-box;
-  border: 1px solid transparent;
+  border: 0px solid transparent;
 }
 
 /* Hover and Focus Effects */
@@ -67,7 +67,7 @@
 .dropdown-toggle:focus,
 .dropdown-toggle:active,
 .dropdown-toggle.show {
-  background-color: #C3ECF7 !important;
+  background-color: #c3ecf7 !important;
   color: #495057 !important;
   box-shadow: none !important;
   border: none !important;
@@ -178,50 +178,10 @@
   }
 }
 
-/* ================================
-   Floating Action Button (FAB)
-================================ */
-
-.fab-container {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 1050;
-}
-
-/* FAB Button */
-.fab {
-  border-radius: 50%;
-  padding: 1rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease-in-out;
-  background-color: #d1fae5;
-  color: #047857;
-}
-
-/* Hover Effect for FAB */
-.fab:hover {
-  transform: scale(1.1);
-  background-color: #34d399;
-  color: #065f46;
-}
-
-/* Tooltip */
-.fab-tooltip {
-  position: absolute;
-  bottom: 60px;
-  right: 0;
-  background-color: #1e40af;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 5px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
-}
-
-.fab:hover .fab-tooltip {
-  opacity: 1;
+/* Ensure disabled cursor for dropdown items */
+.dropdown-item.disabled {
+  cursor: not-allowed !important; /* Force 'not-allowed' cursor */
+  opacity: 0.65; /* Match Bootstrap's default opacity */
 }
 
 /* ================================

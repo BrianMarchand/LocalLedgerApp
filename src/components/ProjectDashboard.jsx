@@ -16,11 +16,10 @@ import {
 // --- React Router Imports ---
 import { useParams, useNavigate } from "react-router-dom";
 
-// --- UI/Styling Imports ---
-import "bootstrap/dist/css/bootstrap.min.css"; // Core Bootstrap styles
-import "bootstrap/dist/js/bootstrap.bundle.min.js"; // Bootstrap JS components
-import "bootstrap-icons/font/bootstrap-icons.css"; // Bootstrap Icons
-import * as bootstrap from "bootstrap"; // Explicit Bootstrap JS utilities
+// --- Bootstrap Core Styles and JS ---
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/js/bootstrap.bundle.min.js"; // Include Bootstrap JS
+import "bootstrap-icons/font/bootstrap-icons.css";
 
 // --- Toast Notifications ---
 import { ToastContainer, toast, Bounce } from "react-toastify"; // Toast notifications
@@ -41,6 +40,9 @@ import ProjectDetailsCard from "../components/ProjectDetailsCard";
 
 // --- Format Utilities ---
 import { formatCurrency } from "../utils/formatUtils";
+
+// --- Import SweetAlert ---
+import Swal from "sweetalert2"; // Import SweetAlert2
 
 // --- Debugging Mode ---
 const DEBUG_MODE = true; // Enable console logging for debugging
@@ -65,36 +67,6 @@ function ProjectDashboard() {
     category: "",
     type: "",
   });
-
-  // --- Fetch Project from Firestore ---
-  const fetchProject = async () => {
-    setLoading(true); // Start loading
-    setError(false); // Reset errors
-
-    try {
-      const docRef = doc(db, "projects", id); // Reference Firestore
-      const docSnap = await getDoc(docRef); // Fetch data
-
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        console.log("Firestore Data:", data);
-        setProject({ id: docSnap.id, ...data }); // Set project data
-      } else {
-        console.log("Document does NOT exist!");
-        setError(true); // Trigger error
-      }
-    } catch (error) {
-      console.error("Error fetching project:", error);
-      setError(true); // Handle error
-    } finally {
-      setLoading(false); // Stop loading after fetch
-
-      // Force spinner visibility for at least 1.5 seconds
-      setTimeout(() => {
-        setShowLoading(false); // Stop delay after timeout
-      }, 1500);
-    }
-  };
 
   // --- Fetch Project Status Firestore ---
   const statusColor = (status) => {
@@ -264,22 +236,58 @@ function ProjectDashboard() {
   };
 
   // --- Load Data When Component Mounts ---
+  // --- Declare isMounted outside useEffect ---
+  let isMounted = true; // Declare outside, accessible globally
+
+  // --- Existing fetchProject function (keep only ONE definition) ---
+  const fetchProject = async () => {
+    setLoading(true); // Start loading
+
+    try {
+      const docRef = doc(db, "projects", id);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        console.log("Firestore Data:", data);
+        setProject({ id: docSnap.id, ...data }); // Update state
+      } else {
+        console.log("Document does NOT exist!");
+        setError(true); // Set error
+      }
+    } catch (error) {
+      console.error("Error fetching project:", error);
+      setError(true); // Handle error
+    } finally {
+      setLoading(false); // Ensure we stop loading!
+      setTimeout(() => setShowLoading(false), 1500); // Delayed stop
+    }
+  };
+
+  // --- useEffect Hook ---
   useEffect(() => {
     console.log("useEffect triggered with ID:", id);
 
+    const loadData = async () => {
+      await fetchProject(); // Wait until project loads
+      await fetchTransactions(); // Then fetch transactions
+    };
+
     if (id) {
-      fetchProject(); // Fetch project details
-      fetchTransactions(); // Fetch transactions
+      loadData(); // Call the async function
     }
-  }, [id]); // Only run when 'id' changes
+
+    return () => {
+      isMounted = false; // Cleanup function
+    };
+  }, [id]); // Depend only on 'id'
 
   // --- Check Status After Transactions Are Loaded ---
   useEffect(() => {
-    if (!loading && transactions.length > 0) {
-      console.log("Transactions loaded. Running status check...");
-      checkAndUpdateStatus(); // Status update
+    if (transactions && transactions.length > 0) {
+      setFilteredTransactions(transactions); // Only initialize after loading
     }
-  }, [transactions]); // Depend only on 'transactions'
+  }, [transactions]); // Depend on transactions data
 
   // --- Navigation Function ---
   const goBack = () => navigate("/"); // Navigate back to the projects list  //
@@ -356,49 +364,32 @@ function ProjectDashboard() {
 
   // --- Save Edited Transaction ---
   const saveEditTransaction = async () => {
-    // Ensure there's a transaction being edited
-    if (editingTransaction) {
-      try {
-        // Reference the specific transaction in Firestore
-        const docRef = doc(
-          db,
-          `projects/${id}/transactions`,
-          editingTransaction.id,
-        );
+    if (!editingTransaction || !project?.id) return; // Ensure valid project and transaction
 
-        // Update the transaction document with the edited data
-        await updateDoc(docRef, editingTransaction); // Save to Firestore
+    try {
+      const docRef = doc(
+        db,
+        `projects/${id}/transactions`,
+        editingTransaction.id,
+      );
 
-        // Refresh transactions to reflect the edit
-        fetchTransactions();
+      await updateDoc(docRef, {
+        ...editingTransaction,
+        date: new Date(editingTransaction.date),
+        amount: parseFloat(editingTransaction.amount),
+      });
 
-        // Exit edit mode
-        setEditingTransaction(null); // Reset editing state
-      } catch (error) {
-        console.error("Error updating transaction:", error); // Handle errors
-      }
+      await fetchTransactions();
+      setEditingTransaction(null); // Clear edit mode
+      toast.success("Transaction updated successfully!");
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      toast.error("Failed to update transaction!");
     }
   };
 
   const cancelEditTransaction = () => {
     setEditingTransaction(null); // Cancel edit and reset editing state
-  };
-
-  // --- Delete Transaction ---
-  const deleteTransaction = async (transactionId) => {
-    try {
-      // Reference the specific transaction in Firestore
-      const docRef = doc(db, `projects/${id}/transactions`, transactionId);
-
-      // Delete the transaction document
-      await deleteDoc(docRef);
-
-      // Refresh the transactions list after deletion
-      fetchTransactions();
-    } catch (error) {
-      // Log any errors during Firestore delete
-      console.error("Error deleting transaction:", error);
-    }
   };
 
   // --- Check if a project is marked as completed while editing a transaction ---
@@ -408,25 +399,78 @@ function ProjectDashboard() {
     }
   }, [project?.status]); // Reacts to status changes
 
-  // --- Financial Summary Calculations ---
+  // State for storing filtered transactions
+  const [filteredTransactions, setFilteredTransactions] = useState([]);
 
+  // --- FILTERING LOGIC --------------------------------------------------------------------------
+
+  // Function to filter transactions based on type (in or out)
+  const handleFilter = (type) => {
+    let filtered = [];
+
+    if (type === "in") {
+      // Filter IN transactions (income)
+      filtered = transactions.filter((t) => {
+        return (
+          (t.type === "Cash" && t.amount > 0) || // Cash IN
+          (t.type === "E-Transfer" && t.category === "Client Payment") // E-Transfer IN
+        );
+      });
+    } else if (type === "out") {
+      // Filter OUT transactions (expenses)
+      filtered = transactions.filter((t) => {
+        return (
+          (t.type === "Cash" && t.amount < 0) || // Cash OUT
+          t.type === "VISA" || // VISA OUT
+          t.type === "Debit" || // Debit OUT
+          (t.type === "E-Transfer" && t.category === "Trades Payment") // E-Transfer OUT
+        );
+      });
+    } else {
+      // Show all transactions
+      filtered = transactions;
+    }
+
+    // --- END FILTERING LOGIC -----------------------------------------------------------------------
+
+    // Update filtered transactions in state
+    setFilteredTransactions(filtered);
+
+    // Debugging
+    console.log(`Filtered (${type}) Transactions:`, filtered);
+  };
+
+  // Default to show all transactions initially
+  useEffect(() => {
+    setFilteredTransactions(transactions);
+  }, [transactions]);
+
+  // --- Financial Summary Calculations ---
   // --- Income ---
   const income =
-    project && project.id
+    project && transactions.length > 0
       ? transactions
           .filter(
             (t) =>
-              t.projectId === project.id && t.category === "Client Payment",
+              project.id &&
+              t.projectId === project.id &&
+              t.category === "Client Payment",
           )
           .reduce((sum, t) => sum + Number(t.amount), 0)
       : 0;
 
   // --- Expenses ---
-  const expenses = transactions
-    .filter(
-      (t) => t.projectId === project?.id && t.category !== "Client Payment",
-    )
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+  const expenses =
+    project && transactions.length > 0
+      ? transactions
+          .filter(
+            (t) =>
+              project.id &&
+              t.projectId === project.id &&
+              t.category !== "Client Payment",
+          )
+          .reduce((sum, t) => sum + Number(t.amount), 0)
+      : 0;
 
   // --- Profit ---
   const profit = income - expenses; // FIX: Place this AFTER income and expenses
@@ -489,10 +533,11 @@ function ProjectDashboard() {
   const notifyError = (message) => toast.error(message);
 
   // --- Payment Breakdown by Type ---
+  // Add safety checks for each calculation
 
   // Cash Received
   const cashReceived =
-    project && project.id
+    project && project.id && Array.isArray(transactions)
       ? transactions
           .filter(
             (t) =>
@@ -504,59 +549,80 @@ function ProjectDashboard() {
       : 0;
 
   // Cash Spent
-  const cashSpent = transactions
-    .filter(
-      (t) =>
-        t.projectId === project.id &&
-        t.type === "Cash" &&
-        t.category !== "Client Payment",
-    ) // Cash expenses
-    .reduce((sum, t) => sum + Number(t.amount), 0); // Sum up cash spent
+  const cashSpent =
+    project && project.id && Array.isArray(transactions)
+      ? transactions
+          .filter(
+            (t) =>
+              t.projectId === project.id &&
+              t.type === "Cash" &&
+              t.category !== "Client Payment",
+          )
+          .reduce((sum, t) => sum + Number(t.amount), 0)
+      : 0;
 
   // VISA Expenses
-  const visaExpenses = transactions
-    .filter((t) => t.projectId === project.id && t.type === "VISA") // VISA expenses
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+  const visaExpenses =
+    project && project.id && Array.isArray(transactions)
+      ? transactions
+          .filter((t) => t.projectId === project.id && t.type === "VISA")
+          .reduce((sum, t) => sum + Number(t.amount), 0)
+      : 0;
 
   // Debit Expenses
-  const debitExpenses = transactions
-    .filter((t) => t.projectId === project.id && t.type === "Debit") // Debit expenses
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+  const debitExpenses =
+    project && project.id && Array.isArray(transactions)
+      ? transactions
+          .filter((t) => t.projectId === project.id && t.type === "Debit")
+          .reduce((sum, t) => sum + Number(t.amount), 0)
+      : 0;
 
   // E-Transfer Income
-  const eTransferIncome = transactions
-    .filter(
-      (t) =>
-        t.projectId === project.id &&
-        t.type === "E-Transfer" &&
-        t.category === "Client Payment",
-    ) // E-Transfer income
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+  const eTransferIncome =
+    project && project.id && Array.isArray(transactions)
+      ? transactions
+          .filter(
+            (t) =>
+              t.projectId === project.id &&
+              t.type === "E-Transfer" &&
+              t.category === "Client Payment",
+          )
+          .reduce((sum, t) => sum + Number(t.amount), 0)
+      : 0;
 
   // E-Transfer Expenses
-  const eTransferExpenses = transactions
-    .filter(
-      (t) =>
-        t.projectId === project.id &&
-        t.type === "E-Transfer" &&
-        t.category !== "Client Payment",
-    ) // E-Transfer expenses
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+  const eTransferExpenses =
+    project && project.id && Array.isArray(transactions)
+      ? transactions
+          .filter(
+            (t) =>
+              t.projectId === project.id &&
+              t.type === "E-Transfer" &&
+              t.category !== "Client Payment",
+          )
+          .reduce((sum, t) => sum + Number(t.amount), 0)
+      : 0;
 
   // Payments Received
   const paidPercentage =
-    project?.budget && income !== undefined
+    project && project.budget && Array.isArray(transactions)
       ? Math.round((income / (project.budget || 1)) * 100)
       : 0;
+
   // Largest Payment Received
-  const largestPayment = transactions
-    .filter((t) => t.category === "Client Payment")
-    .reduce((max, t) => Math.max(max, Number(t.amount)), 0);
+  const largestPayment =
+    project && Array.isArray(transactions)
+      ? transactions
+          .filter((t) => t.category === "Client Payment")
+          .reduce((max, t) => Math.max(max, Number(t.amount)), 0)
+      : 0;
 
   // Average Payment Received
-  const paymentTransactions = transactions.filter(
-    (t) => t.category === "Client Payment",
-  );
+  const paymentTransactions =
+    project && Array.isArray(transactions)
+      ? transactions.filter((t) => t.category === "Client Payment")
+      : [];
+
   const averagePayment =
     paymentTransactions.length > 0
       ? paymentTransactions.reduce((sum, t) => sum + Number(t.amount), 0) /
@@ -564,26 +630,33 @@ function ProjectDashboard() {
       : 0;
 
   // Deposits Received
-  const totalDeposits = transactions
-    .filter(
-      (t) =>
-        t.category === "Client Payment" &&
-        t.name.toLowerCase().includes("deposit"),
-    )
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+  const totalDeposits =
+    project && Array.isArray(transactions)
+      ? transactions
+          .filter(
+            (t) =>
+              t.category === "Client Payment" &&
+              t.name.toLowerCase().includes("deposit"),
+          )
+          .reduce((sum, t) => sum + Number(t.amount), 0)
+      : 0;
 
-  //  Pending payments
-  const expenseCategories = transactions.reduce(
-    (acc, t) => {
-      if (t.category === "Labor") acc.labor += Number(t.amount);
-      else if (t.category === "Materials") acc.materials += Number(t.amount);
-      else acc.miscellaneous += Number(t.amount); // Catch-all
-      return acc;
-    },
-    { labor: 0, materials: 0, miscellaneous: 0 },
-  );
+  // Pending Payments Breakdown
+  const expenseCategories =
+    project && Array.isArray(transactions)
+      ? transactions.reduce(
+          (acc, t) => {
+            if (t.category === "Labor") acc.labor += Number(t.amount);
+            else if (t.category === "Materials")
+              acc.materials += Number(t.amount);
+            else acc.miscellaneous += Number(t.amount); // Catch-all
+            return acc;
+          },
+          { labor: 0, materials: 0, miscellaneous: 0 },
+        )
+      : { labor: 0, materials: 0, miscellaneous: 0 };
 
-  // ------------------ New Section ------------------
+  // --- End Payment Breakdown By Type ---
 
   // --- Loading Spinner ---
   const LoadingSpinner = () => (
@@ -635,144 +708,266 @@ function ProjectDashboard() {
     </motion.div>
   );
 
+  // --- SweetAlert ---
+  const deleteTransaction = async (transaction) => {
+    // Ensure transaction exists
+    if (!transaction) {
+      Swal.fire("Error!", "Transaction details are missing.", "error");
+      return;
+    }
+
+    // Safely extract values with defaults
+    const name = transaction.name || "Unnamed Transaction";
+    const date = transaction.date || "N/A";
+    const amount = transaction.amount
+      ? `$${parseFloat(transaction.amount).toFixed(2)}`
+      : "$0.00";
+
+    // Show confirmation with context
+    Swal.fire({
+      title: "Are you sure?",
+      html: `<p>You are about to delete:</p>
+           <strong>${name}</strong><br>
+           <small>Date:</small> ${date}<br>
+           <small>Amount:</small> ${amount}`, // Dynamic content
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          // Delete the transaction from Firestore
+          const docRef = doc(db, `projects/${id}/transactions`, transaction.id);
+          await deleteDoc(docRef);
+
+          // Refresh transactions
+          fetchTransactions();
+
+          // Success message
+          Swal.fire(
+            "Deleted!",
+            `"${name}" has been successfully deleted.`,
+            "success",
+          );
+        } catch (error) {
+          console.error("Error deleting transaction:", error);
+          Swal.fire("Error!", "Failed to delete the transaction.", "error");
+        }
+      }
+    });
+  };
+
   // --- Render Transactions Table ---
   const TransactionsTable = ({
-    transactions,
+    transactions = [], // Default to an empty array to avoid errors
     editingTransaction,
-    isReadOnly,
     setEditingTransaction,
     saveEditTransaction,
     cancelEditTransaction,
     deleteTransaction,
+    isReadOnly,
     formatCurrency,
   }) => {
-    return transactions.map((t) => (
-      <tr
-        key={t.id}
-        className={editingTransaction?.id === t.id ? "editing-row" : ""}
-      >
-        {/* Date */}
-        <td>
-          {editingTransaction?.id === t.id ? (
-            <input
-              type="date"
-              value={
-                editingTransaction.date
-                  ? new Date(editingTransaction.date)
-                      .toISOString()
-                      .split("T")[0]
-                  : ""
-              }
-              className="form-control"
-              onChange={(e) =>
-                setEditingTransaction({
-                  ...editingTransaction,
-                  date: e.target.value,
-                })
-              }
-            />
-          ) : (
-            t.date || "N/A"
-          )}
-        </td>
+    // --- Handle Empty Transactions Early ---
+    if (!Array.isArray(transactions) || transactions.length === 0) {
+      return (
+        <p className="text-center text-muted">No transactions available.</p>
+      );
+    }
+    return (
+      <div style={{ width: "100%" }}>
+        <table className="table-glass">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Amount</th>
+              <th>Category</th>
+              <th>Type</th>
+              {!isReadOnly && <th>Actions</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {transactions.map((t) => (
+              <tr key={t.id}>
+                {/* Date Field */}
+                <td>
+                  {editingTransaction?.id === t.id ? (
+                    <input
+                      type="date"
+                      value={editingTransaction.date || ""}
+                      className="form-control"
+                      onChange={(e) =>
+                        setEditingTransaction({
+                          ...editingTransaction,
+                          date: e.target.value,
+                        })
+                      }
+                    />
+                  ) : (
+                    t.date || "N/A"
+                  )}
+                </td>
 
-        {/* Description */}
-        <td>
-          {editingTransaction?.id === t.id ? (
-            <input
-              type="text"
-              value={editingTransaction.name}
-              className="form-control"
-              onChange={(e) =>
-                setEditingTransaction({
-                  ...editingTransaction,
-                  name: e.target.value,
-                })
-              }
-            />
-          ) : (
-            t.name || "Unnamed"
-          )}
-        </td>
+                {/* Description Field */}
+                <td>
+                  {editingTransaction?.id === t.id ? (
+                    <input
+                      type="text"
+                      value={editingTransaction.name || ""}
+                      className="form-control"
+                      onChange={(e) =>
+                        setEditingTransaction({
+                          ...editingTransaction,
+                          name: e.target.value,
+                        })
+                      }
+                    />
+                  ) : (
+                    t.name || "Unnamed"
+                  )}
+                </td>
 
-        {/* Amount */}
-        <td>
-          {editingTransaction?.id === t.id ? (
-            <input
-              type="number"
-              value={editingTransaction.amount}
-              className="form-control"
-              onChange={(e) =>
-                setEditingTransaction({
-                  ...editingTransaction,
-                  amount: e.target.value,
-                })
-              }
-            />
-          ) : (
-            formatCurrency(t.amount)
-          )}
-        </td>
+                {/* Amount Field */}
+                <td>
+                  {editingTransaction?.id === t.id ? (
+                    <input
+                      type="number"
+                      value={editingTransaction.amount || ""}
+                      className="form-control"
+                      onChange={(e) =>
+                        setEditingTransaction({
+                          ...editingTransaction,
+                          amount: e.target.value,
+                        })
+                      }
+                    />
+                  ) : (
+                    formatCurrency(t.amount)
+                  )}
+                </td>
 
-        {/* Actions */}
-        {!isReadOnly && (
-          <td>
-            {editingTransaction?.id === t.id ? (
-              <>
-                <button
-                  className="btn btn-success btn-sm me-2"
-                  onClick={saveEditTransaction}
-                >
-                  Save
-                </button>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={cancelEditTransaction}
-                >
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  className="btn btn-warning btn-sm me-2"
-                  onClick={() => setEditingTransaction(t)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => deleteTransaction(t.id)}
-                >
-                  Delete
-                </button>
-              </>
-            )}
-          </td>
-        )}
-      </tr>
-    ));
+                {/* Category Field */}
+                <td>
+                  {editingTransaction?.id === t.id ? (
+                    <select
+                      className="form-select"
+                      value={editingTransaction.category || ""}
+                      onChange={(e) =>
+                        setEditingTransaction({
+                          ...editingTransaction,
+                          category: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="Client Payment">Client Payment</option>
+                      <option value="Labor">Labor</option>
+                      <option value="Materials">Materials</option>
+                      <option value="Miscellaneous">Miscellaneous</option>
+                    </select>
+                  ) : (
+                    t.category || "N/A"
+                  )}
+                </td>
+
+                {/* Type Field */}
+                <td>
+                  {editingTransaction?.id === t.id ? (
+                    <select
+                      className="form-select"
+                      value={editingTransaction.type || ""}
+                      onChange={(e) =>
+                        setEditingTransaction({
+                          ...editingTransaction,
+                          type: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="Cash">Cash</option>
+                      <option value="VISA">VISA</option>
+                      <option value="Debit">Debit</option>
+                      <option value="E-Transfer">E-Transfer</option>
+                    </select>
+                  ) : (
+                    t.type || "N/A"
+                  )}
+                </td>
+
+                {/* Actions */}
+                {!isReadOnly && (
+                  <td>
+                    {editingTransaction?.id === t.id ? (
+                      <>
+                        <button
+                          className="btn btn-success btn-sm me-2"
+                          onClick={saveEditTransaction}
+                        >
+                          Save
+                        </button>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={cancelEditTransaction}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          className="btn btn-warning btn-sm me-2"
+                          onClick={() => setEditingTransaction(t)}
+                          title="Edit Transaction"
+                        >
+                          <i className="bi bi-pencil-square"></i>
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => deleteTransaction(t)} // Pass the full transaction object
+                          title="Delete Transaction"
+                        >
+                          <i className="bi bi-trash"></i>
+                        </button>
+                      </>
+                    )}
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
   };
 
   // --- Progress Calculation ---
   const progress = project?.budget
-    ? Math.round(((expenses || 0) / (project.budget || 1)) * 100) // Prevent divide by 0
+    ? Math.round(((expenses || 0) / (project.budget || 1)) * 100)
     : 0;
 
   const cappedProgress = Math.min(progress, 100); // Ensure <= 100
 
+  // --- State for Expanded Card ---
+  const [expandedId, setExpandedId] = useState(null);
+
+  // --- Toggle Expand ---
+  const toggleExpand = (id) => {
+    setExpandedId(expandedId === id ? null : id); // Toggle collapse
+  };
+
   // --- Render UI ---
   // --- Loading State with Spinner Delay ---
   if (loading || showLoading) return <LoadingSpinner />;
-  if (error || !project || !project.budget)
-    return <ErrorState fetchProject={fetchProject} />;
+  if (error || !project) return <ErrorState fetchProject={fetchProject} />;
 
   return (
     <div>
       <Navbar page="projectDashboard" progress={cappedProgress} />
       <div className="container mt-5">
         <h1>Project Details Page</h1>
-        <p class="mb-5">This is some placeholder copy for this page.</p>
+        <p className="mb-5">This is some placeholder copy for this page.</p>
         {/* Row for Side-by-Side Layout */}
         <div className="row g-4 mb-2">
           {/* Left Column: Project Details */}
@@ -789,14 +984,14 @@ function ProjectDashboard() {
               <div className="global-card">
                 {/* Card Header */}
                 <div className="card-header d-flex align-items-center justify-content-between">
-                  <h5 className="mb-0">Add Transaction</h5>
+                  <h5 className="mb-2">Add Transaction</h5>
                 </div>
 
                 {/* Card Body */}
                 <div className="card-body">
                   <form>
                     {/* Row 1: Date Field */}
-                    <div className="row mb-2">
+                    <div className="row mb-4">
                       <div className="col-md-12">
                         <input
                           type="date"
@@ -816,7 +1011,7 @@ function ProjectDashboard() {
                     </div>
 
                     {/* Row 2: Description and Amount */}
-                    <div className="row g-2 mb-2 align-items-center">
+                    <div className="row g-2 mb-3 align-items-center">
                       {/* Description Field */}
                       <div className="col-md-8">
                         <input
@@ -921,131 +1116,245 @@ function ProjectDashboard() {
 
         {/* Transactions */}
         <div className="global-card mb-4">
-          <div className="card-header">
+          <div className="card-header d-flex justify-content-between align-items-center">
             <h5 className="mb-0">Transactions</h5>
+
+            {/* Filter Buttons */}
+            <div className="d-flex gap-2">
+              <button
+                className="btn btn-sm btn-success"
+                onClick={() => handleFilter("in")} // Money In
+              >
+                Income
+              </button>
+
+              <button
+                className="btn btn-sm btn-danger"
+                onClick={() => handleFilter("out")} // Money Out
+              >
+                Expense
+              </button>
+
+              <button
+                className="btn btn-sm btn-secondary"
+                onClick={() => handleFilter("all")} // Reset Filter
+              >
+                All
+              </button>
+            </div>
           </div>
           <div className="card-body">
-            {project && Array.isArray(transactions) ? (
-              transactions.length === 0 ? (
-                // --- No Transactions Fallback ---
-                <p className="text-center text-muted">
-                  No transactions available.
-                </p>
-              ) : (
-                <>
-                  {/* --- Desktop Table View --- */}
-                  <div className="d-none d-md-block">
-                    <table className="table table-striped table-hover">
-                      <thead>
-                        <tr>
-                          <th>Date</th>
-                          <th>Description</th>
-                          <th>Amount</th>
-                          <th>Category</th>
-                          <th>Type</th>
-                          {!isReadOnly && <th>Actions</th>}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {transactions.map((t) => (
-                          <tr key={t.id}>
-                            <td>{t.date || "N/A"}</td>
-                            <td>{t.name || "Unnamed"}</td>
-                            <td>{formatCurrency(t.amount)}</td>
-                            <td>{t.category || "N/A"}</td>
-                            <td>{t.type || "N/A"}</td>
-                            {!isReadOnly && (
-                              <td>
-                                <button
-                                  className="btn btn-warning btn-sm me-2"
-                                  onClick={() => startEditTransaction(t)}
-                                  title="Edit Transaction"
-                                >
-                                  <i className="bi bi-pencil-square"></i>
-                                </button>
-                                <button
-                                  className="btn btn-danger btn-sm"
-                                  onClick={() => deleteTransaction(t.id)}
-                                  title="Delete Transaction"
-                                >
-                                  <i className="bi bi-trash"></i>
-                                </button>
-                              </td>
-                            )}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {/* --- Mobile Card View --- */}
-                  <div className="d-md-none">
-                    {transactions.map((t) => (
-                      <div
-                        key={t.id}
-                        className="mobile-card mb-3 p-3 border rounded shadow-sm"
-                      >
-                        {/* Date */}
-                        <p className="mb-2">
-                          <i className="bi bi-calendar3 me-2"></i>
-                          <strong>Date:</strong> {t.date || "N/A"}
-                        </p>
-
-                        {/* Description */}
-                        <p className="mb-2">
-                          <i className="bi bi-pencil me-2"></i>
-                          <strong>Description:</strong> {t.name || "Unnamed"}
-                        </p>
-
-                        {/* Amount */}
-                        <p className="mb-2">
-                          <i className="bi bi-currency-dollar me-2"></i>
-                          <strong>Amount:</strong> {formatCurrency(t.amount)}
-                        </p>
-
-                        {/* Category */}
-                        <p className="mb-2">
-                          <i className="bi bi-tag-fill me-2"></i>
-                          <strong>Category:</strong> {t.category || "N/A"}
-                        </p>
-
-                        {/* Type */}
-                        <p className="mb-2">
-                          <i className="bi bi-credit-card me-2"></i>
-                          <strong>Type:</strong> {t.type || "N/A"}
-                        </p>
-
-                        {/* Divider */}
-                        <hr className="my-3" />
-
-                        {/* Actions */}
-                        {!isReadOnly && (
-                          <div className="d-flex align-items-center">
-                            <button
-                              className="btn btn-warning btn-sm me-2"
-                              onClick={() => startEditTransaction(t)}
-                              title="Edit Transaction"
-                            >
-                              <i className="bi bi-pencil-square me-2"></i>
-                              <span>Edit</span>
-                            </button>
-                            <button
-                              className="btn btn-danger btn-sm"
-                              onClick={() => deleteTransaction(t.id)}
-                              title="Delete Transaction"
-                            >
-                              <i className="bi bi-trash me-2"></i>
-                              <span>Delete</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )
-            ) : (
-              // --- Loading State ---
+            {loading || !project || !Array.isArray(filteredTransactions) ? (
               <p className="text-center text-muted">Loading transactions...</p>
+            ) : filteredTransactions.length === 0 ? (
+              <p className="text-center text-muted">
+                No transactions available.
+              </p>
+            ) : (
+              <>
+                {/* Desktop View */}
+                <div className="d-none d-md-block">
+                  <TransactionsTable
+                    transactions={filteredTransactions}
+                    editingTransaction={editingTransaction}
+                    setEditingTransaction={setEditingTransaction}
+                    saveEditTransaction={saveEditTransaction}
+                    cancelEditTransaction={cancelEditTransaction}
+                    deleteTransaction={deleteTransaction}
+                    isReadOnly={isReadOnly}
+                    formatCurrency={formatCurrency}
+                  />
+                </div>
+
+                {/* Mobile View */}
+                <div className="d-md-none">
+                  {filteredTransactions.map((t) => (
+                    <div
+                      key={t.id}
+                      className={`mobile-card mb-3 p-3 border rounded shadow-sm ${
+                        expandedId === t.id ? "expanded" : ""
+                      } ${
+                        t.category === "Client Payment"
+                          ? "transaction-income"
+                          : t.category === "Labor"
+                            ? "transaction-expense"
+                            : t.category === "Materials"
+                              ? "transaction-materials"
+                              : t.category === "Miscellaneous"
+                                ? "transaction-misc"
+                                : ""
+                      } ${
+                        t.type === "Cash"
+                          ? "transaction-cash"
+                          : t.type === "VISA"
+                            ? "transaction-visa"
+                            : t.type === "Debit"
+                              ? "transaction-debit"
+                              : t.type === "E-Transfer"
+                                ? "transaction-etransfer"
+                                : ""
+                      }`}
+                    >
+                      {/* Collapsed View */}
+                      <div
+                        className="d-flex align-items-center justify-content-between"
+                        onClick={() => toggleExpand(t.id)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        <div className="d-flex align-items-center">
+                          <i
+                            className={`bi ${
+                              expandedId === t.id ? "bi-eye-slash" : "bi-eye"
+                            } me-2`}
+                          ></i>
+                          <strong>{t.name || "Unnamed"}</strong>
+                        </div>
+                        <span className="text-end">
+                          {formatCurrency(t.amount)}
+                        </span>
+                      </div>
+
+                      {/* Expanded View */}
+                      {expandedId === t.id && (
+                        <div className="mt-3">
+                          {/* Date */}
+                          <p>
+                            <i className="bi bi-calendar3 me-2"></i>
+                            <strong>Date:</strong>{" "}
+                            {editingTransaction?.id === t.id ? (
+                              <input
+                                type="date"
+                                className="form-control"
+                                value={editingTransaction.date || ""}
+                                onChange={(e) =>
+                                  setEditingTransaction({
+                                    ...editingTransaction,
+                                    date: e.target.value,
+                                  })
+                                }
+                              />
+                            ) : (
+                              t.date || "N/A"
+                            )}
+                          </p>
+
+                          {/* Category */}
+                          <p>
+                            <i className="bi bi-tag-fill me-2"></i>
+                            <strong>Category:</strong>{" "}
+                            {editingTransaction?.id === t.id ? (
+                              <select
+                                className="form-select"
+                                value={editingTransaction.category || ""}
+                                onChange={(e) =>
+                                  setEditingTransaction({
+                                    ...editingTransaction,
+                                    category: e.target.value,
+                                  })
+                                }
+                              >
+                                <option value="Client Payment">
+                                  Client Payment
+                                </option>
+                                <option value="Labor">Labor</option>
+                                <option value="Materials">Materials</option>
+                                <option value="Miscellaneous">
+                                  Miscellaneous
+                                </option>
+                              </select>
+                            ) : (
+                              t.category || "N/A"
+                            )}
+                          </p>
+
+                          {/* Type */}
+                          <p>
+                            <i className="bi bi-credit-card me-2"></i>
+                            <strong>Type:</strong>{" "}
+                            {editingTransaction?.id === t.id ? (
+                              <select
+                                className="form-select"
+                                value={editingTransaction.type || ""}
+                                onChange={(e) =>
+                                  setEditingTransaction({
+                                    ...editingTransaction,
+                                    type: e.target.value,
+                                  })
+                                }
+                              >
+                                <option value="Cash">Cash</option>
+                                <option value="VISA">VISA</option>
+                                <option value="Debit">Debit</option>
+                                <option value="E-Transfer">E-Transfer</option>
+                              </select>
+                            ) : (
+                              t.type || "N/A"
+                            )}
+                          </p>
+
+                          {/* Amount */}
+                          <p>
+                            <i className="bi bi-currency-dollar me-2"></i>
+                            <strong>Amount:</strong>{" "}
+                            {editingTransaction?.id === t.id ? (
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={editingTransaction.amount || ""}
+                                onChange={(e) =>
+                                  setEditingTransaction({
+                                    ...editingTransaction,
+                                    amount: e.target.value,
+                                  })
+                                }
+                              />
+                            ) : (
+                              formatCurrency(t.amount)
+                            )}
+                          </p>
+
+                          {/* Actions */}
+                          {!isReadOnly && (
+                            <div className="d-flex align-items-center mt-2">
+                              {editingTransaction?.id === t.id ? (
+                                <>
+                                  <button
+                                    className="btn btn-success btn-sm me-2"
+                                    onClick={saveEditTransaction}
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={cancelEditTransaction}
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    className="btn btn-warning btn-sm me-2"
+                                    onClick={() => startEditTransaction(t)}
+                                  >
+                                    <i className="bi bi-pencil-square"></i>
+                                  </button>
+                                  <button
+                                    className="btn btn-danger btn-sm"
+                                    onClick={() => deleteTransaction(t)} // Pass the full transaction object
+                                  >
+                                    <i className="bi bi-trash"></i>
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>

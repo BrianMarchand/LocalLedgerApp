@@ -1,9 +1,16 @@
 import React from "react";
 import { Dropdown } from "react-bootstrap";
 import { useTheme } from "../context/ThemeContext";
+import { useNavigate, useLocation } from "react-router-dom"; // Added routing hooks
 
 const QuickActionsDropdown = ({ onAddProject }) => {
   const { darkMode, toggleTheme } = useTheme(); // Access theme context
+  const navigate = useNavigate(); // Navigation hook
+  const location = useLocation(); // Track current route
+
+  // --- Hide Button Logic ---
+  const isOnProjectsPage =
+    location.pathname === "/" || location.pathname === "/projects"; // Check both '/' and '/projects'
 
   return (
     <Dropdown
@@ -22,13 +29,27 @@ const QuickActionsDropdown = ({ onAddProject }) => {
 
       {/* Dropdown Menu */}
       <Dropdown.Menu className="quick-actions-menu">
+        {/* View All Projects - Hide if already on Projects Page */}
+        {!isOnProjectsPage && (
+          <Dropdown.Item onClick={() => navigate("/projects")}>
+            <i className="bi bi-list-ul me-2"></i>View All Projects
+          </Dropdown.Item>
+        )}
+
         {/* Add New Project */}
         <Dropdown.Item onClick={onAddProject}>
           <i className="bi bi-plus-circle me-2"></i>Add New Project
         </Dropdown.Item>
 
         {/* Dark Mode Toggle */}
-        <Dropdown.Item onClick={toggleTheme}>
+        <Dropdown.Item
+          disabled={!darkMode} // Bootstrap 'disabled' state for styles
+          style={{
+            pointerEvents: "auto", // Re-enable mouse events
+            cursor: !darkMode ? "not-allowed" : "pointer", // Dynamic cursor
+          }}
+          onClick={darkMode ? toggleTheme : undefined} // Prevent clicks if disabled
+        >
           {darkMode ? (
             <>
               <i className="bi bi-brightness-high me-2"></i>Light Mode

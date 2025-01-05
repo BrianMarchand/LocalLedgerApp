@@ -1,6 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
+import "../styles/components/fab.css";
 
 const FAB = ({ onClick, icon, variant = "primary", tooltip }) => {
   return (

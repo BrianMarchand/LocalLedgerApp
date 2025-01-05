@@ -20,7 +20,6 @@ import "react-toastify/dist/ReactToastify.css";
 // ================================
 // 2. Global Styles and Resets
 // ================================
-import "./index.css"; // Core Index Styles (Highest Priority)
 import "./styles/resets.css"; // CSS Reset (Base Layer)
 import "./styles/global.css"; // Global Styles (Next Layer)
 import "./styles/theme.css"; // Theme Styles (Overrides + Variables)

@@ -1,11 +1,33 @@
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+
+  /* Background Image */
+  background-image: url("/images/bg-pale-blue.jpg");
+  background-size: cover; /* Cover the entire page without stretching */
+  background-repeat: no-repeat; /* Prevent tiling */
+  background-position: center; /* Center the image */
+  background-attachment: fixed; /* Fixed background while scrolling */
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background-color: #f9f9f9;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
 /* --- Global Card Style --- */
 .global-card {
   position: relative; /* Required for background layering */
+  width: 100%; /* Ensure full width */
   padding: 1rem; /* Reduced padding for a more compact layout */
   margin-bottom: 1rem; /* Match vertical spacing between cards */
   border-radius: 12px; /* Rounded corners */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-  overflow: hidden; /* Prevents content spill */
+  overflow-x: auto; /* Prevent horizontal scroll issues */
   transition: all 0.2s ease-in-out; /* Smooth transition */
   background: rgba(255, 255, 255, 0.7); /* Transparent glass effect */
   backdrop-filter: blur(8px); /* Frosted glass effect */
@@ -112,6 +134,187 @@
   filter: grayscale(60%); /* Grayscale for visual feedback */
 }
 
+/* --- Tables --- */
+.table th,
+.table td {
+  vertical-align: middle; /* Align content vertically */
+  text-align: left; /* Align text to the left */
+  padding: 8px;
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+/* Force uniform widths for columns */
+.table th:nth-child(1),
+.table td:nth-child(1) {
+  width: 15%; /* Date */
+}
+.table th:nth-child(2),
+.table td:nth-child(2) {
+  width: 25%; /* Description */
+}
+.table th:nth-child(3),
+.table td:nth-child(3) {
+  width: 15%; /* Amount */
+}
+.table th:nth-child(4),
+.table td:nth-child(4) {
+  width: 20%; /* Category */
+}
+.table th:nth-child(5),
+.table td:nth-child(5) {
+  width: 15%; /* Type */
+}
+.table th:nth-child(6),
+.table td:nth-child(6) {
+  width: 10%; /* Actions */
+}
+
+/* Highlight editing row */
+.table tr.editing,
+.editing-row {
+  background-color: #f1f1f1; /* Light gray background */
+  box-shadow: inset 4px 0 0 #007bff; /* Blue border effect */
+  transition: all 0.3s ease-in-out;
+}
+
+/* Highlight editing cells */
+.editing-cell {
+  background-color: #e9f7ff !important; /* Light blue background for edit mode */
+  transition: all 0.3s ease-in-out;
+}
+
+/* Full-Width Table Adjustments */
+.table-glass {
+  width: 100%; /* Ensure full width */
+  border-collapse: collapse;
+  table-layout: fixed; /* Fixed layout for even columns */
+  background: transparent;
+}
+
+/* Headers */
+.table-glass th {
+  padding: 12px 10px; /* Adjust padding */
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.2); /* Semi-transparent header */
+  color: #333; /* Dark text */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Divider */
+}
+
+/* Rows */
+.table-glass td {
+  padding: 12px 10px; /* Adjust padding */
+  font-size: 14px;
+  color: #333; /* Dark text */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Divider */
+  overflow-wrap: break-word; /* Prevent overflow */
+}
+
+/* Alternating Row Colors */
+.table-glass tr:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.7); /* Transparent glass effect */
+  backdrop-filter: blur(8px); /* Frosted glass effect */
+  -webkit-backdrop-filter: blur(8px); /* Safari support */
+}
+
+.table-glass tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.7); /* Transparent glass effect */
+  backdrop-filter: blur(8px); /* Frosted glass effect */
+  -webkit-backdrop-filter: blur(8px); /* Safari support */
+}
+
+/* Set Specific Column Widths */
+.table-glass th:first-child,
+.table-glass td:first-child {
+  width: 15%; /* Date */
+}
+
+.table-glass th:nth-child(2),
+.table-glass td:nth-child(2) {
+  width: 30%; /* Description */
+}
+
+.table-glass th:nth-child(3),
+.table-glass td:nth-child(3) {
+  width: 15%; /* Amount */
+}
+
+.table-glass th:nth-child(4),
+.table-glass td:nth-child(4) {
+  width: 20%; /* Category */
+}
+
+.table-glass th:nth-child(5),
+.table-glass td:nth-child(5) {
+  width: 10%; /* Type */
+}
+
+.table-glass th:last-child,
+.table-glass td:last-child {
+  width: 10%; /* Actions */
+  text-align: center;
+}
+
+/* Hover Effect */
+.table-glass tr:hover {
+  background: rgba(255, 255, 255, 0.2); /* Highlight hover */
+  cursor: pointer;
+}
+
+/* Remove Border for Last Row */
+.table-glass tr:last-child td {
+  border-bottom: none;
+}
+
+/* Buttons Inside Table */
+.table-glass button {
+  padding: 6px 8px; /* Smaller padding */
+  font-size: 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+/* Button Variants */
+.table-glass .btn-warning {
+  background: rgba(255, 193, 7, 0.8);
+  color: #212529;
+  border: none;
+}
+
+.table-glass .btn-danger {
+  background: rgba(220, 53, 69, 0.8);
+  color: #fff;
+  border: none;
+}
+
+/* Hover for Buttons */
+.table-glass .btn-warning:hover {
+  background: rgba(255, 193, 7, 1);
+}
+
+.table-glass .btn-danger:hover {
+  background: rgba(220, 53, 69, 1);
+}
+
+/* --- Lists --- */
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  padding: 10px;
+  margin: 5px 0;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  text-align: left;
+}
+
 /* --- Buttons --- */
 .btn {
   border-radius: 8px; /* Rounded buttons for consistency */
@@ -121,7 +324,6 @@
 
 /* Button Hover Effect */
 .btn:hover {
-  transform: translateY(-2px); /* Slight lift effect */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Shadow for hover */
 }
 
@@ -178,6 +380,131 @@
 
 .btn-warning:hover {
   background: #cc8400 !important; /* Darker orange */
+}
+
+/* === Transaction Colors === */
+
+/* Categories */
+.transaction-income {
+  color: green;
+  font-weight: bold;
+}
+
+.transaction-expense {
+  color: red;
+  font-weight: bold;
+}
+
+.transaction-misc {
+  background-color: rgb(128, 128, 131);
+  font-weight: bold;
+}
+
+/* Payment Types */
+.transaction-cash {
+  background-color: rgb(181, 255, 255);
+  color: black;
+}
+
+.transaction-visa {
+  background-color: rgb(203, 202, 255);
+  color: black;
+}
+
+.transaction-debit {
+  background-color: rgb(255, 207, 148);
+  color: black;
+}
+
+.transaction-etransfer {
+  background-color: rgb(255, 214, 241);
+  color: black;
+}
+
+/* --- Optional Enhancements --- */
+
+/* Highlight Income with a Green Border */
+.transaction-income-border {
+  border-left: 4px solid green;
+}
+
+/* Highlight Expenses with a Red Border */
+.transaction-expense-border {
+  border-left: 4px solid red;
+}
+
+/* Add Hover Effect */
+.mobile-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  transition: all 0.2s ease-in-out;
+}
+
+/* --- NAV - Custom Dropdown Menu --- */
+
+.custom-dropdown {
+  display: flex; /* Flex for horizontal layout */
+  flex-wrap: wrap; /* Allow wrapping for overflow */
+  max-width: 500px; /* Adjust width for horizontal display */
+  padding: 0.5rem; /* Padding for spacing */
+  z-index: 1050; /* Ensure menu is above everything */
+  position: absolute; /* Prevent clipping */
+  overflow: visible; /* Allow menu to overflow container */
+  background-color: white; /* Ensure visibility over shadows */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+  border: 1px solid #ddd; /* Light border */
+}
+
+.custom-dropdown .dropdown-item {
+  flex: 1 1 auto; /* Equal width for dropdown items */
+  min-width: 120px; /* Minimum width per item */
+  padding: 0.5rem; /* Padding inside each item */
+  white-space: nowrap; /* Prevents text wrapping */
+  text-align: center; /* Centers text inside item */
+}
+
+.custom-dropdown {
+  position: fixed !important; /* Force position outside parent */
+  top: auto !important; /* Control Y-axis position */
+  left: auto !important; /* Control X-axis position */
+  z-index: 1050; /* High z-index for visibility */
+}
+
+/* --- Transactions Filter Dropdown --- */
+
+.transaction-filter-dropdown {
+  position: absolute !important; /* Force absolute positioning */
+  z-index: 1050 !important; /* High enough to stay above other elements */
+  display: none; /* Hidden by default */
+  width: auto; /* Auto width based on content */
+  white-space: nowrap; /* Prevent line breaks */
+  overflow: visible !important; /* Ensure no clipping */
+}
+
+.transaction-filter-dropdown.show {
+  display: flex !important; /* Flex for horizontal layout */
+  flex-direction: row; /* Horizontal alignment */
+  gap: 8px; /* Add spacing between items */
+  padding: 10px; /* Padding inside menu */
+  border-radius: 6px; /* Rounded corners */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Add shadow for visibility */
+}
+
+/* Allow scrolling if dropdown exceeds width */
+.transaction-filter-dropdown.scrollable {
+  overflow-x: auto; /* Horizontal scroll for landscape layout */
+  overflow-y: hidden;
+  max-width: 100%; /* Prevent breaking out of parent container */
+}
+
+/* Dropdown Button Fix */
+.dropdown-toggle::after {
+  margin-left: 8px; /* Space after text */
+}
+
+/* Prevent Parent Container from Clipping */
+.global-card {
+  overflow: visible !important; /* Allow content to extend outside */
 }
 
 /* --- Fix for Bootstrap Icon Issues --- */

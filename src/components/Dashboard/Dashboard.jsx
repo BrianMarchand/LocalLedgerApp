@@ -175,15 +175,6 @@ const Dashboard = () => {
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
           </select>
-          <button
-            className="dashboard-btn outline"
-            onClick={() => navigate("/projects")}
-          >
-            View Projects
-          </button>
-          <button className="dashboard-btn primary" onClick={handleModalOpen}>
-            Add New Project
-          </button>
         </div>
       </div>
 
