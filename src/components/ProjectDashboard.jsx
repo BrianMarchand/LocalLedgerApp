@@ -64,6 +64,7 @@ function ProjectDashboard() {
   const [error, setError] = useState(false); // Handle errors
   const [showLoading, setShowLoading] = useState(true); // Spinner visibility
   const [errors, setErrors] = useState({}); // Validation errors for forms
+  const [expandedId, setExpandedId] = useState(null); // Add this
   const [newTransaction, setNewTransaction] = useState({
     date: new Date().toISOString().split("T")[0], // Default date as today
     name: "",
@@ -159,6 +160,10 @@ function ProjectDashboard() {
         toast.error("Failed to update project status.");
       }
     }
+  };
+
+  const toggleExpand = (id) => {
+    setExpandedId(expandedId === id ? null : id); // Toggle expanded state
   };
 
   // --- Handle Manual Status Change ---
@@ -981,10 +986,11 @@ function ProjectDashboard() {
           {/* Right Side - Button */}
           <div className="col-md-6 d-flex justify-content-end">
             <button
-              className="btn btn-outline-primary btn-lg"
-              onClick={() => setShowNotes(true)} // Open modal
+              className="btn btn-primary btn-sm px-4 py-2"
+              onClick={() => setShowNotes(true)}
             >
-              Open Notes
+              <i className="bi bi-journal-text me-2"></i>
+              Add Note
             </button>
           </div>
         </div>
@@ -1147,21 +1153,21 @@ function ProjectDashboard() {
                 className="btn btn-sm btn-success"
                 onClick={() => handleFilter("in")} // Money In
               >
-                Income
+                IN
               </button>
 
               <button
                 className="btn btn-sm btn-danger"
                 onClick={() => handleFilter("out")} // Money Out
               >
-                Expense
+                OUT
               </button>
 
               <button
                 className="btn btn-sm btn-secondary"
                 onClick={() => handleFilter("all")} // Reset Filter
               >
-                All
+                ALL
               </button>
             </div>
           </div>
@@ -1216,6 +1222,7 @@ function ProjectDashboard() {
                                 ? "transaction-etransfer"
                                 : ""
                       }`}
+                      onClick={() => toggleExpand(t.id)} // Add toggle function here
                     >
                       {/* Collapsed View */}
                       <div

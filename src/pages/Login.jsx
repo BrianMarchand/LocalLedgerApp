@@ -1,17 +1,19 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { auth } from "../firebaseConfig";
+import "bootstrap-icons/font/bootstrap-icons.css";
+import "../styles/pages/LoginStyles.css";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import Swal from "sweetalert2";
 
 const Login = () => {
   // --- State Management ---
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // NEW: Password toggle state
 
-  const { login } = useAuth(); // Firebase Auth Context
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   // --- Email Validation ---
@@ -23,16 +25,18 @@ const Login = () => {
   // --- Handle Form Submit ---
   const handleSubmit = async (e) => {
     e.preventDefault(); // Prevent page refresh
-    toast.dismiss(); // Clear previous toasts
+
+    // Clear previous alerts
+    Swal.close();
 
     // --- Input Validation ---
     if (!email.trim() || !password.trim()) {
-      toast.error("Please fill in all fields!"); // Error Toast
-      return; // Prevent form submission
+      Swal.fire("Oops!", "Please fill in all fields!", "error");
+      return;
     }
 
     if (!validateEmail(email)) {
-      toast.error("Invalid email format!"); // Error Toast
+      Swal.fire("Invalid Email!", "Enter a valid email address.", "error");
       return;
     }
 
@@ -40,24 +44,24 @@ const Login = () => {
       setLoading(true); // Start loading spinner
 
       // --- Attempt Login ---
-      await login(email, password); // Firebase Auth
+      await login(email, password);
 
       // --- Email Verification Check ---
       if (!auth.currentUser.emailVerified) {
-        throw new Error("Please verify your email before logging in."); // Throw Error
+        throw new Error("Please verify your email before logging in.");
       }
 
       // --- Success ---
-      toast.success("Login successful! 🎉"); // Success Toast
+      Swal.fire("Welcome Back!", "Login successful. 🎉", "success");
       navigate("/dashboard"); // Redirect to Dashboard
     } catch (error) {
-      console.error("Login Error:", error.message); // Debug Log
+      console.error("Login Error:", error.message);
 
-      // --- Email Verification Error ---
+      // --- Error Feedback ---
       if (error.message.includes("verify your email")) {
-        toast.error(error.message); // Display specific email verification error
+        Swal.fire("Email Not Verified!", error.message, "warning");
       } else {
-        toast.error("Invalid email or password. Please try again."); // General Error
+        Swal.fire("Login Failed!", "Invalid email or password.", "error");
       }
     }
 
@@ -65,20 +69,18 @@ const Login = () => {
   };
 
   return (
-    <div className="container d-flex justify-content-center align-items-center vh-100">
-      <div className="w-100" style={{ maxWidth: "400px" }}>
-        <form onSubmit={handleSubmit} className="card p-4 shadow-sm">
-          <h2 className="text-center mb-4">Log In</h2>
+    <div className="auth-container">
+      <div className="auth-card">
+        <form onSubmit={handleSubmit}>
+          <h2 className="mb-4">Log In</h2>
 
           {/* --- Email Field --- */}
-          <div className="mb-3">
-            <label htmlFor="email" className="form-label">
-              Email Address
-            </label>
+          <div className="auth-form-group">
+            <label htmlFor="email">Email Address</label>
             <input
               type="email"
               id="email"
-              className="form-control"
+              className={`form-control ${!validateEmail(email) && email ? "is-invalid" : ""}`} // Highlight invalid input
               value={email}
               onChange={(e) => setEmail(e.target.value.trim())}
               placeholder="Enter your email"
@@ -86,40 +88,52 @@ const Login = () => {
           </div>
 
           {/* --- Password Field --- */}
-          <div className="mb-3">
-            <label htmlFor="password" className="form-label">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              className="form-control"
-              value={password}
-              onChange={(e) => setPassword(e.target.value.trim())}
-              placeholder="Enter your password"
-            />
+          <div className="auth-form-group">
+            <label htmlFor="password">Password</label>
+            <div className="input-container">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                className="form-control"
+                value={password}
+                onChange={(e) => setPassword(e.target.value.trim())}
+                placeholder="Enter your password"
+              />
+              <span
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                <i
+                  className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}
+                ></i>
+              </span>
+            </div>
           </div>
 
           {/* --- Submit Button --- */}
           <button
             type="submit"
-            className="btn btn-primary w-100"
-            disabled={loading}
+            className="auth-btn"
+            disabled={loading} // Disable button when loading
           >
-            {loading ? "Logging In..." : "Log In"}
+            {loading ? (
+              <span className="spinner-border spinner-border-sm"></span> // Spinner
+            ) : (
+              "Log In"
+            )}
           </button>
 
           {/* --- Signup Redirect --- */}
-          <p className="mt-3 text-center">
+          <p className="mt-3">
             Need an account?{" "}
-            <a href="/signup" className="text-decoration-none">
+            <a href="/signup" className="auth-link">
               Sign Up
             </a>
           </p>
 
           {/* --- Forgot Password Link --- */}
-          <p className="mt-2 text-center">
-            <a href="/forgot-password" className="text-decoration-none">
+          <p className="mt-2">
+            <a href="/forgot-password" className="auth-link">
               Forgot Password?
             </a>
           </p>

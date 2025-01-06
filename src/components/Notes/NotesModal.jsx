@@ -1,25 +1,33 @@
 import React, { useState } from "react";
 import { Modal, Button, Tab, Tabs } from "react-bootstrap";
-import FreeformNote from "./FreeformNote"; // Existing component
+import FreeformNote from "./FreeformNote";
 import ShoppingList from "./ShoppingList";
 
 const NotesModal = ({ showNotes, setShowNotes, projectId }) => {
-  const [activeTab, setActiveTab] = useState("freeform"); // Default tab
+  const [activeTab, setActiveTab] = useState("freeform");
+
+  // Placeholder for save functionality
+  const handleSave = () => {
+    console.log("Saving notes..."); // Replace with your save logic if needed
+    setShowNotes(false); // Close modal after saving
+  };
 
   return (
     <Modal
       show={showNotes}
-      onHide={() => setShowNotes(false)} // Exit button handles closing
-      backdrop="static" // Prevents clicking outside to close
-      keyboard={false} // Disables escape key to close
+      onHide={() => setShowNotes(false)}
       size="xl"
+      backdrop="static" // Prevent accidental closing
+      keyboard={false} // Disable ESC key to close
       className="modal-custom-size"
     >
+      {/* Header */}
       <Modal.Header closeButton>
         <Modal.Title>Project Notes</Modal.Title>
       </Modal.Header>
+
+      {/* Body */}
       <Modal.Body>
-        {/* Tab Navigation */}
         <Tabs
           id="notes-tabs"
           activeKey={activeTab}
@@ -37,14 +45,18 @@ const NotesModal = ({ showNotes, setShowNotes, projectId }) => {
           <Tab eventKey="miniNotes" title="Mini Notes">
             <div>
               <p>Mini Notes feature goes here!</p>
-              {/* Placeholder for Mini Notes */}
             </div>
           </Tab>
         </Tabs>
       </Modal.Body>
+
+      {/* Footer */}
       <Modal.Footer>
         <Button variant="secondary" onClick={() => setShowNotes(false)}>
-          Close
+          Cancel
+        </Button>
+        <Button variant="primary" onClick={handleSave}>
+          Save
         </Button>
       </Modal.Footer>
     </Modal>

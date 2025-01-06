@@ -1,12 +1,10 @@
-// File: src/components/Notes/FreeformNote.jsx
-
 import React, { useRef, useState, useEffect } from "react";
 import { ReactSketchCanvas } from "react-sketch-canvas";
 import "./NotesStyles.css"; // Import styles
 import { db } from "../../firebaseConfig"; // Firestore integration
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
-const FreeformNote = ({ projectId }) => {
+const FreeformNote = ({ projectId, showNotes }) => {
   const canvasRef = useRef(null);
   const [loading, setLoading] = useState(false);
 
@@ -14,13 +12,18 @@ const FreeformNote = ({ projectId }) => {
   useEffect(() => {
     const loadNote = async () => {
       setLoading(true);
-      const noteDoc = await getDoc(
-        doc(db, "projects", projectId, "notes", "freeform"),
-      );
-      if (noteDoc.exists()) {
-        canvasRef.current.loadPaths(noteDoc.data().paths);
+      try {
+        const noteDoc = await getDoc(
+          doc(db, "projects", projectId, "notes", "freeform"),
+        );
+        if (noteDoc.exists()) {
+          canvasRef.current.loadPaths(noteDoc.data().paths); // Load paths
+        }
+      } catch (error) {
+        console.error("Error loading note:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     if (projectId) {
@@ -30,17 +33,29 @@ const FreeformNote = ({ projectId }) => {
 
   // Save note to Firestore
   const handleSave = async () => {
-    const paths = await canvasRef.current.exportPaths(); // Get canvas data
-    await setDoc(doc(db, "projects", projectId, "notes", "freeform"), {
-      paths,
-    });
-    alert("Note saved successfully!");
+    try {
+      const paths = await canvasRef.current.exportPaths(); // Save paths
+      await setDoc(doc(db, "projects", projectId, "notes", "freeform"), {
+        paths,
+      });
+      console.log("Note saved!");
+    } catch (error) {
+      console.error("Error saving note:", error);
+    }
   };
 
-  // Clear the canvas
-  const handleClear = () => {
-    canvasRef.current.clearCanvas();
+  // Clear the canvas when modal closes or on demand
+  const clearCanvas = () => {
+    if (canvasRef.current) {
+      canvasRef.current.clearCanvas();
+    }
   };
+
+  useEffect(() => {
+    if (!showNotes) {
+      clearCanvas(); // Clear canvas when modal closes
+    }
+  }, [showNotes]);
 
   return (
     <div className="freeform-note-container">
@@ -55,8 +70,12 @@ const FreeformNote = ({ projectId }) => {
         height="400px"
       />
       <div className="note-actions">
-        <button onClick={handleSave}>Save</button>
-        <button onClick={handleClear}>Clear</button>
+        <button className="btn btn-primary" onClick={handleSave}>
+          Save
+        </button>
+        <button className="btn btn-secondary" onClick={clearCanvas}>
+          Clear
+        </button>
       </div>
     </div>
   );

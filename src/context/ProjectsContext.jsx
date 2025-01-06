@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { db } from "../firebaseConfig";
+import { db, auth } from "../firebaseConfig";
 import {
   collection,
   onSnapshot,
@@ -7,6 +7,7 @@ import {
   orderBy,
   addDoc,
   doc,
+  setDoc,
   updateDoc,
   deleteDoc,
   serverTimestamp,
@@ -24,12 +25,36 @@ export const useProjects = () => useContext(ProjectsContext);
 
 // Provider Component
 export const ProjectsProvider = ({ children }) => {
+  // --- State Management ---
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Real-time listener for projects
+  // --- Authentication Check ---
+  const [user, setUser] = useState(null);
+
+  // Listen for auth changes
   useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+      if (currentUser) {
+        console.log("User is authenticated:", currentUser.email);
+        setUser(currentUser); // Set authenticated user
+      } else {
+        console.warn("No authenticated user found.");
+        setUser(null); // Clear user
+      }
+    });
+    return unsubscribe; // Cleanup on unmount
+  }, []);
+
+  // --- Real-time listener for projects ---
+  useEffect(() => {
+    if (!user) {
+      console.warn("Firestore listener skipped: No authenticated user.");
+      setLoading(false);
+      return; // Prevent listener setup if no user
+    }
+
     console.log("Setting up Firestore listener...");
 
     const unsubscribe = onSnapshot(
@@ -39,43 +64,64 @@ export const ProjectsProvider = ({ children }) => {
           id: doc.id,
           ...doc.data(),
         }));
-        console.log("Fetched Projects from Firestore:", projectList); // <-- Debugging log
-        setProjects(projectList); // <-- Should update state here
+        console.log("Fetched Projects from Firestore:", projectList);
+        setProjects(projectList);
         setLoading(false);
       },
       (err) => {
         console.error("Error fetching projects: ", err);
+        if (err.code === "permission-denied") {
+          toast.error("Firestore permissions error. Check Firestore rules.");
+        }
         setError("Failed to fetch projects.");
         setLoading(false);
       },
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [user]); // React only when the user changes
 
-  // Add Project
+  // --- Add Project ---
   const addProject = async (newProject) => {
-    const docRef = await addDoc(collection(db, "projects"), {
-      ...newProject,
-      createdAt: serverTimestamp(),
-      order: projects.length, // Incremental order
-    });
-    return { id: docRef.id, ...newProject };
+    if (!user) {
+      toast.error("You must be logged in to add projects.");
+      throw new Error("User not authenticated.");
+    }
+
+    try {
+      const docRef = await addDoc(collection(db, "projects"), {
+        ...newProject,
+        createdAt: serverTimestamp(),
+        order: projects.length, // Incremental order
+      });
+      return { id: docRef.id, ...newProject };
+    } catch (error) {
+      console.error("Error adding project:", error);
+      toast.error("Failed to add project.");
+    }
   };
 
-  // Update Project
+  // --- Update Project ---
   const updateProject = async (id, updatedData) => {
+    if (!user) {
+      toast.error("You must be logged in to update projects.");
+      throw new Error("User not authenticated.");
+    }
+
     const projectRef = doc(db, "projects", id);
     await updateDoc(projectRef, updatedData);
   };
 
-  // Add this function to handle saving projects properly
+  // --- Save Project ---
   const saveProject = async (project) => {
-    console.log("Saving new project:", project);
+    if (!user) {
+      toast.error("You must be logged in to save projects.");
+      throw new Error("User not authenticated.");
+    }
 
+    console.log("Saving new project:", project);
     try {
-      // Create a new document with the specified ID
-      const projectRef = doc(db, "projects", project.id); // Reference with ID
+      const projectRef = doc(db, "projects", project.id);
       await setDoc(projectRef, {
         ...project,
         createdAt: serverTimestamp(),
@@ -83,7 +129,7 @@ export const ProjectsProvider = ({ children }) => {
 
       console.log(`Project created with ID: ${project.id}`);
 
-      // Force refresh projects after saving
+      // Refresh projects after saving
       const updatedProjects = [...projects, { id: project.id, ...project }];
       setProjects(updatedProjects);
 
@@ -94,59 +140,39 @@ export const ProjectsProvider = ({ children }) => {
     }
   };
 
-  // Delete Project and Sub-Collections
+  // --- Delete Project ---
   const deleteProject = async (id) => {
-    console.log("Attempting to delete project and sub-collections for ID:", id);
+    if (!user) {
+      toast.error("You must be logged in to delete projects.");
+      throw new Error("User not authenticated.");
+    }
 
+    console.log("Attempting to delete project and sub-collections for ID:", id);
     try {
-      // --- Step 1: Delete all transactions (sub-collections) ---
-      console.log(`Step 1: Checking transactions for project ID: ${id}`);
+      // Delete sub-collections first
       const transactionsRef = collection(db, `projects/${id}/transactions`);
       const transactionsSnapshot = await getDocs(transactionsRef);
 
-      console.log(
-        `Found ${transactionsSnapshot.size} transactions for deletion.`,
-      );
-
       if (!transactionsSnapshot.empty) {
         const batch = writeBatch(db);
-
-        transactionsSnapshot.forEach((doc) => {
-          console.log(`Queuing transaction ID: ${doc.id} for deletion.`);
-          batch.delete(doc.ref); // Queue each transaction for deletion
-        });
-
-        await batch.commit(); // Execute batch delete
-        console.log(`Deleted all transactions for project ID: ${id}`);
-      } else {
-        console.log("No transactions found for this project.");
+        transactionsSnapshot.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
       }
 
-      // --- Step 2: Delete the parent project ---
-      console.log(`Step 2: Attempting to delete parent project ID: ${id}`);
+      // Delete parent project
       const projectRef = doc(db, "projects", id);
+      await deleteDoc(projectRef);
 
-      // Log existence check before deletion
-      const projectSnapshot = await getDoc(projectRef);
-      if (!projectSnapshot.exists()) {
-        console.warn(`Project ID: ${id} does not exist in Firestore.`);
-      } else {
-        console.log(`Project ID: ${id} exists and will be deleted.`);
-        await deleteDoc(projectRef); // Delete project
-        console.log(`Successfully deleted project ID: ${id}`);
-      }
-
-      // --- Step 3: Force Refresh UI ---
-      console.log("Step 3: Force refreshing UI.");
-      const updatedProjects = projects.filter((p) => p.id !== id);
-      setProjects(updatedProjects); // Update local state
-      console.log("Force refreshed projects:", updatedProjects);
+      // Refresh UI
+      setProjects(projects.filter((p) => p.id !== id));
+      toast.success("Project deleted successfully!");
     } catch (error) {
-      console.error("Error deleting project or sub-collections:", error);
+      console.error("Error deleting project:", error);
       toast.error(`Failed to delete project: ${error.message}`);
     }
   };
 
+  // --- Check Order Fields ---
   const checkOrderFields = async () => {
     const querySnapshot = await getDocs(collection(db, "projects"));
     querySnapshot.forEach((docSnap, index) => {
@@ -159,6 +185,7 @@ export const ProjectsProvider = ({ children }) => {
     });
   };
 
+  // --- Fix Order Fields ---
   const fixOrderFields = async () => {
     const querySnapshot = await getDocs(collection(db, "projects"));
     querySnapshot.forEach(async (docSnap, index) => {
@@ -171,6 +198,7 @@ export const ProjectsProvider = ({ children }) => {
     });
   };
 
+  // --- Fetch Projects Manually ---
   const fetchProjects = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "projects"));
@@ -178,14 +206,14 @@ export const ProjectsProvider = ({ children }) => {
         id: doc.id,
         ...doc.data(),
       }));
-
-      setProjects(projectList); // Update the context state
+      setProjects(projectList);
       console.log("Fetched Projects from Firestore:", projectList);
     } catch (error) {
       console.error("Error fetching projects:", error);
     }
   };
 
+  // --- Provide Context ---
   return (
     <ProjectsContext.Provider
       value={{
@@ -196,7 +224,7 @@ export const ProjectsProvider = ({ children }) => {
         addProject,
         updateProject,
         deleteProject,
-        fetchProjects, // <-- Add this line!
+        fetchProjects,
       }}
     >
       {children}

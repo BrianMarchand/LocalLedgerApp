@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import "../styles/pages/LoginStyles.css"; // Reuse styles from login
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { db } from "../firebaseConfig"; // Firestore instance
+import Swal from "sweetalert2";
+
+import { db, auth } from "../firebaseConfig"; // Firestore instance
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const Signup = () => {
+  // State Management
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -15,9 +16,9 @@ const Signup = () => {
   const { signup } = useAuth();
   const navigate = useNavigate();
 
-  const [emailError, setEmailError] = useState(false);
-  const [passwordError, setPasswordError] = useState(false);
-  const [confirmPasswordError, setConfirmPasswordError] = useState(false);
+  // Password Toggles
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // --- Email Validation ---
   const validateEmail = (email) => {
@@ -28,21 +29,25 @@ const Signup = () => {
   // --- Handle Form Submit ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-    toast.dismiss(); // Clear previous toasts
+    Swal.close(); // Clear any open alerts
 
     // --- Input Validation ---
     if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
-      toast.error("Please fill in all fields!"); // Error Toast
+      Swal.fire("Oops!", "Please fill in all fields!", "error");
       return;
     }
 
     if (!validateEmail(email)) {
-      toast.error("Invalid email format!"); // Error Toast
+      Swal.fire("Invalid Email!", "Enter a valid email address.", "error");
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match!"); // Error Toast
+      Swal.fire(
+        "Passwords Don't Match!",
+        "Please check your passwords.",
+        "error",
+      );
       return;
     }
 
@@ -50,10 +55,13 @@ const Signup = () => {
       setLoading(true); // Start loading spinner
 
       // --- Create user in Firebase Auth ---
-      const userCredential = await signup(email, password);
-      const user = userCredential.user; // Newly created user
+      const user = await signup(email, password); // Get the user directly
 
       // --- Add user to Firestore ---
+      if (!user || !user.uid) {
+        throw new Error("Signup failed: User ID is undefined.");
+      }
+
       await setDoc(doc(db, "users", user.uid), {
         email: user.email, // Store email
         displayName: "", // Optional field, can be updated later
@@ -61,7 +69,10 @@ const Signup = () => {
         createdAt: serverTimestamp(), // Timestamp
       });
 
-      toast.success("Signup successful! 🎉"); // Success Toast
+      console.log("Signup User:", user);
+      console.log("Firebase Auth User:", auth.currentUser);
+
+      Swal.fire("Success!", "Signup completed successfully. 🎉", "success");
       navigate("/dashboard"); // Redirect to Dashboard
     } catch (error) {
       console.error("Signup Error:", error.code, error.message);
@@ -69,96 +80,99 @@ const Signup = () => {
       // --- Enhanced Error Messages ---
       switch (error.code) {
         case "auth/email-already-in-use":
-          toast.error(
-            "This email is already registered. Try logging in or resetting your password.",
+          Swal.fire(
+            "Email Already Registered",
+            "Try logging in or resetting your password.",
+            "error",
           );
           break;
         case "auth/invalid-email":
-          toast.error("Invalid email format.");
+          Swal.fire(
+            "Invalid Email",
+            "Please use a valid email address.",
+            "error",
+          );
           break;
         case "auth/weak-password":
-          toast.error("Password is too weak. Use at least 6 characters.");
+          Swal.fire(
+            "Weak Password!",
+            "Password should be at least 6 characters.",
+            "error",
+          );
           break;
         default:
-          toast.error("Signup failed. Please try again later.");
+          Swal.fire("Signup Failed!", "Please try again later.", "error");
       }
     }
 
     setLoading(false); // Stop loading spinner
   };
 
-  // --- Send Password Reset ---
-  const resetPassword = async (email) => {
-    try {
-      await sendPasswordResetEmail(auth, email); // Firebase method
-    } catch (error) {
-      console.error("Password Reset Error:", error.message);
-
-      switch (error.code) {
-        case "auth/user-not-found":
-          throw new Error("No account found with this email.");
-        case "auth/invalid-email":
-          throw new Error("Invalid email format.");
-        default:
-          throw new Error("Failed to send password reset email.");
-      }
-    }
-  };
-
   return (
-    <div className="container d-flex justify-content-center align-items-center vh-100">
-      <div className="w-100" style={{ maxWidth: "400px" }}>
-        <form onSubmit={handleSubmit} className="card p-4 shadow-sm">
-          <h2 className="text-center mb-4">Sign Up</h2>
+    <div className="auth-container">
+      <div className="auth-card">
+        <form onSubmit={handleSubmit}>
+          <h2 className="mb-4 text-center">Sign Up</h2>
 
           {/* --- Email Field --- */}
-          <div className="mb-3">
-            <label htmlFor="email" className="form-label">
-              Email Address
-            </label>
+          <div className="auth-form-group">
+            <label htmlFor="email">Email Address</label>
             <input
               type="email"
               id="email"
-              className={`form-control ${emailError ? "is-invalid" : ""}`} // Highlight error
+              className="form-control"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value.trim())}
               placeholder="Enter your email"
             />
-            <div className="invalid-feedback">Invalid email format.</div>
           </div>
 
           {/* --- Password Field --- */}
-          <div className="mb-3">
-            <label htmlFor="password" className="form-label">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              className={`form-control ${passwordError ? "is-invalid" : ""}`}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-            />
-            <div className="invalid-feedback">
-              Password must be at least 6 characters.
+          <div className="auth-form-group">
+            <label htmlFor="password">Password</label>
+            <div className="input-container">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                className="form-control"
+                value={password}
+                onChange={(e) => setPassword(e.target.value.trim())}
+                placeholder="Enter your password"
+              />
+              <span
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                <i
+                  className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}
+                />
+              </span>
             </div>
           </div>
 
           {/* --- Confirm Password Field --- */}
-          <div className="mb-3">
-            <label htmlFor="confirmPassword" className="form-label">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              id="confirmPassword"
-              className={`form-control ${confirmPasswordError ? "is-invalid" : ""}`}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm your password"
-            />
-            <div className="invalid-feedback">Passwords do not match.</div>
+          <div className="auth-form-group">
+            <label htmlFor="confirmPassword">Confirm Password</label>
+            <div className="input-container">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                id="confirmPassword"
+                className="form-control"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value.trim())}
+                placeholder="Confirm your password"
+              />
+              <span
+                className="password-toggle"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                <i
+                  className={`bi ${
+                    showConfirmPassword ? "bi-eye-slash" : "bi-eye"
+                  }`}
+                />
+              </span>
+            </div>
           </div>
 
           {/* Submit Button */}
@@ -172,7 +186,7 @@ const Signup = () => {
 
           <p className="mt-3 text-center">
             Already have an account?{" "}
-            <a href="/login" className="text-decoration-none">
+            <a href="/login" className="auth-link">
               Log In
             </a>
           </p>

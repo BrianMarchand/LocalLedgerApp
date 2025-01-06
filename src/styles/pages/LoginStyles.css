@@ -1,0 +1,106 @@
+/* Container Styling */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #f7f7f7;
+}
+
+/* Card Styling */
+.auth-card {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Form Fields */
+.auth-form-group {
+  position: relative; /* Ensure parent is positioned for absolute children */
+  margin-bottom: 1rem;
+}
+
+.auth-form-group label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+/* Input Field */
+.auth-form-group input {
+  width: 100%;
+  padding-right: 40px; /* Space for toggle */
+  height: 40px; /* Consistent height */
+  line-height: 40px; /* Match height for vertical alignment */
+  padding: 0 12px; /* Internal padding */
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+/* Error Highlight */
+.is-invalid {
+  border-color: #dc3545;
+  background-color: #f8d7da;
+}
+
+.input-container {
+  position: relative;
+  display: flex;
+  align-items: center; /* Vertical alignment */
+  width: 100%;
+}
+
+.input-container input {
+  flex: 1; /* Input takes remaining space */
+  padding-right: 40px; /* Ensure space for the icon */
+  height: 40px;
+}
+
+.password-toggle {
+  position: absolute; /* Positioned inside input container */
+  right: 12px; /* Near the right edge */
+  top: 50%; /* Vertically center */
+  transform: translateY(-50%);
+  cursor: pointer; /* Clickable */
+  font-size: 1.25rem; /* Slightly larger icon size */
+  color: #6c757d; /* Muted gray */
+}
+
+.password-toggle:hover {
+  color: #007bff; /* Highlight on hover */
+}
+
+/* Button Styling */
+.auth-btn {
+  width: 100%;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 4px;
+  background-color: #007bff;
+  color: white;
+  font-weight: 500;
+}
+
+.auth-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Links */
+.auth-link {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+/* Spinner */
+.spinner-border {
+  width: 1rem;
+  height: 1rem;
+}
