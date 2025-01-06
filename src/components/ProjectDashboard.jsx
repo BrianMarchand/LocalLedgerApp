@@ -33,16 +33,20 @@ import { ProgressBar } from "react-loader-spinner"; // Progress bar loader
 import { useTheme } from "../context/ThemeContext"; // Theme context
 
 // --- Custom Components ---
-import Navbar from "../components/Navbar"; // Reusable navbar component
+import Navbar from "./Navbar"; // Reusable navbar component
 
 // --- Import The Profress Details Card ---
-import ProjectDetailsCard from "../components/ProjectDetailsCard";
+import ProjectDetailsCard from "./ProjectDetailsCard";
 
 // --- Format Utilities ---
 import { formatCurrency } from "../utils/formatUtils";
 
 // --- Import SweetAlert ---
 import Swal from "sweetalert2"; // Import SweetAlert2
+
+// --- Import Freeform Notes ---
+import FreeformNote from "./Notes/FreeformNote";
+import NotesModal from "./Notes/NotesModal";
 
 // --- Debugging Mode ---
 const DEBUG_MODE = true; // Enable console logging for debugging
@@ -955,12 +959,7 @@ function ProjectDashboard() {
   const cappedProgress = Math.min(progress, 100); // Ensure <= 100
 
   // --- State for Expanded Card ---
-  const [expandedId, setExpandedId] = useState(null);
-
-  // --- Toggle Expand ---
-  const toggleExpand = (id) => {
-    setExpandedId(expandedId === id ? null : id); // Toggle collapse
-  };
+  const [showNotes, setShowNotes] = useState(false); // Control modal visibility
 
   // --- Render UI ---
   // --- Loading State with Spinner Delay ---
@@ -970,9 +969,26 @@ function ProjectDashboard() {
   return (
     <div>
       <Navbar page="projectDashboard" progress={cappedProgress} />
+
       <div className="container mt-5">
-        <h1>Project Details Page</h1>
-        <p className="mb-5">This is some placeholder copy for this page.</p>
+        <div className="row align-items-center mb-4">
+          {/* Left Side - Title and Description */}
+          <div className="col-md-6">
+            <h1>Project Details Page</h1>
+            <p>This is some placeholder copy for this page.</p>
+          </div>
+
+          {/* Right Side - Button */}
+          <div className="col-md-6 d-flex justify-content-end">
+            <button
+              className="btn btn-outline-primary btn-lg"
+              onClick={() => setShowNotes(true)} // Open modal
+            >
+              Open Notes
+            </button>
+          </div>
+        </div>
+
         {/* Row for Side-by-Side Layout */}
         <div className="row g-4 mb-2">
           {/* Left Column: Project Details */}
@@ -1532,6 +1548,12 @@ function ProjectDashboard() {
             </div>
           )}
       </div>
+      {/* Notes Modal */}
+      <NotesModal
+        showNotes={showNotes} // Pass modal visibility state
+        setShowNotes={setShowNotes} // Pass function to close modal
+        projectId={id} // Pass project ID
+      />
     </div>
   );
 }
