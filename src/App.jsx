@@ -46,7 +46,13 @@ import ProjectDashboard from "./components/ProjectDashboard";
 import Dashboard from "./components/Dashboard/Dashboard";
 
 // ================================
-// 5. Final Setup - Default Component
+// 5. Marchand Household Budget
+// ================================
+import AppSelector from "./AppSelector";
+import MarchandDashboard from "./MarchandHousehold/pages/MarchandDashboard";
+
+// ================================
+// 6. Final Setup - Default Component
 // ================================
 
 const App = () => {
@@ -74,7 +80,13 @@ const App = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/projects" element={<ProjectList />} />
             <Route path="/project/:id" element={<ProjectDashboard />} />
-            <Route path="*" element={<Navigate to="/dashboard" />} />
+
+            {/* New Routes */}
+            <Route path="/select-app" element={<AppSelector />} />
+            <Route path="/marchand-household" element={<MarchandDashboard />} />
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
         </Router>
       </AuthProvider>

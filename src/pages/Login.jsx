@@ -53,7 +53,7 @@ const Login = () => {
 
       // --- Success ---
       Swal.fire("Welcome Back!", "Login successful. 🎉", "success");
-      navigate("/dashboard"); // Redirect to Dashboard
+      navigate("/select-app"); // Redirect to Selector Screen
     } catch (error) {
       console.error("Login Error:", error.message);
 

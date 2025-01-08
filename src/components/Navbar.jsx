@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Dropdown } from "react-bootstrap";
 import "bootstrap-icons/font/bootstrap-icons.css";
-import "../Navbar.css";
+import "../styles/components/Navbar.css";
 
 // --- Key Components ---
 import { ReactSVG } from "react-svg"; // <-- Import react-svg
 import QuickActionsDropdown from "./QuickActionsDropdown";
+import UserDropdown from "./UserDropdown";
+
 import FAB from "./FAB";
 import AddProjectModal from "./AddProjectModal";
 
@@ -46,7 +48,7 @@ const Navbar = () => {
       <nav className={`navbar-glass ${scrolling ? "navbar-scroll" : ""}`}>
         {/* Left: Logo */}
         <div className="navbar-left">
-          <a href="/" className="logo">
+          <a href="/Dashboard" className="logo">
             {/* Render SVG Logo */}
             <ReactSVG
               src="/assets/svg/local-ledger-logo-rect-outline.svg" // Public folder path
@@ -62,51 +64,22 @@ const Navbar = () => {
 
           {/* Profile Dropdown */}
           {currentUser ? (
-            // If logged in, show dropdown with dynamic user email
-            <Dropdown>
-              <Dropdown.Toggle
-                variant="light"
-                id="dropdown-profile"
-                className="profile-btn dropdown-toggle"
-              >
-                <i className="bi bi-person-circle"></i>{" "}
-                {/* Icon Always Visible */}
-                <span className="toggle-text">
-                  Welcome, {currentUser.email}
-                </span>{" "}
-                {/* Display user's email */}
-              </Dropdown.Toggle>
-              <Dropdown.Menu className="profile-dropdown-menu">
-                <Dropdown.Item onClick={() => navigate("/profile")}>
-                  <i className="bi bi-person-fill me-2"></i>Profile
-                </Dropdown.Item>
-                <Dropdown.Item onClick={() => navigate("/settings")}>
-                  <i className="bi bi-gear-fill me-2"></i>Settings
-                </Dropdown.Item>
-                <Dropdown.Divider />
-                <Dropdown.Item onClick={handleLogout}>
-                  <i className="bi bi-box-arrow-right me-2"></i>Logout
-                </Dropdown.Item>
-              </Dropdown.Menu>
-            </Dropdown>
+            <UserDropdown />
           ) : (
-            // If logged out, show Login and Signup buttons
-            <>
-              <div className="auth-buttons">
-                <button
-                  className="btn btn-primary auth-btn"
-                  onClick={() => navigate("/login")}
-                >
-                  Login
-                </button>
-                <button
-                  className="btn btn-outline-primary auth-btn"
-                  onClick={() => navigate("/signup")}
-                >
-                  Sign Up
-                </button>
-              </div>
-            </>
+            <div className="auth-buttons">
+              <button
+                className="btn btn-primary auth-btn"
+                onClick={() => navigate("/login")}
+              >
+                Login
+              </button>
+              <button
+                className="btn btn-outline-primary auth-btn"
+                onClick={() => navigate("/signup")}
+              >
+                Sign Up
+              </button>
+            </div>
           )}
         </div>
       </nav>
