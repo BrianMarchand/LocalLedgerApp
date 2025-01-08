@@ -88,6 +88,33 @@ export const ProjectsProvider = ({ children }) => {
     }
   };
 
+  // Fetch a single project by ID
+  const fetchProjectById = async (id) => {
+    try {
+      const docRef = doc(db, "projects", id);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const project = { id: docSnap.id, ...docSnap.data() };
+
+        // Fetch transactions
+        const transactionsRef = collection(db, `projects/${id}/transactions`);
+        const transactionsSnapshot = await getDocs(transactionsRef);
+        project.transactions = transactionsSnapshot.docs.map((txn) => ({
+          id: txn.id,
+          ...txn.data(),
+        }));
+
+        return project;
+      } else {
+        throw new Error("Project not found");
+      }
+    } catch (error) {
+      console.error("Error fetching project by ID:", error);
+      toast.error("Failed to load project details.");
+    }
+  };
+
   // --- Automatically Fetch Projects After Auth ---
   useEffect(() => {
     if (user) {
@@ -130,11 +157,173 @@ export const ProjectsProvider = ({ children }) => {
 
     try {
       const projectRef = doc(db, "projects", id);
+
+      // Optimistically update the local state first
+      setProjects((prevProjects) =>
+        prevProjects.map((proj) =>
+          proj.id === id ? { ...proj, ...updatedData } : proj,
+        ),
+      );
+
+      // Update Firestore
       await updateDoc(projectRef, updatedData);
       toast.success("Project updated successfully!");
-      fetchProjectsWithTransactions(); // Refresh
+
+      // Optional: Refetch data from Firestore to verify sync
+      fetchProjectsWithTransactions();
     } catch (error) {
       console.error("Error updating project:", error);
+      toast.error("Failed to update project.");
+    }
+  };
+
+  // Status change: Mark a project as complete
+
+  const markAsComplete = async (project) => {
+    try {
+      // Optimistically update state
+      setProjects((prevProjects) =>
+        prevProjects.map((p) =>
+          p.id === project.id ? { ...p, status: "completed" } : p,
+        ),
+      );
+
+      // Update Firestore
+      const docRef = doc(db, "projects", project.id);
+      await updateDoc(docRef, { status: "completed", statusDate: new Date() });
+
+      toast.success(`Project "${project.name}" marked as complete!`);
+    } catch (error) {
+      console.error("Error marking project as complete:", error);
+      toast.error("Failed to update project.");
+    }
+  };
+
+  // Status change: Mark a project as in-progress
+
+  const markAsInProgress = async (project) => {
+    try {
+      // Optimistically update state
+      setProjects((prevProjects) =>
+        prevProjects.map((p) =>
+          p.id === project.id ? { ...p, status: "in-progress" } : p,
+        ),
+      );
+
+      // Update Firestore
+      const docRef = doc(db, "projects", project.id);
+      await updateDoc(docRef, {
+        status: "in-progress",
+        statusDate: new Date(),
+      });
+
+      toast.success(`Project "${project.name}" marked as in progress!`);
+    } catch (error) {
+      console.error("Error marking project as in progress:", error);
+      toast.error("Failed to update project.");
+    }
+  };
+
+  // Status change: Mark a project as on-hold
+
+  const putOnHold = async (project) => {
+    try {
+      // Optimistically update state
+      setProjects((prevProjects) =>
+        prevProjects.map((p) =>
+          p.id === project.id ? { ...p, status: "on-hold" } : p,
+        ),
+      );
+
+      // Update Firestore
+      const docRef = doc(db, "projects", project.id);
+      await updateDoc(docRef, { status: "on-hold", statusDate: new Date() });
+
+      toast.success(`Project "${project.name}" is now on hold.`);
+    } catch (error) {
+      console.error("Error putting project on hold:", error);
+      toast.error("Failed to update project.");
+    }
+  };
+
+  // Status change: Cancel a project
+
+  const cancelProject = async (project) => {
+    try {
+      // Optimistically update state
+      setProjects((prevProjects) =>
+        prevProjects.map((p) =>
+          p.id === projectId
+            ? { ...p, status: newStatus, statusDate: new Date() }
+            : p,
+        ),
+      );
+
+      // Force re-fetch to avoid stale state
+      await fetchProjects(); // <-- Force sync with Firestore
+
+      // Update Firestore
+      const docRef = doc(db, "projects", project.id);
+      await updateDoc(docRef, { status: "cancelled", statusDate: new Date() });
+
+      console.log("Fetching updated projects...");
+      const snapshot = await getDocs(collection(db, "projects"));
+      const fetchedProjects = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setProjects(fetchedProjects); // Update context
+      console.log("Updated Projects in Context:", fetchedProjects); // Debugging
+
+      toast.success(`Project "${project.name}" has been cancelled.`);
+    } catch (error) {
+      console.error("Error cancelling project:", error);
+      toast.error("Failed to update project.");
+    }
+  };
+
+  // Status change helper: Reopen a project
+  const reopenProject = async (project) => {
+    try {
+      // Optimistically update state
+      setProjects((prevProjects) =>
+        prevProjects.map((p) =>
+          p.id === project.id ? { ...p, status: "in-progress" } : p,
+        ),
+      );
+
+      // Update Firestore
+      const docRef = doc(db, "projects", project.id);
+      await updateDoc(docRef, {
+        status: "in-progress",
+        statusDate: new Date(),
+      });
+
+      toast.success(`Project "${project.name}" has been reopened!`);
+    } catch (error) {
+      console.error("Error reopening project:", error);
+      toast.error("Failed to update project.");
+    }
+  };
+
+  // Status change helper: Reset to new
+  const resetToNew = async (project) => {
+    try {
+      // Optimistically update state
+      setProjects((prevProjects) =>
+        prevProjects.map((p) =>
+          p.id === project.id ? { ...p, status: "new" } : p,
+        ),
+      );
+
+      // Update Firestore
+      const docRef = doc(db, "projects", project.id);
+      await updateDoc(docRef, { status: "new", statusDate: new Date() });
+
+      toast.success(`Project "${project.name}" reset to new status.`);
+    } catch (error) {
+      console.error("Error resetting project to new status:", error);
       toast.error("Failed to update project.");
     }
   };
@@ -201,6 +390,7 @@ export const ProjectsProvider = ({ children }) => {
         updateProject,
         deleteProject,
         fetchProjectsWithTransactions,
+        fetchProjects: fetchProjectsWithTransactions,
       }}
     >
       {children}

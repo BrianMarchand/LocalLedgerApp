@@ -40,7 +40,7 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
       setProjectName(editingProject.name || "");
       setLocation(editingProject.location || "");
       setBudget(editingProject.budget || "");
-      setStatus(editingProject.status || "new");
+      setStatus(editingProject?.status ?? "new"); // Keep status undefined if not set!
       setStatusNote(editingProject.statusNote || "");
     } else {
       resetForm(); // Reset fields for new project
@@ -77,10 +77,10 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
         name: projectName,
         location,
         budget: parseFloat(budget),
-        status,
+        status: editingProject ? status : "new", // Force 'new' for new projects
         statusNote,
-        order: 0, // <<--- Force new projects to start at the first position
-        createdAt: new Date(), // Optional timestamp if needed
+        order: 0,
+        createdAt: new Date(),
       };
 
       // --- Confetti Trigger Logic ---
@@ -145,12 +145,35 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
           navigate(`/project/${newProjectRef.id}`, { replace: true });
         }, 500); // Slight delay for modal animation
       }
+      // --- Status Validation Rules ---
+      if (
+        status === "completed" &&
+        parseFloat(budget) > 0 &&
+        progressData.percentage < 100
+      ) {
+        toastError(
+          "Cannot mark project as completed until the budget has been met.",
+        );
+        setLoading(false);
+        return;
+      }
+
+      if (status === "in-progress" && !editingProject?.hasDeposit) {
+        toastError(
+          "Cannot mark as in-progress until a client payment is received.",
+        );
+        setLoading(false);
+        return;
+      }
     } catch (error) {
       console.error("Error saving project:", error);
       toastError(`Error saving project: ${error.message}`);
     } finally {
       setLoading(false); // Ensure loading spinner resets
     }
+    console.log("Status Before Save:", status);
+    console.log("Editing Project:", editingProject);
+    console.log("Transactions:", editingProject?.transactions);
   };
 
   // --- Reset Form ---
@@ -265,9 +288,10 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
             isInvalid={!!errors.status}
             onChange={(e) => setStatus(e.target.value)}
             disabled={
-              !editingProject || // Lock when no project is being edited
-              ["completed", "cancelled"].includes(editingProject.status) || // Already locked cases
-              (editingProject.status === "new" && !editingProject.hasDeposit) // NEW: Lock if 'new' without deposit
+              !editingProject ||
+              ["completed", "cancelled"].includes(status) ||
+              (status === "new" && !editingProject?.hasDeposit) || // Guard against reload cases
+              (!editingProject && status !== "new") // Lock dropdown for new projects
             }
           >
             {["new", "in-progress", "completed", "on-hold", "cancelled"].map(

@@ -16,6 +16,8 @@ import { toastSuccess, toastError } from "../utils/toastNotifications"; // Impor
 import Swal from "sweetalert2"; // Import SweetAlert
 import "sweetalert2/dist/sweetalert2.min.css"; // Import SweetAlert Default Styles
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { getBadgeClass, getBadgeLabel } from "../utils/badgeUtils";
+
 import {
   collection,
   getDocs,
@@ -42,6 +44,7 @@ function ProjectList() {
     projects, // Managed by context
     setProjects, // Managed by context
     loading, // Managed by context
+    fetchProjectsWithTransactions, // Fetch Projects
     addProject, // Add project function
     updateProject, // Update project function
     deleteProject, // Delete project function
@@ -169,6 +172,16 @@ function ProjectList() {
     try {
       const docRef = doc(db, "projects", project.id);
       await updateDoc(docRef, { status: "in-progress" });
+
+      // Optimistic Update: Update local state directly
+      setProjects((prevProjects) =>
+        prevProjects.map((p) =>
+          p.id === project.id ? { ...p, status: "in-progress" } : p,
+        ),
+      );
+
+      // Fetch latest data to ensure consistency
+      await fetchProjectsWithTransactions();
       toastSuccess("Reopened successfully!");
     } catch (error) {
       toastError("Failed to reopen.");
@@ -452,45 +465,6 @@ function ProjectList() {
       toastError("Failed to delete project.");
     }
   };
-
-  // --- Status Badge Styles ---
-  const statusColor = (status) => {
-    switch (status) {
-      case "new":
-        return "badge-primary"; // Blue
-      case "in-progress":
-        return "badge-success"; // Green
-      case "on-hold":
-        return "badge-warning"; // Orange
-      case "cancelled":
-        return "badge-danger"; // Red
-      case "pending":
-        return "badge-info"; // Light Blue
-      case "completed":
-        return "badge-secondary"; // Gray
-      default:
-        return "badge-dark"; // Fallback
-    }
-  };
-
-  // --- Status Color Mapping ---
-  const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
-      case "new":
-        return "primary";
-      case "in-progress":
-        return "warning";
-      case "completed":
-        return "success";
-      case "on-hold":
-        return "secondary";
-      case "cancelled":
-        return "danger";
-      default:
-        return "light";
-    }
-  };
-
   // --- Format Timestamp ---
   const formatDate = (timestamp) => {
     if (!timestamp) return "N/A";
@@ -872,13 +846,10 @@ function ProjectList() {
                               {/* --- HEADER --- */}
                               <div className="card-header d-flex justify-content-between align-items-center">
                                 <span>{project.name || "Unnamed Project"}</span>
-                                <span
-                                  className={`badge ${statusColor(project.status)}`}
-                                >
-                                  {project.status}
-                                </span>
+                                <div className={getBadgeClass(project.status)}>
+                                  {getBadgeLabel(project.status)}
+                                </div>
                               </div>
-
                               {/* --- BODY --- */}
                               <div className="card-body">
                                 {/* Location */}
@@ -935,7 +906,6 @@ function ProjectList() {
                                   </div>
                                 </div>
                               </div>
-
                               {/* --- FOOTER (BUTTON GROUP) --- */}
                               <div className="card-footer d-flex flex-wrap gap-2">
                                 {/* Cancelled Projects */}
@@ -968,9 +938,10 @@ function ProjectList() {
                                     <button
                                       className="btn btn-warning"
                                       title="Reopen Project"
-                                      onClick={(e) => {
+                                      onClick={async (e) => {
                                         e.stopPropagation();
-                                        confirmReopen(project);
+                                        await confirmReopen(project); // Firestore update
+                                        await fetchProjectsWithTransactions(); // <-- Refresh Context Immediately
                                       }}
                                     >
                                       <i className="bi bi-arrow-repeat"></i>
@@ -994,9 +965,10 @@ function ProjectList() {
                                     <button
                                       className="btn btn-warning"
                                       title="Reopen Project"
-                                      onClick={(e) => {
+                                      onClick={async (e) => {
                                         e.stopPropagation();
-                                        confirmReopen(project);
+                                        await confirmReopen(project); // Firestore update
+                                        await fetchProjectsWithTransactions(); // <-- Refresh Context Immediately
                                       }}
                                     >
                                       <i className="bi bi-arrow-repeat"></i>
@@ -1017,6 +989,7 @@ function ProjectList() {
                                     >
                                       <i className="bi bi-eye"></i>
                                     </button>
+
                                     <button
                                       className="btn btn-secondary"
                                       title="Edit Project"
@@ -1025,35 +998,43 @@ function ProjectList() {
                                         setEditingProject(project);
                                         handleModalOpen();
                                       }}
+                                      disabled={project.status === "completed"} // Disable edit for completed
                                     >
                                       <i className="bi bi-pencil-square"></i>
                                     </button>
+
                                     <button
                                       className="btn btn-warning"
                                       title="Put on Hold"
-                                      onClick={(e) => {
+                                      onClick={async (e) => {
                                         e.stopPropagation();
-                                        confirmPutOnHold(project); // <-- NEW FUNCTION TO HANDLE THIS ACTION
+                                        await confirmPutOnHold(project); // Firestore update
+                                        await fetchProjectsWithTransactions(); // <-- Refresh Context Immediately
                                       }}
                                     >
                                       <i className="bi bi-pause-circle"></i>
                                     </button>
+
                                     <button
                                       className="btn btn-success"
                                       title="Mark as Complete"
-                                      onClick={(e) => {
+                                      onClick={async (e) => {
                                         e.stopPropagation();
-                                        confirmComplete(project);
+                                        await confirmComplete(project); // Firestore update
+                                        await fetchProjectsWithTransactions(); // <-- Refresh Context Immediately
                                       }}
+                                      disabled={!project.meetsBudget} // Disable if budget not met
                                     >
                                       <i className="bi bi-check-circle"></i>
                                     </button>
+
                                     <button
                                       className="btn btn-danger"
                                       title="Cancel Project"
-                                      onClick={(e) => {
+                                      onClick={async (e) => {
                                         e.stopPropagation();
-                                        confirmCancel(project);
+                                        await confirmCancel(project); // Firestore update
+                                        await fetchProjectsWithTransactions(); // <-- Refresh Context Immediately
                                       }}
                                     >
                                       <i className="bi bi-x-circle"></i>
@@ -1074,57 +1055,45 @@ function ProjectList() {
                                     >
                                       <i className="bi bi-eye"></i>
                                     </button>
+
                                     <button
                                       className="btn btn-secondary"
                                       title="Edit Project"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setEditingProject(project); // Sets the editing state
-                                        handleModalOpen(); // Opens modal
+                                        setEditingProject(project);
+                                        handleModalOpen();
                                       }}
                                     >
                                       <i className="bi bi-pencil-square"></i>
                                     </button>
-                                    <button
-                                      className="btn btn-warning"
-                                      title="Put on Hold"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        confirmPutOnHold(project); // Call put on hold function
-                                      }}
-                                    >
-                                      <i className="bi bi-pause-circle"></i>
-                                    </button>
-                                    <button
-                                      className="btn btn-success"
-                                      title="Mark as Complete"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        confirmComplete(project); // Call complete function
-                                      }}
-                                    >
-                                      <i className="bi bi-check-circle"></i>
-                                    </button>
+
                                     <button
                                       className="btn btn-danger"
                                       title="Cancel Project"
-                                      onClick={(e) => {
+                                      onClick={async (e) => {
                                         e.stopPropagation();
-                                        confirmCancel(project); // Call cancel function
+                                        await confirmCancel(project); // Firestore update
+                                        await fetchProjectsWithTransactions(); // <-- Refresh Immediately
                                       }}
                                     >
                                       <i className="bi bi-x-circle"></i>
                                     </button>
                                   </>
                                 )}
+
                                 {/* Always Show Delete Button */}
                                 <button
                                   className="btn btn-danger"
                                   title="Delete Project"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    confirmDelete(project); // Keep SweetAlert confirmation
+                                    confirmDelete(project);
                                   }}
+                                  disabled={
+                                    project.status === "completed" ||
+                                    project.status === "cancelled"
+                                  } // Disable delete for invalid cases
                                 >
                                   <i className="bi bi-trash"></i>
                                 </button>
