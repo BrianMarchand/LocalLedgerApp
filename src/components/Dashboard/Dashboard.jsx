@@ -22,7 +22,7 @@ import {
 
 // Components
 import Navbar from "../../components/Navbar";
-import AddProjectModal from "../../components/AddProjectModal";
+import AddProjectModal from "../../components/AddProject/AddProjectModal";
 import StatCard from "./StatCard";
 import ChartCard from "./ChartCard";
 import LoadingSpinner from "../../components/LoadingSpinner"; // Reusable Loader

@@ -348,14 +348,16 @@ export const ProjectsProvider = ({ children }) => {
 
       // Delete project
       await deleteDoc(doc(db, "projects", id));
-      toast.success("Project deleted successfully!");
-      fetchProjectsWithTransactions(); // Refresh
+
+      // Removed this toast to avoid duplicates
+      // toast.success("Project deleted successfully!");
+
+      fetchProjectsWithTransactions(); // Refresh projects list
     } catch (error) {
       console.error("Error deleting project:", error);
-      toast.error("Failed to delete project.");
+      toast.error("Failed to delete project."); // Keep error toast for feedback
     }
   };
-
   // --- Save Project ---
   const saveProject = async (project) => {
     if (!user) {

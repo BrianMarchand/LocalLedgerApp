@@ -10,7 +10,7 @@ import Navbar from "../components/Navbar"; // Import the Navbar component
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "../ProjectList.css";
-import AddProjectModal from "../components/AddProjectModal";
+import AddProjectModal from "../components/AddProject/AddProjectModal";
 import { Spinner } from "react-bootstrap";
 import { toastSuccess, toastError } from "../utils/toastNotifications"; // Import toast utilities
 import Swal from "sweetalert2"; // Import SweetAlert
@@ -507,16 +507,32 @@ function ProjectList() {
 
     if (result.isConfirmed) {
       try {
-        // Call the deleteProject() function from context
-        await deleteProject(project.id); // <-- Use the context function!
+        await deleteProject(project.id); // Firestore delete
+        await fetchProjects(); // Refresh after deletion
 
+        // SweetAlert for success feedback
+        await Swal.fire({
+          title: "Deleted!",
+          text: `Project "${project.name}" has been deleted successfully.`,
+          icon: "success",
+          confirmButtonText: "OK",
+        });
+
+        // Toast notification for subtle confirmation (step 6)
         toastSuccess(`Project "${project.name}" has been deleted.`);
       } catch (error) {
         console.error("Error deleting project:", error);
-        toastError(`Failed to delete "${project.name}". Please try again.`);
+
+        // SweetAlert for error feedback
+        await Swal.fire({
+          title: "Error!",
+          text: `Failed to delete "${project.name}". Please try again.`,
+          icon: "error",
+          confirmButtonText: "OK",
+        });
       }
     } else {
-      toastError("Action cancelled!");
+      toastError("Delete action cancelled!"); // Toast for cancelled action
     }
   };
 
@@ -566,31 +582,25 @@ function ProjectList() {
 
     if (result.isConfirmed) {
       try {
-        // Step 1: VALIDATE BEFORE ACTION
         const isValid = await validateStatusChange(project, "completed");
         if (!isValid) {
-          // Validation failed—return early.
           toastError(`Cannot mark "${project.name}" as complete.`);
-          return;
+          return; // Block further execution
         }
 
-        // Step 2: UPDATE FIRESTORE STATUS
         const docRef = doc(db, "projects", project.id);
         await updateDoc(docRef, {
           status: "completed",
           statusDate: new Date(),
         });
 
-        // Step 3: SUCCESS MESSAGE
+        await fetchProjects(); // Refresh list
         toastSuccess(`Project "${project.name}" marked as complete!`);
       } catch (error) {
         console.error("Error marking project as complete:", error);
-
-        // Step 4: ERROR MESSAGE (Only on actual failure)
-        toastError(`Failed to mark "${project.name}" as complete.`);
+        toastError(`Failed to complete "${project.name}".`);
       }
     } else {
-      // Cancelled action
       toastError("Action cancelled!");
     }
   };
@@ -667,31 +677,23 @@ function ProjectList() {
   const handleDragEnd = async (result) => {
     const { source, destination } = result;
 
-    // --- Cancel if dropped outside or same position ---
     if (!destination || destination.index === source.index) return;
 
-    // --- Reorder Locally ---
     const reorderedProjects = Array.from(projects);
     const [movedProject] = reorderedProjects.splice(source.index, 1);
     reorderedProjects.splice(destination.index, 0, movedProject);
 
-    // --- Update State Immediately ---
-    setProjects(reorderedProjects);
+    setProjects(reorderedProjects); // Update UI immediately
 
     try {
-      // --- Update Firestore Orders ---
-      const batch = writeBatch(db); // Initialize batch
+      const batch = writeBatch(db);
       reorderedProjects.forEach((proj, index) => {
         const projRef = doc(db, "projects", proj.id);
-
-        // --- Update only if order changed ---
-        if (proj.order !== index) {
-          batch.update(projRef, { order: index }); // Update Firestore order
-        }
+        batch.update(projRef, { order: index });
       });
 
-      await batch.commit(); // Commit Firestore updates
-      toastSuccess("Project order updated!");
+      await batch.commit();
+      toastSuccess("Project order updated!"); // Success toast only here
     } catch (error) {
       console.error("Error saving order:", error);
       toastError("Failed to update order.");

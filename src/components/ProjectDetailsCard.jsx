@@ -210,19 +210,13 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
         </p>
 
         {/* Status Dropdown */}
-        <div className="d-flex align-items-center gap-2">
-          {" "}
-          {/* Flex container */}
-          <p className="lh-1">
-            <i className="bi bi-substack text-secondary me-2"></i>
-            <label htmlFor="status" className="form-label mb-0">
-              <strong>Change Status:</strong>
-            </label>
-          </p>
+        <div className="d-flex align-items-center gap-2 mb-3">
+          <i className="bi bi-substack text-secondary"></i>
+          <strong className="text-nowrap me-2">Change Status:</strong>
+
           {["on-hold", "cancelled", "completed"].includes(
             projectDetails.status,
           ) ? (
-            // Small 'Re-open' button with flex alignment
             <button
               className="btn btn-outline-warning btn-sm d-flex align-items-center gap-1"
               title="Re-open Project"
@@ -248,10 +242,10 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
 
                     setProjectDetails((prev) => ({
                       ...prev,
-                      status: "new", // Set status to 'new'
+                      status: "new",
                     }));
 
-                    setSelectedStatus("new"); // Update dropdown
+                    setSelectedStatus("new");
                     Swal.fire(
                       "Reopened!",
                       "The project has been reopened.",
@@ -268,18 +262,16 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
                 }
               }}
             >
-              <i className="bi bi-arrow-repeat"></i> {/* Bootstrap Icon */}
-              Re-open
+              <i className="bi bi-arrow-repeat"></i> Re-open
             </button>
           ) : (
-            // Show dropdown for other statuses
             <select
               id="status"
-              className="form-select"
+              className="form-select w-auto"
               value={selectedStatus}
               onChange={(e) => {
-                setSelectedStatus(e.target.value); // Update dropdown selection
-                handleStatusChange(e.target.value); // Process status change
+                setSelectedStatus(e.target.value);
+                handleStatusChange(e.target.value);
               }}
             >
               <option value="new">New</option>
@@ -314,13 +306,10 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
         </div>
 
         {/* Progress Bar */}
-        <div className="d-flex align-items-center gap-3">
-          <i className="bi bi-graph-up-arrow text text-secondary me-2"></i>
+        <div className="d-flex align-items-center gap-2 mb-3">
+          <i className="bi bi-graph-up-arrow text-secondary"></i>
+          <strong className="text-nowrap me-2">Progress:</strong>
 
-          {/* Left-aligned Progress Title */}
-          <strong className="text-nowrap">Progress:</strong>
-
-          {/* Responsive Progress Bar */}
           <div className="progress flex-grow-1" style={{ height: "30px" }}>
             {progressData.status === "over-budget" && (
               <p className="text-danger m-0">

@@ -1,0 +1,36 @@
+/* modalTransitions.css */
+
+/* Base styles for modal container */
+.modal-slide-container {
+  position: relative;
+  overflow: hidden;
+  height: 100%; /* Maintain height consistency during transitions */
+}
+
+/* Slide animation for entering */
+.slide-enter {
+  transform: translateX(100%);
+  opacity: 0;
+  transition:
+    transform 0.3s ease-in-out,
+    opacity 0.3s ease-in-out;
+}
+
+.slide-enter-active {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* Slide animation for exiting */
+.slide-exit {
+  transform: translateX(0);
+  opacity: 1;
+  transition:
+    transform 0.3s ease-in-out,
+    opacity 0.3s ease-in-out;
+}
+
+.slide-exit-active {
+  transform: translateX(-100%);
+  opacity: 0;
+}

@@ -11,7 +11,7 @@ import QuickActionsDropdown from "./QuickActionsDropdown";
 import UserDropdown from "./UserDropdown";
 
 import FAB from "./FAB";
-import AddProjectModal from "./AddProjectModal";
+import AddProjectModal from "/src/components/AddProject/AddProjectModal";
 
 const Navbar = () => {
   const navigate = useNavigate();
