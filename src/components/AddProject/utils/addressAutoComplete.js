@@ -1,5 +1,5 @@
 export const fetchAddressSuggestions = async (input) => {
-  const apiKey = "AIzaSyDmSc-yiLqGrZfO1UJo0xpEFt6v4co8TAg"; // Replace with your Google API key
+  const apiKey = ""; // Replace with your Google API key
   const endpoint = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${input}&types=address&key=${apiKey}`;
 
   try {
