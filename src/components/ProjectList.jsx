@@ -17,6 +17,7 @@ import Swal from "sweetalert2"; // Import SweetAlert
 import "sweetalert2/dist/sweetalert2.min.css"; // Import SweetAlert Default Styles
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { getBadgeClass, getBadgeLabel } from "../utils/badgeUtils";
+import { getAuth } from "firebase/auth"; // Add Firebase Auth
 
 import {
   collection,
@@ -28,6 +29,7 @@ import {
   query,
   orderBy,
   runTransaction,
+  where,
   // <--
 } from "firebase/firestore";
 
@@ -51,6 +53,10 @@ function ProjectList() {
     fetchProjects, // Fetch projects
   } = useProjects(); // Use Projects Context
 
+  // --- Get Authenticated User Info ---
+
+  const auth = getAuth(); // Initialize auth
+
   // --- Loading Animation ---
   const [showLoading, setShowLoading] = useState(true); // Adds delay for animation
 
@@ -66,30 +72,54 @@ function ProjectList() {
   const [pauseFetching, setPauseFetching] = useState(false); // Must be at the top
 
   useEffect(() => {
-    if (pauseFetching) return; // Skip fetching while paused
+    // Your fetch logic here
 
-    const fetchProjectsFromDB = async () => {
-      try {
-        const snapshot = await getDocs(
-          query(collection(db, "projects"), orderBy("order", "asc")),
-        );
-        const projectList = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        // Always sort by 'order' field
-        projectList.sort((a, b) => a.order - b.order);
-        setProjects(projectList);
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-      }
+    return () => {
+      // Cleanup logic, if necessary
     };
+  }, [pauseFetching, setProjects]); // Ensure dependencies are correct
 
-    fetchProjectsFromDB();
+  const fetchProjectsFromDB = async () => {
+    // --- Check if user is authenticated ---
+    if (!auth.currentUser) {
+      console.error("User is not authenticated.");
+      return; // Exit early if no authenticated user
+    }
 
-    return () => {}; // Cleanup function
-  }, [pauseFetching, setProjects]); // Add all dependencies
+    try {
+      // --- Query Firestore with proper filtering ---
+      const snapshot = await getDocs(
+        query(
+          collection(db, "projects"),
+          where("ownerId", "==", auth.currentUser?.uid), // Filter by user
+          orderBy("order", "asc"), // Order results
+        ),
+      );
+
+      const projectList = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setProjects(projectList);
+    } catch (error) {
+      console.error("Error fetching projects:", error.message, error.code);
+      toastError(
+        error.code === "permission-denied"
+          ? "You don't have permission to access these projects."
+          : "An error occurred while fetching projects.",
+      );
+    }
+  };
+
+  fetchProjectsFromDB();
+  useEffect(() => {
+    if (pauseFetching) {
+      return; // Skip fetching while paused
+    }
+
+    // Your fetch logic here
+  }, [pauseFetching]); // Ensure dependencies are correct
 
   // --- Save Project (Dynamic State Update) ---
   const addProjectToList = (newProject) => {
@@ -141,6 +171,7 @@ function ProjectList() {
       // --- Step 2: Add New Project at Top ---
       const newDoc = await addDoc(collection(db, "projects"), {
         ...newProject,
+        ownerId: auth.currentUser?.uid, // Assign ownership
         order: 0, // Add at position 0
         createdAt: new Date(),
       });
@@ -162,7 +193,6 @@ function ProjectList() {
         await updateDoc(projectRef, { order: index }); // Fix order dynamically
       }
     });
-    console.log("Order field updated!");
   };
 
   // --- Reopen Project ---
@@ -171,7 +201,12 @@ function ProjectList() {
 
     try {
       const docRef = doc(db, "projects", project.id);
-      await updateDoc(docRef, { status: "in-progress" });
+      await updateDoc(docRef, {
+        status: "in-progress", // Explicitly update the status
+        ownerId: auth.currentUser?.uid, // Ensure ownerId is preserved
+        order: project.order || 0, // Preserve the order or fallback to 0
+        ...project, // Ensure other fields are not lost
+      });
 
       // Optimistic Update: Update local state directly
       setProjects((prevProjects) =>
@@ -351,10 +386,15 @@ function ProjectList() {
   const validateStatusChange = async (project, targetStatus) => {
     try {
       // --- Fetch Latest Transactions ---
+      const projectDoc = await getDoc(doc(db, "projects", project.id));
+      if (projectDoc.data()?.ownerId !== auth.currentUser?.uid) {
+        toastError("You do not have permission to reopen this project.");
+        return;
+      }
+
       const transactionsSnapshot = await getDocs(
         collection(db, `projects/${project.id}/transactions`),
       );
-      const transactions = transactionsSnapshot.docs.map((doc) => doc.data());
 
       // --- Calculate Metrics Using Dashboard Rules ---
       const totalIncome = transactions
@@ -425,7 +465,6 @@ function ProjectList() {
           statusNote: editingProject.statusNote,
         });
 
-        console.log("New project saved:", newDoc.id);
         setTempProjects([]); // Clear temporary projects
       } else {
         // Update existing project
@@ -702,8 +741,6 @@ function ProjectList() {
 
   // --- Confirm Reopen ---
   const confirmReopen = async (project) => {
-    console.log("Attempting to reopen project:", project.name);
-
     setPauseFetching(true); // Pause fetching to prevent listener conflicts
 
     const result = await Swal.fire({
@@ -718,7 +755,6 @@ function ProjectList() {
     });
 
     if (!result.isConfirmed) {
-      console.log("Reopen action cancelled.");
       toastError("Action cancelled!");
       setPauseFetching(false); // Resume fetching
       return; // Exit function
@@ -759,8 +795,6 @@ function ProjectList() {
           statusDate: new Date(),
           statusNote: updatedNote,
         });
-
-        console.log("Firestore transaction committed.");
       });
 
       // --- Pause Warning if No Deposit ---
@@ -803,12 +837,18 @@ function ProjectList() {
 
         {/* Show Projects */}
         {combinedProjects.length === 0 ? (
-          <p>
-            No projects available.{" "}
-            <a href="#" onClick={startNewProject}>
-              Start your first project!
-            </a>
-          </p>
+          <div className="text-center py-5">
+            <p>No projects available.</p>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                setEditingProject(null); // Ensure no project is being edited
+                setShowModal(true); // Open the modal
+              }}
+            >
+              Start Your First Project
+            </button>
+          </div>
         ) : (
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="projects">

@@ -1,0 +1,51 @@
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.editing-row {
+  animation: slideIn 0.3s ease-in-out;
+}
+
+.transactions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* Space between rows */
+  position: relative; /* Required for proper drag positioning */
+  overflow: auto; /* If scrolling is needed */
+  transform: none !important;
+}
+
+.transactions-header {
+  display: flex;
+  font-weight: bold;
+  background-color: #007bff;
+  color: #fff;
+  padding: 8px;
+}
+
+.transaction-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #fff;
+  height: 50px; /* Fixed height for all rows */
+}
+
+.transaction-row.editing-row {
+  background-color: #b1f1ff;
+}
+
+.transaction-cell {
+  flex: 1;
+  padding: 4px;
+}

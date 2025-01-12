@@ -131,7 +131,13 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
         return;
       }
 
-      // Proceed with the status update if rules are satisfied
+      // Use an external handler if provided
+      if (externalHandleStatusChange) {
+        await externalHandleStatusChange(newStatus); // Delegate to external logic
+        return;
+      }
+
+      // Proceed with internal Firestore update if no external handler
       const docRef = doc(db, "projects", projectDetails.id);
       await updateDoc(docRef, {
         status: newStatus,
@@ -305,7 +311,7 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
           )}
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar  */}
         <div className="d-flex align-items-center gap-2 mb-3">
           <i className="bi bi-graph-up-arrow text-secondary"></i>
           <strong className="text-nowrap me-2">Progress:</strong>

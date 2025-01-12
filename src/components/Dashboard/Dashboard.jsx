@@ -1,12 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-// Bootstrap & Styles
 import "bootstrap/dist/css/bootstrap.min.css";
 import "../../styles/global.css";
 import "./Dashboard.css";
-
-// Charts & Config
 import { Pie, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -19,18 +15,13 @@ import {
   LineElement,
   Filler,
 } from "chart.js";
-
-// Components
 import Navbar from "../../components/Navbar";
 import AddProjectModal from "../../components/AddProject/AddProjectModal";
 import StatCard from "./StatCard";
 import ChartCard from "./ChartCard";
-import LoadingSpinner from "../../components/LoadingSpinner"; // Reusable Loader
-
-// Contexts
+import LoadingSpinner from "../../components/LoadingSpinner";
 import { useProjects } from "../../context/ProjectsContext";
 
-// Register ChartJS
 ChartJS.register(
   ArcElement,
   Tooltip,
@@ -43,116 +34,93 @@ ChartJS.register(
 );
 
 const Dashboard = () => {
-  // --- Hooks ---
   const navigate = useNavigate();
-  const { projects, loading, error } = useProjects();
+  const { projects, loading } = useProjects();
 
-  // --- State Management ---
   const [showModal, setShowModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const [filteredProjects, setFilteredProjects] = useState([]);
-  const [chartLoading, setChartLoading] = useState(true);
-  const [fakeLoading, setFakeLoading] = useState(true); // Fake Delay
-
-  // --- Chart Data ---
-  const [expenseChartData, setExpenseChartData] = useState({
-    labels: ["Labor", "Materials", "Miscellaneous"],
-    datasets: [
-      {
-        label: "Expenses",
-        data: [0, 0, 0],
-        backgroundColor: ["#007bff", "#ffc107", "#28a745"],
-        hoverOffset: 10,
-      },
-    ],
-  });
-
-  const [monthlyTrendsData, setMonthlyTrendsData] = useState({
-    labels: [],
-    datasets: [
-      {
-        label: "Expenses",
-        data: [],
-        borderColor: "#007bff",
-        backgroundColor: "rgba(0, 123, 255, 0.2)",
-        fill: true,
-      },
-    ],
-  });
-
+  const [expenseChartData, setExpenseChartData] = useState({});
+  const [monthlyTrendsData, setMonthlyTrendsData] = useState({});
   const [budgetUtilization, setBudgetUtilization] = useState(0);
 
-  // --- Fake Loading Delay ---
   useEffect(() => {
-    const timer = setTimeout(() => setFakeLoading(false), 1500); // Fake Delay: 1.5 seconds
-    return () => clearTimeout(timer);
-  }, [loading]); // Sync with Firebase loading
-
-  // --- Filter Projects ---
-  useEffect(() => {
+    // Filter projects based on status
     const filtered =
       filterStatus === "all"
         ? projects
         : projects.filter((proj) => proj.status === filterStatus);
-
     setFilteredProjects(filtered);
-
-    // If no projects, stop chart loading immediately
-    if (!filtered.length) {
-      setChartLoading(false);
-    }
   }, [projects, filterStatus]);
 
-  // --- Process Charts ---
   useEffect(() => {
-    if (chartLoading && filteredProjects.length === 0) {
-      console.warn("No projects available!");
-      setChartLoading(false); // Stop chart loading if no projects
+    if (!filteredProjects.length) {
+      setExpenseChartData({});
+      setMonthlyTrendsData({});
+      setBudgetUtilization(0);
       return;
     }
 
+    // Initialize data
     const categoryTotals = { Labor: 0, Materials: 0, Miscellaneous: 0 };
     const monthlyTotals = {};
-    const chartColors = ["#007bff", "#ffc107", "#28a745"];
+    let totalBudget = 0;
+    let totalSpent = 0;
 
+    // Iterate over filtered projects
     filteredProjects.forEach((proj) => {
+      console.log("Processing project:", proj);
+      totalBudget += proj.budget || 0; // Add project budget
+
       proj.transactions?.forEach((txn) => {
+        console.log("Processing transaction:", txn);
+
+        // Parse the transaction amount as a number, defaulting to 0 if invalid
+        const parsedAmount = parseFloat(txn.amount) || 0;
+
+        // Categorize expenses
         const category = txn.category || "Miscellaneous";
         categoryTotals[category] =
-          (categoryTotals[category] || 0) + Number(txn.amount);
+          (categoryTotals[category] || 0) + parsedAmount;
 
-        const month = txn.date.toDate().toISOString().substring(0, 7);
-        monthlyTotals[month] = (monthlyTotals[month] || 0) + Number(txn.amount);
+        // Monthly aggregation
+        const month = txn.date?.toDate().toISOString().substring(0, 7); // Ensure valid date
+        if (month) {
+          monthlyTotals[month] = (monthlyTotals[month] || 0) + parsedAmount;
+        }
+
+        // Add expenses to total spent (ignore "Client Payment" category)
+        if (txn.category !== "Client Payment") {
+          totalSpent += parsedAmount;
+        }
       });
     });
 
-    // Expense Chart
+    // Debugging logs
+    console.log("Category Totals:", categoryTotals);
+    console.log("Monthly Totals:", monthlyTotals);
+    console.log("Total Budget:", totalBudget);
+    console.log("Total Spent:", totalSpent);
+
+    // Update Expense Breakdown Chart
     setExpenseChartData({
-      labels: ["Labor", "Materials", "Miscellaneous"],
+      labels: Object.keys(categoryTotals),
       datasets: [
         {
           label: "Expenses",
-          data: [
-            categoryTotals.Labor || 0,
-            categoryTotals.Materials || 0,
-            categoryTotals.Miscellaneous || 0,
-          ],
-          backgroundColor: chartColors,
-          hoverOffset: 10,
+          data: Object.values(categoryTotals),
+          backgroundColor: ["#007bff", "#ffc107", "#28a745"],
         },
       ],
     });
 
-    // Monthly Trends Chart
-    const labels = Object.keys(monthlyTotals).sort();
-    const trendsData = labels.map((key) => monthlyTotals[key] || 0);
-
+    // Update Monthly Trends Chart
     setMonthlyTrendsData({
-      labels,
+      labels: Object.keys(monthlyTotals).sort(),
       datasets: [
         {
-          label: "Expenses",
-          data: trendsData,
+          label: "Monthly Expenses",
+          data: Object.values(monthlyTotals),
           borderColor: "#007bff",
           backgroundColor: "rgba(0, 123, 255, 0.2)",
           fill: true,
@@ -160,35 +128,26 @@ const Dashboard = () => {
       ],
     });
 
-    // Budget Utilization
-    const totalSpent = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
-    const budget = 100000; // Example budget
-    setBudgetUtilization(((totalSpent / budget) * 100).toFixed(1));
+    // Calculate Budget Utilization
+    let utilization = 0;
+    if (totalBudget > 0) {
+      utilization = ((totalSpent / totalBudget) * 100).toFixed(1);
+    } else {
+      console.warn("Total budget is zero. Cannot calculate utilization.");
+    }
 
-    setChartLoading(false); // Chart processing complete
-  }, [filteredProjects, chartLoading]);
+    console.log("Calculated Budget Utilization:", utilization);
+    setBudgetUtilization(utilization);
+  }, [filteredProjects]);
 
-  // --- Handlers ---
   const handleFilterChange = (e) => setFilterStatus(e.target.value);
   const handleModalOpen = () => setShowModal(true);
   const handleModalClose = () => setShowModal(false);
 
-  const progressVariant =
-    budgetUtilization > 80
-      ? "danger"
-      : budgetUtilization > 50
-        ? "warning"
-        : "success";
-
-  // --- Unified Loading State ---
-  const isLoading = fakeLoading || loading || chartLoading;
-
-  // --- Show Spinner if Loading ---
-  if (isLoading) {
-    return <LoadingSpinner text="Crunching the numbers..." />;
+  if (loading) {
+    return <LoadingSpinner text="Loading dashboard..." />;
   }
 
-  // --- Render Dashboard ---
   return (
     <div className="dashboard-container">
       <Navbar page="dashboard" />
@@ -217,10 +176,18 @@ const Dashboard = () => {
 
         <div className="row g-4 mt-4">
           <ChartCard title="Expense Breakdown">
-            <Pie data={expenseChartData} />
+            {expenseChartData.labels ? (
+              <Pie data={expenseChartData} />
+            ) : (
+              <p>No data available</p>
+            )}
           </ChartCard>
           <ChartCard title="Monthly Trends">
-            <Line data={monthlyTrendsData} />
+            {monthlyTrendsData.labels ? (
+              <Line data={monthlyTrendsData} />
+            ) : (
+              <p>No data available</p>
+            )}
           </ChartCard>
         </div>
       </div>

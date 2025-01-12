@@ -10,10 +10,16 @@ import {
   query,
 } from "firebase/firestore";
 
+import { getAuth } from "firebase/auth";
+
 import { db } from "../../firebaseConfig"; // Ensure Firestore DB is imported
 import { Modal, Button, Form } from "react-bootstrap";
 import { useNavigate } from "react-router-dom"; // <-- React Router Hook
-import { toastSuccess, toastError } from "../../utils/toastNotifications";
+import {
+  toastSuccess,
+  toastError, // Correctly import as named exports
+} from "../../utils/toastNotifications";
+
 import { useProjects } from "../../context/ProjectsContext";
 import confetti from "canvas-confetti"; // Import confetti 🎉
 
@@ -25,6 +31,7 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
   const [status, setStatus] = useState("new"); // Default status
   const [statusNote, setStatusNote] = useState("");
   const [loading, setLoading] = useState(false);
+  const auth = getAuth();
 
   // Validation Errors
   const [errors, setErrors] = useState({});
@@ -122,6 +129,7 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
         statusNote,
         order: 0,
         createdAt: new Date(),
+        ownerId: auth.currentUser.uid, // Include ownerId
       };
 
       // --- Confetti Trigger Logic ---

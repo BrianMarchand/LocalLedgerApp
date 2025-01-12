@@ -1,11 +1,11 @@
 import React from "react";
 
-const ChartCard = ({ title, children }) => {
+const ChartCard = ({ title, children, className = "" }) => {
   return (
-    <div className="col-md-6">
+    <div className={`col-md-6 ${className}`}>
       <div className="dashboard-chart-card shadow-sm p-3">
         <h4 className="chart-title">{title}</h4>
-        {children} {/* Chart or Content Goes Here */}
+        <div className="chart-container">{children}</div> {/* Chart Content */}
       </div>
     </div>
   );

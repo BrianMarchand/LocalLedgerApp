@@ -1,15 +1,16 @@
+// src/utils/toastNotifications.js
 import { toast, Slide } from "react-toastify";
 
 // --- Default Toast Configurations ---
-export const toastConfig = {
-  position: "top-center", // Default position
-  autoClose: 2000, // Close automatically after 3 seconds
-  hideProgressBar: true, // Show progress bar
-  closeOnClick: true, // Close when clicked
-  pauseOnHover: true, // Pause when hovered
-  draggable: true, // Allow dragging
-  theme: "colored", // Use colored theme
-  transition: Slide, // Built-in Slide transition (fix)
+const toastConfig = {
+  position: "top-center",
+  autoClose: 2000,
+  hideProgressBar: true,
+  closeOnClick: true,
+  pauseOnHover: true,
+  draggable: true,
+  theme: "colored",
+  transition: Slide,
 };
 
 // --- Success Toast ---

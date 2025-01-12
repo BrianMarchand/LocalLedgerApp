@@ -44,6 +44,7 @@ import Profile from "./pages/Profile";
 import ProjectList from "./components/ProjectList";
 import ProjectDashboard from "./components/ProjectDashboard";
 import Dashboard from "./components/Dashboard/Dashboard";
+import RefactoredProjectDashboard from "./components/ProjectDashboard/ProjectDashboard";
 
 // ================================
 // 5. Marchand Household Budget
@@ -79,7 +80,10 @@ const App = () => {
             <Route path="/profile" element={<Profile />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/projects" element={<ProjectList />} />
-            <Route path="/project/:id" element={<ProjectDashboard />} />
+            <Route
+              path="/project/:id"
+              element={<RefactoredProjectDashboard />}
+            />
 
             {/* New Routes */}
             <Route path="/select-app" element={<AppSelector />} />
