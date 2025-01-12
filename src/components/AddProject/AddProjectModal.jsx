@@ -129,33 +129,31 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
         statusNote,
         order: 0,
         createdAt: new Date(),
-        ownerId: auth.currentUser.uid, // Include ownerId
+        ownerId: auth.currentUser?.uid, // Ensure ownerId is set
       };
 
-      // --- Confetti Trigger Logic ---
-      let triggerConfetti = false;
-      if (projectData.budget > 99999) {
-        triggerConfetti = true; // Confetti trigger
-        console.log("Confetti Triggered!"); // Debugging log
+      console.log("Attempting to create project with data:", projectData); // Debugging log
+
+      // --- Test Firestore Write ---
+      try {
+        const testDoc = await addDoc(collection(db, "projects"), projectData);
+        console.log("Test project created successfully:", testDoc.id);
+      } catch (error) {
+        console.error(
+          "Error creating test project in Firestore:",
+          error.message,
+          error.code,
+        );
+        throw error; // Re-throw the error to handle it below
       }
 
-      // --- Handle Editing Mode ---
-      const isTempId = editingProject?.id?.startsWith("temp-");
-
-      if (editingProject && !isTempId) {
+      // --- Existing Create or Edit Logic ---
+      if (editingProject) {
         console.log("EDIT MODE: Updating existing project...");
-
         await updateProject(editingProject.id, projectData);
         toastSuccess("Project updated successfully!");
-
-        await fetchProjects(); // Refresh project list
-        if (triggerConfetti) await startConfetti(); // Confetti animation
-        handleClose(); // Close modal
-        resetForm(); // Reset form
       } else {
-        // --- Handle Create Mode ---
         console.log("CREATE MODE: Adding new project...");
-
         const snapshot = await getDocs(
           query(collection(db, "projects"), orderBy("order", "asc")),
         );
@@ -173,45 +171,16 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
         await batch.commit();
 
         toastSuccess("Project created successfully!");
-        if (triggerConfetti) await startConfetti();
-        handleClose();
-        resetForm();
-
-        setTimeout(() => {
-          console.log(`Navigating to new project: ${newProjectRef.id}`);
-          navigate(`/project/${newProjectRef.id}`, { replace: true });
-        }, 500);
       }
 
-      // --- Additional Status Validation Rules ---
-      if (
-        status === "completed" &&
-        parseFloat(budget) > 0 &&
-        progressData.percentage < 100
-      ) {
-        toastError(
-          "Cannot mark project as completed until the budget has been met.",
-        );
-        setLoading(false);
-        return;
-      }
-
-      if (status === "in-progress" && !editingProject?.hasDeposit) {
-        toastError(
-          "Cannot mark as in-progress until a client payment is received.",
-        );
-        setLoading(false);
-        return;
-      }
+      handleClose(); // Close modal
+      resetForm(); // Reset form
     } catch (error) {
       console.error("Error saving project:", error);
       toastError(`Error saving project: ${error.message}`);
     } finally {
       setLoading(false); // Ensure loading spinner resets
     }
-    console.log("Status Before Save:", status);
-    console.log("Editing Project:", editingProject);
-    console.log("Transactions:", editingProject?.transactions);
   };
 
   // --- Reset Form ---

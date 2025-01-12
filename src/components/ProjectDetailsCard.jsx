@@ -13,6 +13,8 @@ import {
 import { db } from "../firebaseConfig";
 
 const ProjectDetailsCard = ({ project, transactions = [] }) => {
+  console.log("ProjectDetailsCard Loaded:", project); // Log the project details as received
+
   // **State to Hold Transactions After Validation**
   const [validTransactions, setValidTransactions] = useState([]);
   const [progressData, setProgressData] = useState({
@@ -209,6 +211,10 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
           <i className="bi bi-calendar-check text-secondary me-2"></i>
           <strong>Created:</strong>{" "}
           {project.createdAt?.toDate().toLocaleDateString() || "N/A"}
+        </p>
+        <p className="lh-1">
+          <i className="bi bi-list-check text-secondary me-2"></i>
+          <strong>Transactions:</strong> {validTransactions.length || "0"}
         </p>
         <p className="lh-1">
           <i className="bi bi-card-text text-secondary me-2"></i>

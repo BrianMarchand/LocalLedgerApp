@@ -80,19 +80,17 @@ function ProjectList() {
   }, [pauseFetching, setProjects]); // Ensure dependencies are correct
 
   const fetchProjectsFromDB = async () => {
-    // --- Check if user is authenticated ---
     if (!auth.currentUser) {
       console.error("User is not authenticated.");
-      return; // Exit early if no authenticated user
+      return;
     }
 
     try {
-      // --- Query Firestore with proper filtering ---
       const snapshot = await getDocs(
         query(
           collection(db, "projects"),
-          where("ownerId", "==", auth.currentUser?.uid), // Filter by user
-          orderBy("order", "asc"), // Order results
+          where("ownerId", "==", auth.currentUser?.uid),
+          orderBy("order", "asc"),
         ),
       );
 
@@ -101,18 +99,17 @@ function ProjectList() {
         ...doc.data(),
       }));
 
+      console.log("Fetched Projects from Firestore:", projectList); // Log fetched projects
       setProjects(projectList);
     } catch (error) {
       console.error("Error fetching projects:", error.message, error.code);
-      toastError(
-        error.code === "permission-denied"
-          ? "You don't have permission to access these projects."
-          : "An error occurred while fetching projects.",
-      );
     }
   };
 
-  fetchProjectsFromDB();
+  useEffect(() => {
+    fetchProjectsFromDB();
+  }, []); // Run once on component mount
+
   useEffect(() => {
     if (pauseFetching) {
       return; // Skip fetching while paused
@@ -826,6 +823,10 @@ function ProjectList() {
     } finally {
       setPauseFetching(false); // Resume fetching after operation
     }
+
+    useEffect(() => {
+      console.log("Combined Projects Debug:", combinedProjects);
+    }, [combinedProjects]);
   };
 
   return (
@@ -859,10 +860,26 @@ function ProjectList() {
                   ref={provided.innerRef}
                 >
                   {combinedProjects.map((project, index) => {
-                    // --- Calculate Progress for Each Project ---
+                    // Ensure transactions is always an array
+                    const transactions = project.transactions || [];
+
+                    // Log the project name and transactions
+                    console.log(`Project Name: ${project.name || "Unnamed"}`);
+                    console.log(
+                      `Transactions for Project ${project.name || "Unnamed"}:`,
+                      transactions,
+                    );
+
+                    // Calculate progress
                     const progressData = calculateProgress(
                       project.budget || 0,
-                      project.transactions || [], // Fallback for empty transactions
+                      transactions,
+                    );
+
+                    // Log calculated progress
+                    console.log(
+                      `Progress for Project ${project.name || "Unnamed"}:`,
+                      progressData,
                     );
 
                     // --- Return JSX for Each Project ---
@@ -914,6 +931,12 @@ function ProjectList() {
                                   <i className="bi bi-calendar-check text-secondary me-2"></i>
                                   <strong>Created:</strong>{" "}
                                   {formatDate(project.createdAt)}
+                                </p>
+                                {/* Transaction Count */}
+                                <p className="mb-3">
+                                  <i className="bi bi-list-check text-secondary me-2"></i>
+                                  <strong>Transactions:</strong>{" "}
+                                  {project.transactions?.length || "0"}
                                 </p>
                                 {/* Status Note */}
                                 <p className="mb-3">

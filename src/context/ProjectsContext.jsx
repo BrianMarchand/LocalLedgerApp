@@ -46,9 +46,9 @@ export const ProjectsProvider = ({ children }) => {
   const fetchProjectsWithTransactions = async () => {
     setFetching(true);
     setLoading(true);
+
     try {
       if (!auth.currentUser) throw new Error("No authenticated user.");
-
       console.log("Fetching projects for user:", auth.currentUser.uid);
 
       const snapshot = await getDocs(
@@ -63,7 +63,7 @@ export const ProjectsProvider = ({ children }) => {
         snapshot.docs.map(async (docSnap) => {
           const project = { id: docSnap.id, ...docSnap.data() };
 
-          // Fetch subcollection: transactions
+          // Fetch transactions for the project
           const transactionsSnapshot = await getDocs(
             collection(db, `projects/${project.id}/transactions`),
           );
@@ -73,13 +73,31 @@ export const ProjectsProvider = ({ children }) => {
             ...txn.data(),
           }));
 
-          console.log("Fetched project:", project);
+          // Check for deposit transaction
+          const hasDepositTransaction = project.transactions.some(
+            (txn) =>
+              txn.category === "Client Payment" &&
+              txn.description?.toLowerCase().includes("deposit"),
+          );
+
+          if (project.status === "new" && hasDepositTransaction) {
+            console.log(`Updating project "${project.name}" to 'in-progress'`);
+            await updateDoc(doc(db, "projects", project.id), {
+              status: "in-progress",
+              statusDate: serverTimestamp(),
+            });
+            project.status = "in-progress"; // Update locally
+          }
+
           return project;
         }),
       );
 
       setProjects(projectsWithTransactions);
-      console.log("All projects fetched:", projectsWithTransactions);
+      console.log(
+        "All projects fetched and updated in state:",
+        projectsWithTransactions,
+      );
     } catch (err) {
       console.error("Error fetching projects with transactions:", err.message);
       setError("Failed to fetch projects.");
@@ -94,16 +112,18 @@ export const ProjectsProvider = ({ children }) => {
     try {
       if (!user) throw new Error("No authenticated user.");
 
-      await addDoc(collection(db, "projects"), {
+      const newDoc = await addDoc(collection(db, "projects"), {
         ...newProject,
         ownerId: user.uid,
         createdAt: serverTimestamp(),
-        statusDate: serverTimestamp(), // Add this field
+        statusDate: serverTimestamp(),
         order: projects.length,
       });
 
+      const addedProject = { id: newDoc.id, ...newProject };
+      setProjects((prevProjects) => [...prevProjects, addedProject]); // Update locally
+
       toast.success("Project added successfully!");
-      fetchProjectsWithTransactions();
     } catch (err) {
       console.error("Error adding project:", err.message);
       toast.error("Failed to add project.");
