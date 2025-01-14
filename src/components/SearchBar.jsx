@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebaseConfig";
+import { db } from "@config";
 import { collection, getDocs } from "firebase/firestore";
 
 const SearchBar = () => {

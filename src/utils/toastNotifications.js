@@ -1,4 +1,3 @@
-// src/utils/toastNotifications.js
 import { toast, Slide } from "react-toastify";
 
 // --- Default Toast Configurations ---
@@ -13,27 +12,37 @@ const toastConfig = {
   transition: Slide,
 };
 
-// --- Success Toast ---
-export const toastSuccess = (message, config = {}) => {
-  toast.success(message, { ...toastConfig, ...config });
+// --- State to Prevent Overlapping Notifications ---
+let isNotificationInProgress = false;
+
+// --- Wrapper to Manage Throttling ---
+const throttledToast = (type, message, config) => {
+  if (isNotificationInProgress) return; // Skip if a notification is already in progress
+  isNotificationInProgress = true;
+
+  toast[type](message, { ...toastConfig, ...config });
+
+  setTimeout(() => {
+    isNotificationInProgress = false; // Unlock after toast duration
+  }, config?.autoClose || toastConfig.autoClose);
 };
+
+// --- Success Toast ---
+export const toastSuccess = (message, config = {}) =>
+  throttledToast("success", message, config);
 
 // --- Error Toast ---
-export const toastError = (message, config = {}) => {
-  toast.error(message, { ...toastConfig, ...config });
-};
+export const toastError = (message, config = {}) =>
+  throttledToast("error", message, config);
 
 // --- Warning Toast ---
-export const toastWarning = (message, config = {}) => {
-  toast.warn(message, { ...toastConfig, ...config });
-};
+export const toastWarning = (message, config = {}) =>
+  throttledToast("warn", message, config);
 
 // --- Info Toast ---
-export const toastInfo = (message, config = {}) => {
-  toast.info(message, { ...toastConfig, ...config });
-};
+export const toastInfo = (message, config = {}) =>
+  throttledToast("info", message, config);
 
 // --- Custom Toast ---
-export const toastCustom = (message, config = {}) => {
-  toast(message, { ...toastConfig, ...config });
-};
+export const toastCustom = (message, config = {}) =>
+  throttledToast("default", message, config);

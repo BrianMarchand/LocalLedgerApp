@@ -1,3 +1,5 @@
+// -- Page: ProjectList.jsx --
+
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom"; // <-- NEW
 import { useNavigate } from "react-router-dom";
@@ -5,7 +7,7 @@ import { startTransition } from "react";
 import { useTheme } from "../context/ThemeContext"; // Import Theme Hook
 import { useProjects } from "../context/ProjectsContext"; // Import Projects Context
 import { calculateProgress } from "../utils/progressUtils";
-import { db } from "../firebaseConfig";
+import { db } from "@config";
 import Navbar from "../components/Navbar"; // Import the Navbar component
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
@@ -46,7 +48,6 @@ function ProjectList() {
     projects, // Managed by context
     setProjects, // Managed by context
     loading, // Managed by context
-    fetchProjectsWithTransactions, // Fetch Projects
     addProject, // Add project function
     updateProject, // Update project function
     deleteProject, // Delete project function
@@ -136,9 +137,16 @@ function ProjectList() {
   const determineStatus = (transactions) => {
     if (!transactions || transactions.length === 0) return "new";
 
-    const hasDeposit = transactions.some((t) => t.category === "deposit");
+    const hasDeposit = transactions.some(
+      (t) =>
+        t.category === "Client Payment" &&
+        (t.name || "").toLowerCase().includes("deposit"),
+    );
+
     const hasFinalPayment = transactions.some(
-      (t) => t.category === "final-payment",
+      (t) =>
+        t.category === "Client Payment" &&
+        (t.name || "").toLowerCase().includes("final-payment"),
     );
 
     if (hasFinalPayment) return "completed";
@@ -324,33 +332,31 @@ function ProjectList() {
 
   // --- Cancel Project ---
   const cancelProject = async (project) => {
-    // Step 1: Confirm the cancel action using SweetAlert2
+    const { fetchProjects } = useProjects();
+
     const result = await Swal.fire({
       title: "Cancel Project?",
       text: `Are you sure you want to cancel "${project.name}"? This cannot be undone.`,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#d33", // Red for destructive actions
-      cancelButtonColor: "#3085d6", // Default blue
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
       confirmButtonText: "Yes, cancel it!",
       cancelButtonText: "No, keep it",
     });
 
-    // Step 2: Check if the user confirmed the action
     if (result.isConfirmed) {
       try {
-        // Step 3: Update Firestore to set status as 'cancelled'
         const docRef = doc(db, "projects", project.id);
         await updateDoc(docRef, {
           status: "cancelled",
           statusDate: new Date(),
-          statusNote: "Project cancelled by user.", // Optional note
+          statusNote: "Project cancelled by user.",
         });
 
-        // Step 4: Refresh the projects list after update
-        fetchProjects();
+        // Correctly call fetchProjects
+        await fetchProjects();
 
-        // Step 5: Show success feedback with SweetAlert2
         await Swal.fire({
           title: "Cancelled!",
           text: `Project "${project.name}" has been cancelled successfully.`,
@@ -359,8 +365,6 @@ function ProjectList() {
         });
       } catch (error) {
         console.error("Error cancelling project:", error);
-
-        // Step 6: Show error feedback with SweetAlert2
         await Swal.fire({
           title: "Error!",
           text: `Failed to cancel "${project.name}". Please try again.`,
@@ -368,14 +372,6 @@ function ProjectList() {
           confirmButtonText: "OK",
         });
       }
-    } else {
-      // Step 7: Show cancellation feedback if user backs out
-      await Swal.fire({
-        title: "Cancelled",
-        text: "No changes were made to the project.",
-        icon: "info",
-        confirmButtonText: "OK",
-      });
     }
   };
 
@@ -421,19 +417,20 @@ function ProjectList() {
         // 2. Check for a deposit transaction (category = "Client Payment")
         const hasDeposit = transactions.some(
           (t) =>
-            t.category === "Client Payment" &&
-            t.name.toLowerCase().includes("deposit"),
+            t.category === "Client Payment" && // Ensure category matches
+            (t.name || "").toLowerCase().includes("deposit"), // Avoid errors if t.name is undefined
         );
 
-        if (!hasDeposit) {
-          await Swal.fire({
-            title: "Cannot Complete Project",
-            text: "At least one 'deposit' transaction is required.",
-            icon: "error",
-            confirmButtonText: "OK",
-          });
-          return false;
-        }
+        const hasFinalPayment = transactions.some(
+          (t) =>
+            t.category === "Client Payment" && // Ensure category matches
+            (t.name || "").toLowerCase().includes("final-payment"), // Avoid errors if t.name is undefined
+        );
+
+        // Debug logs to validate logic
+        console.log("Transactions:", transactions);
+        console.log("Has Deposit:", hasDeposit);
+        console.log("Has Final Payment:", hasFinalPayment);
       }
 
       return true; // Validation passed
@@ -445,14 +442,14 @@ function ProjectList() {
   };
   // --- Save Project ---
   const saveProject = async () => {
-    if (!editingProject.name || !editingProject.status) {
+    if (!editingProject?.name || !editingProject?.status) {
       alert("Please fill out all required fields.");
       return; // Prevent saving invalid data
     }
 
     try {
-      if (editingProject.isTemp) {
-        // Create a new project in Firestore
+      if (editingProject.isTemp || !editingProject.id) {
+        // --- Creating a new project ---
         const newDoc = await addDoc(collection(db, "projects"), {
           name: editingProject.name,
           location: editingProject.location,
@@ -460,19 +457,25 @@ function ProjectList() {
           status: editingProject.status,
           statusDate: new Date(),
           statusNote: editingProject.statusNote,
+          ownerId: auth.currentUser?.uid, // Ensure owner is set
+          order: projects.length, // Place new project at the end
         });
 
-        setTempProjects([]); // Clear temporary projects
+        toastSuccess("New project created successfully!");
       } else {
-        // Update existing project
-        const docRef = doc(db, "projects", editingProject.id);
-        await updateDoc(docRef, editingProject);
+        // --- Updating an existing project ---
+        await editProject(editingProject); // Use the editProject function
       }
 
-      // Refresh the project list
-      setEditingProject(null); // Exit edit mode
+      // Refresh the project list after save
+      await fetchProjectsWithTransactions();
+
+      // Close the modal and reset editing state
+      setEditingProject(null);
+      handleModalClose();
     } catch (error) {
       console.error("Error saving project:", error);
+      toastError("Failed to save project.");
     }
   };
 
@@ -543,32 +546,14 @@ function ProjectList() {
 
     if (result.isConfirmed) {
       try {
-        await deleteProject(project.id); // Firestore delete
-        await fetchProjects(); // Refresh after deletion
-
-        // SweetAlert for success feedback
-        await Swal.fire({
-          title: "Deleted!",
-          text: `Project "${project.name}" has been deleted successfully.`,
-          icon: "success",
-          confirmButtonText: "OK",
-        });
-
-        // Toast notification for subtle confirmation (step 6)
+        await deleteProject(project.id); // Deletes the project
         toastSuccess(`Project "${project.name}" has been deleted.`);
       } catch (error) {
         console.error("Error deleting project:", error);
-
-        // SweetAlert for error feedback
-        await Swal.fire({
-          title: "Error!",
-          text: `Failed to delete "${project.name}". Please try again.`,
-          icon: "error",
-          confirmButtonText: "OK",
-        });
+        toastError(`Failed to delete "${project.name}".`);
       }
     } else {
-      toastError("Delete action cancelled!"); // Toast for cancelled action
+      toastError("Action cancelled!");
     }
   };
 
@@ -737,9 +722,12 @@ function ProjectList() {
   };
 
   // --- Confirm Reopen ---
-  const confirmReopen = async (project) => {
-    setPauseFetching(true); // Pause fetching to prevent listener conflicts
-
+  const confirmReopen = async (
+    project,
+    fetchProjects,
+    toastSuccess,
+    toastError,
+  ) => {
     const result = await Swal.fire({
       title: "Reopen Project?",
       text: `Are you sure you want to reopen "${project.name}"?`,
@@ -753,59 +741,37 @@ function ProjectList() {
 
     if (!result.isConfirmed) {
       toastError("Action cancelled!");
-      setPauseFetching(false); // Resume fetching
       return; // Exit function
     }
 
     try {
-      // --- Firestore Transaction ---
-      await runTransaction(db, async (transaction) => {
-        // <-- Fix Here
-        const docRef = doc(db, "projects", project.id);
+      const docRef = doc(db, "projects", project.id);
 
-        // Fetch latest project snapshot inside transaction
-        const docSnapshot = await transaction.get(docRef);
-        const projectData = docSnapshot.data();
-
-        // --- Fetch Transactions ---
-        const transactionsSnapshot = await getDocs(
-          collection(db, `projects/${project.id}/transactions`),
-        );
-        const transactions = transactionsSnapshot.docs.map((doc) => doc.data());
-
-        // --- Validate Deposit ---
-        const hasDeposit = transactions.some(
-          (t) =>
-            t.category === "Client Payment" &&
-            t.name.toLowerCase().includes("deposit"),
-        );
-
-        // --- Determine New Status ---
-        const updatedStatus = hasDeposit ? "in-progress" : "new";
-        const updatedNote = hasDeposit
-          ? "Reopened for further work."
-          : "Reopened without deposit transaction.";
-
-        // --- Apply Update in Transaction ---
-        transaction.update(docRef, {
-          status: updatedStatus,
-          statusDate: new Date(),
-          statusNote: updatedNote,
-        });
-      });
-
-      // --- Pause Warning if No Deposit ---
+      // Fetch transactions for the project
       const transactionsSnapshot = await getDocs(
         collection(db, `projects/${project.id}/transactions`),
       );
       const transactions = transactionsSnapshot.docs.map((doc) => doc.data());
 
+      // Determine new status based on transactions
       const hasDeposit = transactions.some(
         (t) =>
           t.category === "Client Payment" &&
-          t.name.toLowerCase().includes("deposit"),
+          (t.name || "").toLowerCase().includes("deposit"), // Ensure t.name is defined
       );
 
+      const updatedStatus = hasDeposit ? "in-progress" : "new";
+
+      // Update project status
+      await updateDoc(docRef, {
+        status: updatedStatus,
+        statusDate: new Date(),
+        statusNote: hasDeposit
+          ? "Reopened for further work."
+          : "Reopened without deposit transaction.",
+      });
+
+      // Display warning if no deposit
       if (!hasDeposit) {
         await Swal.fire({
           title: "Important!",
@@ -815,18 +781,13 @@ function ProjectList() {
         });
       }
 
-      // Show Success Toast
+      // Refresh projects and show success message
+      await fetchProjects();
       toastSuccess(`Project "${project.name}" reopened successfully!`);
     } catch (error) {
       console.error("Error reopening project:", error);
       toastError(`Failed to reopen "${project.name}". Please try again.`);
-    } finally {
-      setPauseFetching(false); // Resume fetching after operation
     }
-
-    useEffect(() => {
-      console.log("Combined Projects Debug:", combinedProjects);
-    }, [combinedProjects]);
   };
 
   return (
@@ -978,9 +939,14 @@ function ProjectList() {
                                   <button
                                     className="btn btn-warning"
                                     title="Reopen Project"
-                                    onClick={(e) => {
+                                    onClick={async (e) => {
                                       e.stopPropagation();
-                                      confirmReopen(project);
+                                      await confirmReopen(
+                                        project,
+                                        fetchProjects,
+                                        toastSuccess,
+                                        toastError,
+                                      );
                                     }}
                                   >
                                     <i className="bi bi-arrow-repeat"></i>
@@ -1006,7 +972,7 @@ function ProjectList() {
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         await confirmReopen(project); // Firestore update
-                                        await fetchProjectsWithTransactions(); // <-- Refresh Context Immediately
+                                        await fetchProjects(); // <-- Refresh Context Immediately
                                       }}
                                     >
                                       <i className="bi bi-arrow-repeat"></i>
@@ -1033,7 +999,7 @@ function ProjectList() {
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         await confirmReopen(project); // Firestore update
-                                        await fetchProjectsWithTransactions(); // <-- Refresh Context Immediately
+                                        await fetchProjects(); // <-- Refresh Context Immediately
                                       }}
                                     >
                                       <i className="bi bi-arrow-repeat"></i>
@@ -1074,7 +1040,7 @@ function ProjectList() {
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         await confirmPutOnHold(project); // Firestore update
-                                        await fetchProjectsWithTransactions(); // <-- Refresh Context Immediately
+                                        await fetchProjects(); // <-- Refresh Context Immediately
                                       }}
                                     >
                                       <i className="bi bi-pause-circle"></i>
@@ -1086,7 +1052,7 @@ function ProjectList() {
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         await confirmComplete(project); // Firestore update
-                                        await fetchProjectsWithTransactions(); // <-- Refresh Context Immediately
+                                        await fetchProjects(); // <-- Refresh Context Immediately
                                       }}
                                       disabled={!project.meetsBudget} // Disable if budget not met
                                     >
@@ -1099,7 +1065,7 @@ function ProjectList() {
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         await confirmCancel(project); // Firestore update
-                                        await fetchProjectsWithTransactions(); // <-- Refresh Context Immediately
+                                        await fetchProjects(); // <-- Refresh Context Immediately
                                       }}
                                     >
                                       <i className="bi bi-x-circle"></i>
@@ -1139,7 +1105,7 @@ function ProjectList() {
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         await confirmCancel(project); // Firestore update
-                                        await fetchProjectsWithTransactions(); // <-- Refresh Immediately
+                                        await fetchProjects(); // <-- Refresh Immediately
                                       }}
                                     >
                                       <i className="bi bi-x-circle"></i>

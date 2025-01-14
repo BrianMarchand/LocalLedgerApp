@@ -1,10 +1,21 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    extensions: [".mjs", ".js", ".jsx", ".json"],
+    alias: {
+      "@config": "/firebase/firebaseConfig", // Alias for firebaseConfig.js (client-side)
+      "@admin": "/firebase/firebaseAdmin.js", // Optional alias for firebaseAdmin.js (server-side)
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "firebase"], // Splits vendor code
+        },
+      },
+    },
   },
 });

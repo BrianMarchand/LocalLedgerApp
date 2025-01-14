@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { ReactSketchCanvas } from "react-sketch-canvas";
 import "./NotesStyles.css"; // Import styles
-import { db } from "../../firebaseConfig"; // Firestore integration
+import { db } from "@config"; // Firestore integration
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
 const FreeformNote = ({ projectId, showNotes }) => {

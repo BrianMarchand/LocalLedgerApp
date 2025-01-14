@@ -1,3 +1,5 @@
+// -- Page: badgeUtils.jsx --
+
 export const getBadgeClass = (status) => {
   switch (status) {
     case "new":

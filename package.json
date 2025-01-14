@@ -2,8 +2,8 @@
   "name": "project-tracker-dashboard-edit",
   "private": true,
   "version": "0.0.0",
-  "type": "module",
   "scripts": {
+    "clean": "rm -rf dist",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
@@ -19,6 +19,7 @@
     "chart.js": "^4.4.7",
     "cors": "^2.8.5",
     "dnd-multi-backend": "^8.1.2",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "firebase": "^11.1.0",
     "firebase-admin": "^13.0.2",

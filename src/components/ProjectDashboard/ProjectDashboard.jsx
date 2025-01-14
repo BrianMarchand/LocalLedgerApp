@@ -1,3 +1,5 @@
+// -- Page: ProjectDashboard.jsx --
+
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../Navbar";
@@ -166,12 +168,15 @@ function ProjectDashboard() {
   };
 
   useEffect(() => {
+    console.log("Transactions updated:", transactions);
+    console.log("Project updated:", project);
+
     if (transactions.length && project) {
       const calculatedMetrics = calculateMetrics(transactions, project);
-      console.log("Updated Metrics:", calculatedMetrics);
+      console.log("Calculated Metrics:", calculatedMetrics);
       setMetrics(calculatedMetrics);
     }
-  }, [transactions, project]);
+  }, [transactions, project]); // Trigger whenever transactions or project changes
 
   if (loading) return <LoadingSpinner text="Loading project details..." />;
   if (error) return <ErrorState onRetry={refetch} />;

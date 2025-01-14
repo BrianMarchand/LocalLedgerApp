@@ -1,14 +1,23 @@
+// -- Page: TransactionsTable.jsx --
+
 import React, { useState } from "react";
+import { useEffect } from "react"; // Ensure useEffect is imported
 import {
   addDoc,
   collection,
   deleteDoc,
   doc,
+  getDoc,
   updateDoc,
   Timestamp,
 } from "firebase/firestore";
-import { db } from "../../firebaseConfig";
+import { db } from "@config";
 import "../../styles/components/transactionTable.css";
+import {
+  toastSuccess,
+  toastWarning,
+  toastError,
+} from "../../utils/toastNotifications"; // Import toast helpers
 
 const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
   const [localTransactions, setLocalTransactions] = useState(transactions);
@@ -20,6 +29,15 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
     category: "",
     type: "Cash",
   });
+
+  // Sync localTransactions with prop whenever `transactions` changes
+  useEffect(() => {
+    console.log(
+      "Syncing localTransactions with parent transactions:",
+      transactions,
+    );
+    setLocalTransactions(transactions); // Sync local state with prop
+  }, [transactions]);
 
   /**
    * Format a Firestore timestamp into yyyy-MM-dd for <input type="date">
@@ -92,7 +110,7 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
       const newTransaction = {
         ...transactionForm,
         date: Timestamp.fromDate(new Date(transactionForm.date)),
-        order: transactions.length, // Place new transactions at the end
+        order: transactions.length, // Ensure new transaction is ordered correctly
       };
 
       const transactionsRef = collection(
@@ -100,7 +118,10 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
         `projects/${projectId}/transactions`,
       );
       await addDoc(transactionsRef, newTransaction);
-      fetchTransactions(); // Refresh transactions
+      console.log("New transaction added:", newTransaction);
+
+      // Trigger fetchTransactions to refresh parent state
+      await fetchTransactions();
       resetForm();
     } catch (error) {
       console.error("Error adding transaction:", error);
@@ -146,10 +167,51 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
         `projects/${projectId}/transactions`,
         transactionId,
       );
+
+      // Fetch the transaction before deleting
+      const transactionSnap = await getDoc(transactionDocRef);
+      const transaction = transactionSnap.data();
+
       await deleteDoc(transactionDocRef);
-      fetchTransactions();
+
+      // If the transaction was a deposit, check the status
+      if (
+        transaction?.category?.toLowerCase() === "client payment" &&
+        transaction?.description?.toLowerCase().includes("deposit")
+      ) {
+        const remainingTransactions = transactions.filter(
+          (t) => t.id !== transactionId,
+        );
+
+        const hasDeposit = remainingTransactions.some(
+          (t) =>
+            t.category?.toLowerCase() === "client payment" &&
+            t.description?.toLowerCase().includes("deposit"),
+        );
+
+        if (!hasDeposit) {
+          const projectRef = doc(db, "projects", projectId);
+          await updateDoc(projectRef, {
+            status: "new",
+            statusDate: new Date(),
+          });
+
+          // Show warning toast when deposit transaction is deleted
+          toastWarning(
+            "Deposit transaction deleted. Project reverted to 'New' status.",
+          );
+        }
+      }
+
+      // Show success toast after deletion
+      toastSuccess("Transaction deleted successfully!");
+
+      fetchTransactions(); // Refresh transactions
     } catch (error) {
       console.error("Error deleting transaction:", error);
+
+      // Show error toast if deletion fails
+      toastError("Failed to delete transaction. Please try again.");
     }
   };
 

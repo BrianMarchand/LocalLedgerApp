@@ -8,7 +8,7 @@ import {
 } from "firebase/firestore";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { GripVertical, X } from "react-bootstrap-icons";
-import { db } from "../../firebaseConfig";
+import { db } from "@config";
 import Swal from "sweetalert2";
 
 const EditableChecklist = ({ projectId }) => {

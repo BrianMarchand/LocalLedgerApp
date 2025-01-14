@@ -1,3 +1,4 @@
+// Page: AddProjectModal.jsx
 import React, { useState, useEffect } from "react";
 import {
   collection,
@@ -12,7 +13,7 @@ import {
 
 import { getAuth } from "firebase/auth";
 
-import { db } from "../../firebaseConfig"; // Ensure Firestore DB is imported
+import { db } from "@config"; // Ensure Firestore DB is imported
 import { Modal, Button, Form } from "react-bootstrap";
 import { useNavigate } from "react-router-dom"; // <-- React Router Hook
 import {
@@ -37,8 +38,7 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
   const [errors, setErrors] = useState({});
 
   // Context Methods
-  const { addProject, updateProject } = useProjects();
-  const { fetchProjects } = useProjects(); // Get fetchProjects
+  const { addProject, updateProject, fetchProjects } = useProjects();
   const [isFormValid, setIsFormValid] = useState(false);
   const navigate = useNavigate(); // <-- Use navigate directly here!
 
@@ -109,77 +109,48 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
 
   // --- Handle Save ---
   const handleSave = async () => {
-    try {
-      setLoading(true);
+    if (loading) return;
+    setLoading(true);
 
-      // --- Validate Form First ---
-      const isValid = validateForm(); // Use existing validation function
+    try {
+      const isValid = validateForm();
       if (!isValid) {
-        setLoading(false); // Stop loading spinner
-        toastError("Please fix errors before saving."); // Notify user
-        return; // Exit early if invalid
+        toastError("Please fix errors before saving.");
+        setLoading(false);
+        return;
       }
 
-      // --- Prepare Project Data ---
+      if (parseFloat(budget) > 99999.99) {
+        startConfetti(); // Trigger confetti for budgets over $99,999.99
+      }
+
       const projectData = {
         name: projectName,
         location,
         budget: parseFloat(budget),
-        status: editingProject ? status : "new", // Force 'new' for new projects
+        status: editingProject ? status : "new", // Default to "new"
         statusNote,
-        order: 0,
-        createdAt: new Date(),
-        ownerId: auth.currentUser?.uid, // Ensure ownerId is set
+        createdAt: editingProject?.createdAt || new Date(),
+        ownerId: auth.currentUser?.uid,
       };
 
-      console.log("Attempting to create project with data:", projectData); // Debugging log
-
-      // --- Test Firestore Write ---
-      try {
-        const testDoc = await addDoc(collection(db, "projects"), projectData);
-        console.log("Test project created successfully:", testDoc.id);
-      } catch (error) {
-        console.error(
-          "Error creating test project in Firestore:",
-          error.message,
-          error.code,
-        );
-        throw error; // Re-throw the error to handle it below
-      }
-
-      // --- Existing Create or Edit Logic ---
-      if (editingProject) {
-        console.log("EDIT MODE: Updating existing project...");
-        await updateProject(editingProject.id, projectData);
+      if (editingProject?.id) {
+        console.log("Updating project:", editingProject.id);
+        await updateProject({ ...editingProject, ...projectData });
         toastSuccess("Project updated successfully!");
       } else {
-        console.log("CREATE MODE: Adding new project...");
-        const snapshot = await getDocs(
-          query(collection(db, "projects"), orderBy("order", "asc")),
-        );
-
-        const batch = writeBatch(db);
-
-        snapshot.docs.forEach((docSnap) => {
-          const data = docSnap.data();
-          const projRef = doc(db, "projects", docSnap.id);
-          batch.update(projRef, { order: data.order + 1 });
-        });
-
-        const newProjectRef = doc(collection(db, "projects"));
-        batch.set(newProjectRef, projectData);
-        await batch.commit();
-
+        console.log("Creating new project:", projectData);
+        await addProject(projectData);
         toastSuccess("Project created successfully!");
       }
 
-      handleClose(); // Close modal
-      resetForm(); // Reset form
+      handleClose();
+      resetForm();
     } catch (error) {
       console.error("Error saving project:", error);
-      toastError(`Error saving project: ${error.message}`);
+      toastError("Failed to save project.");
     } finally {
-      setLoading(false); // Ensure loading spinner resets
+      setLoading(false);
     }
   };
 

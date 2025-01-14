@@ -1,19 +1,22 @@
+// -- Page: ProjectsContext.jsx --
+
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { db, auth } from "../firebaseConfig";
+import { db, auth } from "@config";
 import {
   collection,
   query,
   orderBy,
   where,
-  addDoc,
   doc,
   updateDoc,
   deleteDoc,
-  serverTimestamp,
-  getDocs,
   writeBatch,
+  onSnapshot,
+  getDocs,
+  setDoc,
+  serverTimestamp,
 } from "firebase/firestore";
-import { toast } from "react-toastify";
+import { toastSuccess, toastError } from "../utils/toastNotifications";
 
 const ProjectsContext = createContext();
 
@@ -21,173 +24,150 @@ export const useProjects = () => useContext(ProjectsContext);
 
 export const ProjectsProvider = ({ children }) => {
   const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(false); // UI-related loading
-  const [fetching, setFetching] = useState(false); // Data fetch state
-  const [error, setError] = useState(null);
-  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  // --- Listen for Authentication Changes ---
+  // --- Firestore Listener ---
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        console.log("User authenticated:", currentUser.uid);
-        fetchProjectsWithTransactions(); // Fetch projects when logged in
-      } else {
-        console.log("No user authenticated, clearing projects.");
-        setProjects([]);
-        setLoading(false);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
+    if (!auth.currentUser) return;
 
-  // --- Fetch Projects with Subcollections ---
+    console.log("Setting up Firestore listener for projects...");
+    const unsubscribe = onSnapshot(
+      query(
+        collection(db, "projects"),
+        where("ownerId", "==", auth.currentUser.uid),
+        orderBy("order", "asc"),
+      ),
+      (snapshot) => {
+        const projects = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setProjects(projects);
+        console.log("Projects fetched and updated in state:", projects);
+      },
+      (error) => {
+        console.error("Error with Firestore listener:", error);
+      },
+    );
+
+    return () => {
+      console.log("Cleaning up Firestore listener...");
+      unsubscribe();
+    };
+  }, [auth.currentUser?.uid]);
+
+  // --- Fetch Projects with Transactions ---
   const fetchProjectsWithTransactions = async () => {
-    setFetching(true);
-    setLoading(true);
-
     try {
-      if (!auth.currentUser) throw new Error("No authenticated user.");
-      console.log("Fetching projects for user:", auth.currentUser.uid);
-
       const snapshot = await getDocs(
-        query(
-          collection(db, "projects"),
-          where("ownerId", "==", auth.currentUser.uid),
-          orderBy("order", "asc"),
-        ),
+        query(collection(db, "projects"), orderBy("order", "asc")),
       );
 
       const projectsWithTransactions = await Promise.all(
         snapshot.docs.map(async (docSnap) => {
           const project = { id: docSnap.id, ...docSnap.data() };
 
-          // Fetch transactions for the project
-          const transactionsSnapshot = await getDocs(
+          const transactionsSnap = await getDocs(
             collection(db, `projects/${project.id}/transactions`),
           );
 
-          project.transactions = transactionsSnapshot.docs.map((txn) => ({
-            id: txn.id,
-            ...txn.data(),
-          }));
-
-          // Check for deposit transaction
-          const hasDepositTransaction = project.transactions.some(
-            (txn) =>
-              txn.category === "Client Payment" &&
-              txn.description?.toLowerCase().includes("deposit"),
+          project.transactions = transactionsSnap.docs.map((txSnap) =>
+            txSnap.data(),
           );
-
-          if (project.status === "new" && hasDepositTransaction) {
-            console.log(`Updating project "${project.name}" to 'in-progress'`);
-            await updateDoc(doc(db, "projects", project.id), {
-              status: "in-progress",
-              statusDate: serverTimestamp(),
-            });
-            project.status = "in-progress"; // Update locally
-          }
 
           return project;
         }),
       );
 
       setProjects(projectsWithTransactions);
-      console.log(
-        "All projects fetched and updated in state:",
-        projectsWithTransactions,
-      );
-    } catch (err) {
-      console.error("Error fetching projects with transactions:", err.message);
-      setError("Failed to fetch projects.");
-    } finally {
-      setFetching(false);
-      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      throw error;
     }
   };
 
   // --- Add Project ---
   const addProject = async (newProject) => {
     try {
-      if (!user) throw new Error("No authenticated user.");
+      if (!auth.currentUser) throw new Error("No authenticated user.");
 
-      const newDoc = await addDoc(collection(db, "projects"), {
+      // Generate a new document reference with a unique ID
+      const newDocRef = doc(collection(db, "projects"));
+
+      // Add the new project with the generated ID
+      await setDoc(newDocRef, {
         ...newProject,
-        ownerId: user.uid,
+        ownerId: auth.currentUser.uid,
         createdAt: serverTimestamp(),
-        statusDate: serverTimestamp(),
-        order: projects.length,
+        order: projects.length, // Set order dynamically
       });
 
-      const addedProject = { id: newDoc.id, ...newProject };
-      setProjects((prevProjects) => [...prevProjects, addedProject]); // Update locally
-
-      toast.success("Project added successfully!");
+      setProjects((prevProjects) => {
+        const addedProject = { id: newDocRef.id, ...newProject };
+        if (!prevProjects.some((p) => p.id === addedProject.id)) {
+          toastSuccess("Project added successfully!");
+          return [...prevProjects, addedProject];
+        }
+        return prevProjects;
+      });
     } catch (err) {
       console.error("Error adding project:", err.message);
-      toast.error("Failed to add project.");
-      throw err;
+      toastError("Failed to add project.");
+      throw err; // Rethrow for upstream error handling
     }
   };
 
   // --- Update Project ---
-  const updateProject = async (id, updatedData) => {
+  const updateProject = async (updatedProject) => {
+    const docRef = doc(db, "projects", updatedProject.id);
+
     try {
-      if (!user) throw new Error("No authenticated user.");
+      await updateDoc(docRef, updatedProject);
 
-      await updateDoc(doc(db, "projects", id), updatedData);
-
-      toast.success("Project updated successfully!");
-      fetchProjectsWithTransactions();
-    } catch (err) {
-      console.error("Error updating project:", err.message);
-      toast.error("Failed to update project.");
-      throw err;
+      setProjects((prevProjects) =>
+        prevProjects.map((project) =>
+          project.id === updatedProject.id ? updatedProject : project,
+        ),
+      );
+      toastSuccess("Project updated successfully!");
+    } catch (error) {
+      console.error("Error updating project:", error.message);
+      toastError("Failed to update project.");
     }
   };
 
-  // --- Delete Project and Its Subcollections ---
+  // --- Delete Project ---
   const deleteProject = async (id) => {
     try {
-      if (!user) throw new Error("No authenticated user.");
+      if (!auth.currentUser) throw new Error("No authenticated user.");
 
-      const subcollections = ["transactions", "shoppingList", "notes"];
       const batch = writeBatch(db);
-
-      for (const sub of subcollections) {
+      ["transactions", "shoppingList", "notes"].forEach(async (sub) => {
         const subSnap = await getDocs(collection(db, `projects/${id}/${sub}`));
-        subSnap.forEach((doc) => batch.delete(doc.ref));
-      }
+        subSnap.forEach((docSnap) => batch.delete(docSnap.ref));
+      });
 
       batch.delete(doc(db, "projects", id));
       await batch.commit();
 
-      toast.success("Project deleted successfully!");
-      fetchProjectsWithTransactions();
+      setProjects((prev) => prev.filter((project) => project.id !== id));
+      toastSuccess("Project deleted successfully!");
     } catch (err) {
       console.error("Error deleting project:", err.message);
-      toast.error("Failed to delete project.");
-      throw err;
+      toastError("Failed to delete project.");
     }
   };
-
-  // --- Clear Error ---
-  const clearError = () => setError(null);
 
   return (
     <ProjectsContext.Provider
       value={{
         projects,
-        setProjects,
         loading,
-        fetching, // Tracks fetching status
-        error,
+        fetchProjects: fetchProjectsWithTransactions, // Correct mapping here
         addProject,
-        updateProject,
+        updateProject, // <-- Add updateProject to the context
         deleteProject,
-        fetchProjects: fetchProjectsWithTransactions, // Unified fetch function
-        clearError,
+        setProjects,
       }}
     >
       {children}

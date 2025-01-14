@@ -1,6 +1,7 @@
+// Page: AddTransactionForm
 import React, { useState } from "react";
 import { addDoc, collection } from "firebase/firestore";
-import { db } from "../../firebaseConfig";
+import { db } from "@config";
 
 function AddTransactionForm({ projectId, onTransactionAdded }) {
   const [formData, setFormData] = useState({

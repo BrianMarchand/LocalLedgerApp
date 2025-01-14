@@ -1,3 +1,5 @@
+// -- Page: progressUtils.js --
+
 /**
  * Calculates the progress percentage based on budget and expenses.
  * @param {number} budget - The total budget for the project.

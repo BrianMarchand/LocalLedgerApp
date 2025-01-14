@@ -1,8 +1,12 @@
+// -- Page: ProjectDetailsCard.jsx --
+
 import React, { useEffect, useState } from "react";
 import { calculateProgress } from "../utils/progressUtils"; // Import utility
 import { getBadgeClass, getBadgeLabel } from "../utils/badgeUtils";
 import { useProjects } from "../context/ProjectsContext";
+import { validateStatusTransition } from "../utils/statusValidation";
 import Swal from "sweetalert2";
+import { toast } from "react-toastify";
 import {
   collection,
   doc,
@@ -10,7 +14,7 @@ import {
   getDocs,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import { db } from "@config";
 
 const ProjectDetailsCard = ({ project, transactions = [] }) => {
   console.log("ProjectDetailsCard Loaded:", project); // Log the project details as received
@@ -94,6 +98,10 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
     console.log("Progress Data:", result);
   }, [project.budget, transactions, project.transactions]); // Watch for changes
 
+  useEffect(() => {
+    console.log("Received Transactions in ProjectDetailsCard:", transactions);
+  }, [transactions]);
+
   // **Budget Formatting**
   const formatBudgetWithEmoji = (budget) => {
     const formattedBudget = `$${budget?.toLocaleString() || "0"}`;
@@ -102,73 +110,66 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
 
   const handleStatusChange = async (newStatus) => {
     try {
-      console.log("Changing status to:", newStatus);
-
-      // Rule 1: Prevent marking as complete if budget not met
-      if (newStatus === "completed" && progressData.percentage < 100) {
-        Swal.fire({
-          icon: "warning",
-          title: "Budget Not Met",
-          text: "You cannot mark this project as complete until the budget is 100% fulfilled.",
-        });
-        setSelectedStatus(projectDetails.status); // Revert dropdown
-        return;
-      }
-
-      // Rule 2: Prevent marking as in-progress if no client payment
-      const hasClientPayment = validTransactions.some(
-        (t) =>
-          t.type === "income" &&
-          (t.details.toLowerCase().includes("deposit") ||
-            t.details.toLowerCase().includes("client payment")),
+      const { valid, reason } = validateStatusTransition(
+        newStatus,
+        validTransactions,
+        progressData,
       );
 
-      if (newStatus === "in-progress" && !hasClientPayment) {
+      if (!valid) {
         Swal.fire({
           icon: "warning",
-          title: "No Client Payment",
-          text: "You cannot mark this project as in-progress until a client payment or deposit has been received.",
+          title: "Invalid Status Change",
+          text: reason,
         });
         setSelectedStatus(projectDetails.status); // Revert dropdown
         return;
       }
 
-      // Use an external handler if provided
-      if (externalHandleStatusChange) {
-        await externalHandleStatusChange(newStatus); // Delegate to external logic
-        return;
+      // Confirm for critical changes
+      if (newStatus === "completed" && progressData.percentage >= 100) {
+        const result = await Swal.fire({
+          icon: "question",
+          title: "Mark as Complete?",
+          text: "This will finalize the project. Proceed?",
+          showCancelButton: true,
+          confirmButtonText: "Yes",
+          cancelButtonText: "No",
+        });
+
+        if (!result.isConfirmed) {
+          setSelectedStatus(projectDetails.status); // Revert dropdown
+          return;
+        }
       }
 
-      // Proceed with internal Firestore update if no external handler
+      // Update Firestore
       const docRef = doc(db, "projects", projectDetails.id);
       await updateDoc(docRef, {
         status: newStatus,
         statusDate: new Date(),
       });
 
-      // Update the state if Firestore update succeeds
+      // Update local state
       setProjectDetails((prev) => ({
         ...prev,
         status: newStatus,
       }));
 
-      setSelectedStatus(newStatus); // Sync dropdown state
-
-      Swal.fire({
-        icon: "success",
-        title: "Status Updated",
-        text: `Project status has been changed to "${newStatus}".`,
-      });
-
-      console.log("Firestore Updated!");
+      // Use toast to display success
+      if (toast) {
+        toast.success(`Project status updated to "${newStatus}".`);
+      }
     } catch (error) {
       console.error("Error updating status:", error);
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "Failed to update project status. Please try again.",
+        text: "Failed to update project status.",
       });
-      setSelectedStatus(projectDetails.status); // Revert dropdown on error
+
+      // Revert dropdown selection
+      setSelectedStatus(projectDetails.status);
     }
   };
 
@@ -257,7 +258,6 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
                       status: "new",
                     }));
 
-                    setSelectedStatus("new");
                     Swal.fire(
                       "Reopened!",
                       "The project has been reopened.",
@@ -285,6 +285,7 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
                 setSelectedStatus(e.target.value);
                 handleStatusChange(e.target.value);
               }}
+              disabled={!validTransactions.length}
             >
               <option value="new">New</option>
               <option
@@ -292,9 +293,8 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
                 disabled={
                   !validTransactions.some(
                     (t) =>
-                      t.type === "income" &&
-                      (t.details.toLowerCase().includes("deposit") ||
-                        t.details.toLowerCase().includes("client payment")),
+                      t.category === "Client Payment" &&
+                      t.description?.toLowerCase().includes("deposit"),
                   )
                 }
               >
@@ -302,16 +302,11 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
               </option>
               <option
                 value="completed"
-                disabled={projectDetails.status === "new"}
+                disabled={progressData.percentage < 100}
               >
                 Completed
               </option>
-              <option
-                value="on-hold"
-                disabled={projectDetails.status === "new"}
-              >
-                On Hold
-              </option>
+              <option value="on-hold">On Hold</option>
               <option value="cancelled">Cancelled</option>
             </select>
           )}

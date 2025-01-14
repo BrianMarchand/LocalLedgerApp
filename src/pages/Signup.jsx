@@ -4,7 +4,7 @@ import "../styles/pages/LoginStyles.css"; // Reuse styles from login
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
-import { db, auth } from "../firebaseConfig"; // Firestore instance
+import { db, auth } from "@config"; // Firestore instance
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const Signup = () => {

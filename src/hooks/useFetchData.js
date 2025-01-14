@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+// -- Page: useFetchData.js --
+
+import { useEffect, useState, useCallback } from "react";
 import {
   doc,
   getDoc,
@@ -9,7 +11,9 @@ import {
   updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import { db } from "@config";
+import { validateStatusTransition } from "../utils/statusValidation";
+import { toast } from "react-toastify";
 
 const useFetchData = (projectId) => {
   const [project, setProject] = useState(null);
@@ -24,16 +28,18 @@ const useFetchData = (projectId) => {
 
       if (projectSnap.exists()) {
         const projectData = { id: projectSnap.id, ...projectSnap.data() };
-        console.log("Fetched Project:", projectData); // Debug
+        console.log("Fetched Project:", projectData);
         setProject(projectData);
         return projectData;
       } else {
         console.error("Project not found.");
         setError({ type: "project", message: "Project not found." });
+        return null;
       }
     } catch (err) {
       console.error("Error fetching project:", err);
       setError({ type: "project", message: err.message });
+      return null;
     }
   };
 
@@ -43,55 +49,63 @@ const useFetchData = (projectId) => {
         db,
         `projects/${projectId}/transactions`,
       );
-      const transactionsSnap = await getDocs(
-        query(transactionsRef, orderBy("order")),
-      );
+      const transactionsSnap = await getDocs(transactionsRef);
 
-      const transactionsData = transactionsSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const transactionsData = transactionsSnap.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+        };
+      });
 
-      console.log("Fetched Transactions:", transactionsData); // Debug
+      console.log("Fetched Transactions:", transactionsData);
       setTransactions(transactionsData);
       return transactionsData;
     } catch (err) {
       console.error("Error fetching transactions:", err);
       setError({ type: "transactions", message: err.message });
+      return [];
     }
   };
 
   const checkAndUpdateStatus = async (project, transactions) => {
-    try {
-      // Adjust the condition to match your transaction data structure
-      const hasDeposit = transactions.some(
-        (t) =>
-          t.category === "Client Payment" && // Ensure the category matches
-          t.name?.toLowerCase().includes("deposit"), // Check for "deposit" in the name or other field
-      );
+    if (!project || !Array.isArray(transactions)) {
+      console.warn("No project or transactions to validate.");
+      return;
+    }
 
-      console.log(
-        `Checking for deposit in project ${project.name}:`,
-        transactions,
-      );
-      console.log("Has Deposit:", hasDeposit);
+    // Validate transition to "In Progress" for "new" projects
+    const { valid, reason } = validateStatusTransition(
+      "in-progress",
+      transactions,
+      { percentage: project.progress || 0 },
+    );
 
-      if (project.status === "new" && hasDeposit) {
+    if (valid && project.status === "new") {
+      try {
         const projectRef = doc(db, "projects", project.id);
         await updateDoc(projectRef, {
           status: "in-progress",
           statusDate: serverTimestamp(),
         });
 
-        console.log(`Updated project ${project.name} to 'in-progress'`);
-        setProject((prev) => ({ ...prev, status: "in-progress" })); // Update state locally
+        setProject((prev) => ({
+          ...prev,
+          status: "in-progress",
+        }));
+
+        toast.success(`Project status updated to "In Progress"!`);
+      } catch (err) {
+        console.error("Error updating status:", err);
+        toast.error("Failed to update project status.");
       }
-    } catch (err) {
-      console.error("Error updating project status:", err);
+    } else {
+      console.warn("Status not updated. Reason:", reason);
     }
   };
 
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -106,16 +120,16 @@ const useFetchData = (projectId) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     if (projectId) {
       refetch();
     }
-  }, [projectId]);
+  }, [projectId, refetch]);
 
   useEffect(() => {
-    console.log("Raw Fetched Transactions:", transactions); // Debug
+    console.log("Raw Fetched Transactions:", transactions);
   }, [transactions]);
 
   return { project, transactions, loading, error, refetch };
