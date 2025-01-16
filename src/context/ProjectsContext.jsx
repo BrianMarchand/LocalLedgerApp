@@ -1,5 +1,3 @@
-// -- Page: ProjectsContext.jsx --
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { db, auth } from "@config";
 import {
@@ -22,13 +20,25 @@ const ProjectsContext = createContext();
 
 export const useProjects = () => useContext(ProjectsContext);
 
+const SUBCOLLECTIONS = ["transactions", "shoppingList", "notes"];
+
+const isAuthenticated = () => {
+  if (!auth.currentUser) {
+    toastError("No authenticated user.");
+    throw new Error("No authenticated user.");
+  }
+};
+
 export const ProjectsProvider = ({ children }) => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // --- Firestore Listener ---
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser) {
+      console.warn("No authenticated user. Skipping Firestore listener setup.");
+      return;
+    }
 
     console.log("Setting up Firestore listener for projects...");
     const unsubscribe = onSnapshot(
@@ -38,15 +48,25 @@ export const ProjectsProvider = ({ children }) => {
         orderBy("order", "asc"),
       ),
       (snapshot) => {
-        const projects = snapshot.docs.map((doc) => ({
+        const updatedProjects = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-        setProjects(projects);
-        console.log("Projects fetched and updated in state:", projects);
+        setProjects((prevProjects) => {
+          if (
+            JSON.stringify(prevProjects) !== JSON.stringify(updatedProjects)
+          ) {
+            console.log(
+              "Projects fetched and updated in state:",
+              updatedProjects,
+            );
+            return updatedProjects;
+          }
+          return prevProjects;
+        });
       },
       (error) => {
-        console.error("Error with Firestore listener:", error);
+        console.error("Error with Firestore listener:", error.message);
       },
     );
 
@@ -56,45 +76,57 @@ export const ProjectsProvider = ({ children }) => {
     };
   }, [auth.currentUser?.uid]);
 
-  // --- Fetch Projects with Transactions ---
-  const fetchProjectsWithTransactions = async () => {
+  // --- Consolidated Fetch Projects ---
+  const fetchProjects = async (includeTransactions = false) => {
+    setLoading(true);
     try {
       const snapshot = await getDocs(
         query(collection(db, "projects"), orderBy("order", "asc")),
       );
 
-      const projectsWithTransactions = await Promise.all(
+      const projects = await Promise.all(
         snapshot.docs.map(async (docSnap) => {
           const project = { id: docSnap.id, ...docSnap.data() };
 
-          const transactionsSnap = await getDocs(
-            collection(db, `projects/${project.id}/transactions`),
-          );
-
-          project.transactions = transactionsSnap.docs.map((txSnap) =>
-            txSnap.data(),
-          );
+          if (includeTransactions) {
+            try {
+              const transactionsSnap = await getDocs(
+                collection(db, `projects/${project.id}/transactions`),
+              );
+              project.transactions = transactionsSnap.docs.map((txSnap) =>
+                txSnap.data(),
+              );
+            } catch (err) {
+              console.warn(
+                `Failed to fetch transactions for project: ${project.id}`,
+                err.message,
+              );
+              project.transactions = [];
+            }
+          }
 
           return project;
         }),
       );
 
-      setProjects(projectsWithTransactions);
+      setProjects(projects);
     } catch (error) {
-      console.error("Error fetching projects:", error);
-      throw error;
+      console.error("Error fetching projects:", error.message);
+      toastError("Failed to fetch projects.");
+    } finally {
+      setLoading(false);
     }
   };
 
   // --- Add Project ---
-  const addProject = async (newProject) => {
-    try {
-      if (!auth.currentUser) throw new Error("No authenticated user.");
+  const addProject = async (
+    newProject = { name: "Untitled Project", budget: 0, location: "Unknown" },
+  ) => {
+    isAuthenticated();
 
-      // Generate a new document reference with a unique ID
+    try {
       const newDocRef = doc(collection(db, "projects"));
 
-      // Add the new project with the generated ID
       await setDoc(newDocRef, {
         ...newProject,
         ownerId: auth.currentUser.uid,
@@ -111,14 +143,15 @@ export const ProjectsProvider = ({ children }) => {
         return prevProjects;
       });
     } catch (err) {
-      console.error("Error adding project:", err.message);
+      console.error(`Error adding project "${newProject.name}":`, err.message);
       toastError("Failed to add project.");
-      throw err; // Rethrow for upstream error handling
+      throw err;
     }
   };
 
   // --- Update Project ---
   const updateProject = async (updatedProject) => {
+    isAuthenticated();
     const docRef = doc(db, "projects", updatedProject.id);
 
     try {
@@ -131,21 +164,33 @@ export const ProjectsProvider = ({ children }) => {
       );
       toastSuccess("Project updated successfully!");
     } catch (error) {
-      console.error("Error updating project:", error.message);
+      console.error(
+        `Error updating project "${updatedProject.name}":`,
+        error.message,
+      );
       toastError("Failed to update project.");
     }
   };
 
   // --- Delete Project ---
   const deleteProject = async (id) => {
-    try {
-      if (!auth.currentUser) throw new Error("No authenticated user.");
+    isAuthenticated();
 
+    try {
       const batch = writeBatch(db);
-      ["transactions", "shoppingList", "notes"].forEach(async (sub) => {
-        const subSnap = await getDocs(collection(db, `projects/${id}/${sub}`));
-        subSnap.forEach((docSnap) => batch.delete(docSnap.ref));
-      });
+
+      await Promise.all(
+        SUBCOLLECTIONS.map(async (sub) => {
+          try {
+            const subSnap = await getDocs(
+              collection(db, `projects/${id}/${sub}`),
+            );
+            subSnap.forEach((docSnap) => batch.delete(docSnap.ref));
+          } catch (err) {
+            console.warn(`Failed to delete subcollection: ${sub}`, err.message);
+          }
+        }),
+      );
 
       batch.delete(doc(db, "projects", id));
       await batch.commit();
@@ -153,7 +198,7 @@ export const ProjectsProvider = ({ children }) => {
       setProjects((prev) => prev.filter((project) => project.id !== id));
       toastSuccess("Project deleted successfully!");
     } catch (err) {
-      console.error("Error deleting project:", err.message);
+      console.error(`Error deleting project with ID "${id}":`, err.message);
       toastError("Failed to delete project.");
     }
   };
@@ -163,9 +208,9 @@ export const ProjectsProvider = ({ children }) => {
       value={{
         projects,
         loading,
-        fetchProjects: fetchProjectsWithTransactions, // Correct mapping here
+        fetchProjects, // Consolidated function
         addProject,
-        updateProject, // <-- Add updateProject to the context
+        updateProject,
         deleteProject,
         setProjects,
       }}

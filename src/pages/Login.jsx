@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { auth } from "@config";
-import "bootstrap-icons/font/bootstrap-icons.css";
+
 import "../styles/pages/LoginStyles.css";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";

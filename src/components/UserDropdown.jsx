@@ -2,7 +2,6 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Dropdown } from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
-import "bootstrap-icons/font/bootstrap-icons.css";
 
 const UserDropdown = () => {
   const navigate = useNavigate();

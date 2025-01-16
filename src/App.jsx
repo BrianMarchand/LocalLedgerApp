@@ -41,7 +41,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Profile from "./pages/Profile";
 
 // Components
-import ProjectList from "./components/ProjectList";
+import ProjectList from "./components/ProjectList/ProjectList";
 import Dashboard from "./components/Dashboard/Dashboard";
 import ProjectDashboard from "./components/ProjectDashboard/ProjectDashboard";
 

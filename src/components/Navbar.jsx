@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Dropdown } from "react-bootstrap";
-import "bootstrap-icons/font/bootstrap-icons.css";
+
 import "../styles/components/Navbar.css";
 
 // --- Key Components ---

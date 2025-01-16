@@ -7,7 +7,6 @@ import {
   addDoc,
 } from "firebase/firestore";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { GripVertical, X } from "react-bootstrap-icons";
 import { db } from "@config";
 import Swal from "sweetalert2";
 
@@ -200,7 +199,7 @@ const EditableChecklist = ({ projectId }) => {
                         {...provided.dragHandleProps}
                         style={{ cursor: "grab", marginRight: "10px" }}
                       >
-                        <GripVertical />
+                        <i className="bi-grip-vertical"></i>
                       </span>
 
                       {/* Checkbox */}
@@ -239,7 +238,7 @@ const EditableChecklist = ({ projectId }) => {
                           cursor: "pointer",
                         }}
                       >
-                        <X size={20} /> {/* Set icon size */}
+                        <i className="bi-x"></i>
                       </button>
                     </div>
                   )}
