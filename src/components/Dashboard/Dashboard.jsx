@@ -149,50 +149,52 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="dashboard-container">
+    <div>
       <Navbar page="dashboard" />
-      <div className="dashboard-header shadow-sm p-4 mb-4">
-        <h2 className="dashboard-title">Dashboard</h2>
-        <select
-          className="dashboard-select"
-          value={filterStatus}
-          onChange={handleFilterChange}
-        >
-          <option value="all">All</option>
-          <option value="in-progress">In Progress</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-      </div>
-
-      <div>
-        <div className="row g-4 mt-4">
-          <StatCard title="Projects" value={filteredProjects.length} />
-          <StatCard
-            title="Budget Utilization"
-            value={`${budgetUtilization}%`}
-          />
+      <div className="container mt-5">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h1>Project Dashboard</h1>
+          <select
+            className="dashboard-select"
+            value={filterStatus}
+            onChange={handleFilterChange}
+          >
+            <option value="all">All</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
         </div>
 
-        <div className="row g-4 mt-4">
-          <ChartCard title="Expense Breakdown">
-            {expenseChartData.labels ? (
-              <Pie data={expenseChartData} />
-            ) : (
-              <p>No data available</p>
-            )}
-          </ChartCard>
-          <ChartCard title="Monthly Trends">
-            {monthlyTrendsData.labels ? (
-              <Line data={monthlyTrendsData} />
-            ) : (
-              <p>No data available</p>
-            )}
-          </ChartCard>
-        </div>
-      </div>
+        <div>
+          <div className="row g-4 mt-4">
+            <StatCard title="Projects" value={filteredProjects.length} />
+            <StatCard
+              title="Budget Utilization"
+              value={`${budgetUtilization}%`}
+            />
+          </div>
 
-      <AddProjectModal show={showModal} handleClose={handleModalClose} />
+          <div className="row g-4 mt-4">
+            <ChartCard title="Expense Breakdown">
+              {expenseChartData.labels ? (
+                <Pie data={expenseChartData} />
+              ) : (
+                <p>No data available</p>
+              )}
+            </ChartCard>
+            <ChartCard title="Monthly Trends">
+              {monthlyTrendsData.labels ? (
+                <Line data={monthlyTrendsData} />
+              ) : (
+                <p>No data available</p>
+              )}
+            </ChartCard>
+          </div>
+        </div>
+
+        <AddProjectModal show={showModal} handleClose={handleModalClose} />
+      </div>
     </div>
   );
 };

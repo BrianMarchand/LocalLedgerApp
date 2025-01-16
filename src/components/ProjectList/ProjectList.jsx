@@ -31,8 +31,11 @@ function ProjectList() {
   return (
     <div>
       <Navbar page="projectDashboard" />
-      <div className="container mt-4">
-        <h1 className="mb-4">Your current projects:</h1>
+      <div className="container mt-5">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h1>Your Current Projects</h1>
+          <p>Something here.</p>
+        </div>
         {loading ? (
           <div className="text-center py-5">
             <Spinner animation="border" variant="primary" />
@@ -45,7 +48,7 @@ function ProjectList() {
             <Droppable droppableId="projects">
               {(provided) => (
                 <div
-                  className="row"
+                  className="row mt-5"
                   {...provided.droppableProps}
                   ref={provided.innerRef}
                 >

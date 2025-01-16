@@ -185,7 +185,6 @@ function ProjectDashboard() {
     <div>
       <Navbar page="Project Dashboard" />
       <div className="container mt-5">
-        {/* Page Header */}
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h1>{project?.name || "Project Details"}</h1>
           <button
@@ -198,7 +197,7 @@ function ProjectDashboard() {
         </div>
 
         {/* Project Details Card */}
-        <div className="row mb-4">
+        <div className="row mb-4 mt-5">
           <div className="col-md-6">
             <ProjectDetailsCard
               project={project}
