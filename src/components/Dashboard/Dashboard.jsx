@@ -169,6 +169,7 @@ const Dashboard = () => {
         <div>
           <div className="row g-4 mt-4">
             <StatCard title="Projects" value={filteredProjects.length} />
+            <StatCard title="Transactions" value="n/a" />
             <StatCard
               title="Budget Utilization"
               value={`${budgetUtilization}%`}

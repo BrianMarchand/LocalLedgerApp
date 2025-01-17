@@ -4,7 +4,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDoc,
   updateDoc,
   Timestamp,
 } from "firebase/firestore";
@@ -22,12 +21,23 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
   const [expandedTransaction, setExpandedTransaction] = useState(null);
   const [isAddingTransaction, setIsAddingTransaction] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [transactionForm, setTransactionForm] = useState({
-    date: new Date().toISOString().split("T")[0],
+
+  // Separate state for adding new transactions
+  const [addTransactionForm, setAddTransactionForm] = useState({
+    date: "",
     description: "",
     amount: "",
     category: "",
-    type: "Cash",
+    type: "",
+  });
+
+  // Separate state for editing transactions
+  const [editTransactionForm, setEditTransactionForm] = useState({
+    date: "",
+    description: "",
+    amount: "",
+    category: "",
+    type: "",
   });
 
   useEffect(() => {
@@ -59,27 +69,36 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
       currency: "USD",
     }).format(parseFloat(amount || 0));
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setTransactionForm((prev) => ({ ...prev, [name]: value }));
+  const handleAddTransactionChange = (e) => {
+    setAddTransactionForm({
+      ...addTransactionForm,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleEditTransactionChange = (e) => {
+    setEditTransactionForm({
+      ...editTransactionForm,
+      [e.target.name]: e.target.value,
+    });
   };
 
   const resetForm = () => {
     setEditingTransaction(null);
-    setTransactionForm({
-      date: new Date().toISOString().split("T")[0],
+    setAddTransactionForm({
+      date: "",
       description: "",
       amount: "",
       category: "",
-      type: "Cash",
+      type: "",
     });
   };
 
   const handleSave = async () => {
     if (
-      !transactionForm.description ||
-      !transactionForm.amount ||
-      !transactionForm.category
+      !addTransactionForm.description ||
+      !addTransactionForm.amount ||
+      !addTransactionForm.category
     ) {
       toastError("All fields are required.");
       return;
@@ -87,8 +106,8 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
 
     try {
       const newTransaction = {
-        ...transactionForm,
-        date: Timestamp.fromDate(new Date(transactionForm.date)),
+        ...addTransactionForm,
+        date: Timestamp.fromDate(new Date(addTransactionForm.date)),
       };
 
       await addDoc(
@@ -110,8 +129,8 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
       await updateDoc(
         doc(db, `projects/${projectId}/transactions`, editingTransaction.id),
         {
-          ...transactionForm,
-          date: Timestamp.fromDate(new Date(transactionForm.date)),
+          ...editTransactionForm,
+          date: Timestamp.fromDate(new Date(editTransactionForm.date)),
         },
       );
       toastSuccess("Transaction updated!");
@@ -138,7 +157,7 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
 
   const handleEdit = (transaction) => {
     setEditingTransaction(transaction);
-    setTransactionForm({
+    setEditTransactionForm({
       date: formatDateForInput(transaction.date),
       description: transaction.description,
       amount: transaction.amount,
@@ -165,60 +184,110 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
               </div>
               {isAddingTransaction && (
                 <div className="transaction-card-body">
-                  <input
-                    type="date"
-                    name="date"
-                    className="form-control"
-                    value={transactionForm.date}
-                    onChange={handleInputChange}
-                  />
+                  {/* Row 1: Date & Amount */}
+                  <div className="input-group">
+                    <input
+                      type="date"
+                      name="date"
+                      className="form-control"
+                      value={addTransactionForm.date}
+                      onChange={(e) =>
+                        setAddTransactionForm({
+                          ...addTransactionForm,
+                          [e.target.name]: e.target.value,
+                        })
+                      }
+                    />
+                    <input
+                      type="number"
+                      name="amount"
+                      className="form-control"
+                      placeholder="$ Enter amount"
+                      value={addTransactionForm.amount}
+                      onChange={(e) =>
+                        setAddTransactionForm({
+                          ...addTransactionForm,
+                          [e.target.name]: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  {/* Row 2: Description (Full Width) */}
                   <input
                     type="text"
                     name="description"
                     className="form-control"
                     placeholder="Enter description"
-                    value={transactionForm.description}
-                    onChange={handleInputChange}
+                    value={addTransactionForm.description}
+                    onChange={(e) =>
+                      setAddTransactionForm({
+                        ...addTransactionForm,
+                        [e.target.name]: e.target.value,
+                      })
+                    }
                   />
-                  <input
-                    type="number"
-                    name="amount"
-                    className="form-control"
-                    placeholder="Enter amount"
-                    value={transactionForm.amount}
-                    onChange={handleInputChange}
-                  />
-                  <select
-                    name="category"
-                    className="form-select"
-                    value={transactionForm.category}
-                    onChange={handleInputChange}
-                  >
-                    <option value="" disabled>
-                      Select Category
-                    </option>
-                    <option value="Client Payment">Client Payment</option>
-                    <option value="Labour">Labour</option>
-                    <option value="Materials">Materials</option>
-                    <option value="Miscellaneous">Miscellaneous</option>
-                  </select>
-                  <select
-                    name="type"
-                    className="form-select"
-                    value={transactionForm.type}
-                    onChange={handleInputChange}
-                  >
-                    <option value="Cash">Cash</option>
-                    <option value="VISA">VISA</option>
-                    <option value="Debit">Debit</option>
-                    <option value="E-Transfer">E-Transfer</option>
-                  </select>
-                  <button
-                    className="btn btn-success btn-sm mt-2"
-                    onClick={handleSave}
-                  >
-                    Save
-                  </button>
+
+                  {/* Row 3: Category & Type */}
+                  <div className="input-group">
+                    <select
+                      name="category"
+                      className="form-select"
+                      value={addTransactionForm.category}
+                      onChange={(e) =>
+                        setAddTransactionForm({
+                          ...addTransactionForm,
+                          [e.target.name]: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="" disabled>
+                        Select Category
+                      </option>
+                      <option value="Client Payment">Client Payment</option>
+                      <option value="Labour">Labour</option>
+                      <option value="Materials">Materials</option>
+                      <option value="Miscellaneous">Miscellaneous</option>
+                    </select>
+
+                    <select
+                      name="type"
+                      className="form-select"
+                      value={addTransactionForm.type}
+                      onChange={(e) =>
+                        setAddTransactionForm({
+                          ...addTransactionForm,
+                          [e.target.name]: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="" disabled>
+                        Select Type
+                      </option>
+                      <option value="Cash">Cash</option>
+                      <option value="VISA">VISA</option>
+                      <option value="Debit">Debit</option>
+                      <option value="E-Transfer">E-Transfer</option>
+                    </select>
+                  </div>
+
+                  {/* Save & Cancel Buttons */}
+                  <div className="mobile-action-buttons">
+                    <button
+                      className="btn btn-success btn-sm"
+                      onClick={handleSave}
+                      title="Save"
+                    >
+                      <i className="bi bi-check-lg"></i> {/* Save Icon */}
+                    </button>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={resetForm}
+                      title="Cancel"
+                    >
+                      <i className="bi bi-x-lg"></i> {/* Cancel Icon */}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -229,6 +298,7 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                 key={transaction.id}
                 className={`transaction-card ${index % 2 === 0 ? "transaction-card-alt" : ""}`}
               >
+                {/* Collapsed View - Only shows Date | Amount | Truncated Description */}
                 <div className="transaction-card-header">
                   <div className="transaction-header-left">
                     <span className="transaction-date">
@@ -239,12 +309,10 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                       {formatCurrency(transaction.amount)}
                     </span>
                     <span className="divider">|</span>
-                    <span className="transaction-category">
-                      {transaction.category}
-                    </span>
-                    <span className="divider">|</span>
                     <span className="transaction-description">
-                      {transaction.description}
+                      {transaction.description.length > 20
+                        ? `${transaction.description.substring(0, 20)}...`
+                        : transaction.description}
                     </span>
                   </div>
                   <i
@@ -258,6 +326,8 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                     }
                   ></i>
                 </div>
+
+                {/* Expanded View - Shows Full Details */}
                 {expandedTransaction === transaction.id && (
                   <div className="transaction-card-body">
                     {editingTransaction?.id === transaction.id ? (
@@ -266,28 +336,48 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                           type="date"
                           name="date"
                           className="form-control"
-                          value={transactionForm.date}
-                          onChange={handleInputChange}
+                          value={editTransactionForm.date}
+                          onChange={(e) =>
+                            setEditTransactionForm({
+                              ...editTransactionForm,
+                              [e.target.name]: e.target.value,
+                            })
+                          }
                         />
                         <input
                           type="text"
                           name="description"
                           className="form-control"
-                          value={transactionForm.description}
-                          onChange={handleInputChange}
+                          value={editTransactionForm.description}
+                          onChange={(e) =>
+                            setEditTransactionForm({
+                              ...editTransactionForm,
+                              [e.target.name]: e.target.value,
+                            })
+                          }
                         />
                         <input
                           type="number"
                           name="amount"
                           className="form-control"
-                          value={transactionForm.amount}
-                          onChange={handleInputChange}
+                          value={editTransactionForm.amount}
+                          onChange={(e) =>
+                            setEditTransactionForm({
+                              ...editTransactionForm,
+                              [e.target.name]: e.target.value,
+                            })
+                          }
                         />
                         <select
                           name="category"
                           className="form-select"
-                          value={transactionForm.category}
-                          onChange={handleInputChange}
+                          value={editTransactionForm.category}
+                          onChange={(e) =>
+                            setEditTransactionForm({
+                              ...editTransactionForm,
+                              [e.target.name]: e.target.value,
+                            })
+                          }
                         >
                           <option value="" disabled>
                             Select Category
@@ -300,9 +390,17 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                         <select
                           name="type"
                           className="form-select"
-                          value={transactionForm.type}
-                          onChange={handleInputChange}
+                          value={editTransactionForm.type}
+                          onChange={(e) =>
+                            setEditTransactionForm({
+                              ...editTransactionForm,
+                              [e.target.name]: e.target.value,
+                            })
+                          }
                         >
+                          <option value="" disabled>
+                            Select Type
+                          </option>
                           <option value="Cash">Cash</option>
                           <option value="VISA">VISA</option>
                           <option value="Debit">Debit</option>
@@ -368,8 +466,13 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                   type="date"
                   name="date"
                   className="form-control"
-                  value={transactionForm.date}
-                  onChange={handleInputChange}
+                  value={addTransactionForm.date}
+                  onChange={(e) =>
+                    setAddTransactionForm({
+                      ...addTransactionForm,
+                      [e.target.name]: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="transaction-cell">
@@ -378,8 +481,13 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                   name="description"
                   className="form-control"
                   placeholder="Enter description"
-                  value={transactionForm.description}
-                  onChange={handleInputChange}
+                  value={addTransactionForm.description}
+                  onChange={(e) =>
+                    setAddTransactionForm({
+                      ...addTransactionForm,
+                      [e.target.name]: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="transaction-cell">
@@ -388,16 +496,26 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                   name="amount"
                   className="form-control"
                   placeholder="Enter amount"
-                  value={transactionForm.amount}
-                  onChange={handleInputChange}
+                  value={addTransactionForm.amount}
+                  onChange={(e) =>
+                    setAddTransactionForm({
+                      ...addTransactionForm,
+                      [e.target.name]: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="transaction-cell">
                 <select
                   name="category"
                   className="form-select"
-                  value={transactionForm.category}
-                  onChange={handleInputChange}
+                  value={addTransactionForm.category}
+                  onChange={(e) =>
+                    setAddTransactionForm({
+                      ...addTransactionForm,
+                      [e.target.name]: e.target.value,
+                    })
+                  }
                 >
                   <option value="" disabled>
                     Select Category
@@ -412,9 +530,17 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                 <select
                   name="type"
                   className="form-select"
-                  value={transactionForm.type}
-                  onChange={handleInputChange}
+                  value={addTransactionForm.type}
+                  onChange={(e) =>
+                    setAddTransactionForm({
+                      ...addTransactionForm,
+                      [e.target.name]: e.target.value,
+                    })
+                  }
                 >
+                  <option value="" disabled>
+                    Select Type
+                  </option>
                   <option value="Cash">Cash</option>
                   <option value="VISA">VISA</option>
                   <option value="Debit">Debit</option>
@@ -423,16 +549,18 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
               </div>
               <div className="transaction-cell">
                 <button
-                  className="btn btn-success btn-sm me-2"
+                  className="btn btn-success btn-sm"
                   onClick={handleSave}
+                  title="Add Transaction"
                 >
-                  Add
+                  <i className="bi bi-plus-lg"></i> {/* Add Icon */}
                 </button>
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={resetForm}
+                  title="Clear Form"
                 >
-                  Clear
+                  <i className="bi bi-x-lg"></i> {/* Clear Icon */}
                 </button>
               </div>
             </div>
@@ -450,8 +578,13 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                       type="date"
                       name="date"
                       className="form-control"
-                      value={transactionForm.date}
-                      onChange={handleInputChange}
+                      value={editTransactionForm.date}
+                      onChange={(e) =>
+                        setEditTransactionForm({
+                          ...editTransactionForm,
+                          [e.target.name]: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <div className="transaction-cell">
@@ -459,8 +592,13 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                       type="text"
                       name="description"
                       className="form-control"
-                      value={transactionForm.description}
-                      onChange={handleInputChange}
+                      value={editTransactionForm.description}
+                      onChange={(e) =>
+                        setEditTransactionForm({
+                          ...editTransactionForm,
+                          [e.target.name]: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <div className="transaction-cell">
@@ -468,16 +606,26 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                       type="number"
                       name="amount"
                       className="form-control"
-                      value={transactionForm.amount}
-                      onChange={handleInputChange}
+                      value={editTransactionForm.amount}
+                      onChange={(e) =>
+                        setEditTransactionForm({
+                          ...editTransactionForm,
+                          [e.target.name]: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <div className="transaction-cell">
                     <select
                       name="category"
                       className="form-select"
-                      value={transactionForm.category}
-                      onChange={handleInputChange}
+                      value={editTransactionForm.category}
+                      onChange={(e) =>
+                        setEditTransactionForm({
+                          ...editTransactionForm,
+                          [e.target.name]: e.target.value,
+                        })
+                      }
                     >
                       <option value="" disabled>
                         Select Category
@@ -492,9 +640,17 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                     <select
                       name="type"
                       className="form-select"
-                      value={transactionForm.type}
-                      onChange={handleInputChange}
+                      value={editTransactionForm.type}
+                      onChange={(e) =>
+                        setEditTransactionForm({
+                          ...editTransactionForm,
+                          [e.target.name]: e.target.value,
+                        })
+                      }
                     >
+                      <option value="" disabled>
+                        Select Type
+                      </option>
                       <option value="Cash">Cash</option>
                       <option value="VISA">VISA</option>
                       <option value="Debit">Debit</option>
@@ -503,16 +659,18 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                   </div>
                   <div className="transaction-cell">
                     <button
-                      className="btn btn-success btn-sm me-2"
+                      className="btn btn-success btn-sm"
                       onClick={handleSaveEdit}
+                      title="Save Changes"
                     >
-                      Save
+                      <i className="bi bi-check-lg"></i> {/* Save Icon */}
                     </button>
                     <button
                       className="btn btn-secondary btn-sm"
-                      onClick={resetForm}
+                      onClick={() => setEditingTransaction(null)}
+                      title="Cancel Edit"
                     >
-                      Cancel
+                      <i className="bi bi-x-lg"></i> {/* Cancel Icon */}
                     </button>
                   </div>
                 </div>
@@ -531,18 +689,21 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                   <div className="transaction-cell">{transaction.category}</div>
                   <div className="transaction-cell">{transaction.type}</div>
                   <div className="transaction-cell">
-                    <button
-                      className="btn btn-warning btn-sm me-2"
-                      onClick={() => handleEdit(transaction)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="btn btn-danger btn-sm"
-                      onClick={() => handleDelete(transaction.id)}
-                    >
-                      Delete
-                    </button>
+                    <div className="transaction-cell action-buttons">
+                      <button
+                        className="btn btn-warning btn-sm"
+                        onClick={() => handleEdit(transaction)}
+                      >
+                        <i className="bi bi-pencil-square"></i>{" "}
+                        {/* Edit Icon */}
+                      </button>
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleDelete(transaction.id)}
+                      >
+                        <i className="bi bi-trash"></i> {/* Delete Icon */}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ),

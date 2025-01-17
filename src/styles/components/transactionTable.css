@@ -17,6 +17,24 @@
   border: 1px solid #ddd;
 }
 
+/* ====== Apply Alternating Opacities (Desktop & Mobile) ====== */
+.transaction-card:nth-child(even),
+.transaction-row:nth-child(even) {
+  opacity: 0.8;
+}
+
+.transaction-card:nth-child(odd),
+.transaction-row:nth-child(odd) {
+  opacity: 1;
+}
+
+/* Optional: Ensure hover restores full opacity for better focus */
+.transaction-card:hover,
+.transaction-row:hover {
+  opacity: 1 !important;
+  transition: opacity 0.2s ease-in-out;
+}
+
 /* ====== Desktop: Transactions Table ====== */
 
 .transactions-header {
@@ -29,7 +47,6 @@
 
 .transaction-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   height: 50px;
 }
@@ -39,80 +56,110 @@
 }
 
 .transaction-cell {
-  flex: 1;
   padding: 4px;
 }
 
-/* ====== Mobile: Transaction Cards ====== */
+/* Set specific column widths */
+.transaction-cell:nth-child(1), /* Date */
+.transaction-cell:nth-child(3), /* Amount */
+.transaction-cell:nth-child(4), /* Category */
+.transaction-cell:nth-child(5) {
+  /* Type */
+  flex: 1;
+  text-align: left;
+}
+
+/* Make the Description column wider */
+.transaction-cell:nth-child(2) {
+  /* Description */
+  flex: 2.5;
+  text-align: left;
+}
+
+/* Actions column - fixed width and aligned right */
+.transaction-cell:last-child {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  min-width: 120px;
+}
+
+/* ====== Mobile View Improvements ====== */
 @media (max-width: 768px) {
-  .transactions-container {
-    gap: 10px;
-  }
-
+  /* Improve transaction card layout */
   .transaction-card {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
+  /* Header styling for collapsed view */
   .transaction-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-weight: bold;
-    padding: 10px;
-    background: transparent; /* Remove background */
-    cursor: pointer;
-    border-bottom: none; /* Remove bottom border */
+    padding: 8px 0;
   }
 
+  /* Align date, amount, and truncated description */
   .transaction-header-left {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-grow: 1;
+    gap: 6px;
     overflow: hidden;
   }
 
-  .transaction-date,
-  .transaction-amount,
-  .transaction-category,
+  /* Truncate long descriptions */
   .transaction-description {
-    font-size: 14px;
-    font-weight: bold;
-    white-space: nowrap;
+    max-width: 150px;
     overflow: hidden;
+    white-space: nowrap;
     text-overflow: ellipsis;
   }
 
-  .transaction-description {
-    flex-grow: 1;
-    max-width: 180px;
-    color: #6c757d;
-  }
-
-  .transaction-amount {
-    color: #28a745;
-  }
-
+  /* Reduce vertical stacking by using flex */
   .transaction-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 0;
+  }
+
+  /* Inputs & selects should have uniform size */
+  .transaction-card-body input,
+  .transaction-card-body select {
     padding: 10px;
+    font-size: 14px;
+    border-radius: 6px;
+  }
+
+  /* Reduce button sizes & improve layout */
+  .mobile-action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .mobile-action-buttons .btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+  }
+
+  /* Make expanded transaction details more readable */
+  .transaction-card-body p {
+    margin: 6px 0;
     font-size: 14px;
   }
 
-  .transaction-card-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-  }
-
-  .divider {
-    color: #adb5bd;
-    font-weight: bold;
-  }
-
-  .transaction-card-alt {
-    background: transparent; /* Remove alternating row background */
+  /* Better button layout in transaction details */
+  .transaction-card-body .btn {
+    margin-top: 8px;
   }
 }
 
