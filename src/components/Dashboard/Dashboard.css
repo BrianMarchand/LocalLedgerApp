@@ -55,57 +55,6 @@
   gap: 10px;
 }
 
-/* 🔹 Modern Form Styling */
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-fieldset {
-  border: none;
-  padding: 0;
-  margin: 0;
-}
-
-legend {
-  font-weight: bold;
-  font-size: 1.2rem;
-  margin-bottom: 10px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-}
-
-input,
-select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 14px;
-}
-
-input:focus,
-select:focus {
-  border-color: #007bff;
-  outline: none;
-}
-
-button {
-  padding: 10px 15px;
-  border-radius: 5px;
-}
-
 /* 📱 Mobile Breakpoint */
 @media (max-width: 768px) {
   .dashboard-grid {
@@ -116,12 +65,31 @@ button {
     width: 100%; /* ✅ Ensure cards take full width */
   }
 
-  .quick-actions {
+  /* 🔹 Stack Quick Actions Below Title */
+  .dashboard-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .quick-actions-wrapper {
+    width: 100%;
+    display: flex;
     flex-direction: column; /* ✅ Stack buttons */
     align-items: center;
+    margin-top: 10px; /* ✅ Adds spacing between title and buttons */
+  }
+
+  .quick-actions {
+    display: flex;
+    flex-direction: column; /* ✅ Stack buttons */
+    align-items: center;
+    width: 100%;
+    gap: 10px; /* ✅ Restores proper padding between buttons */
   }
 
   .quick-actions button {
     width: 100%; /* ✅ Full width buttons */
+    padding: 8px; /* ✅ Adds some height to maintain a balanced UI */
   }
 }
