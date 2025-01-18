@@ -1,0 +1,93 @@
+/* 🌟 Modern Form Styling */
+.modern-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* Ensure spacing between fields */
+}
+
+/* 🏗️ Input Group */
+.input-group {
+  position: relative;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+/* 🔹 Base Input & Select Styling */
+.input-group input,
+.input-group select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px !important; /* ✅ Force full rounded corners */
+  font-size: 16px;
+  background: white;
+  outline: none;
+  transition: all 0.3s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+/* 🚀 Force Full Border Radius (For Bootstrap Interference) */
+.input-group input,
+.input-group select,
+.input-group input:focus,
+.input-group select:focus {
+  border-radius: 8px !important; /* ✅ Forces rounded corners */
+}
+
+/* 🔹 Fix Select Dropdown Arrow */
+.input-group select {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='gray'%3E%3Cpath d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px;
+  padding-right: 40px;
+}
+
+/* 🚀 Floating Labels */
+.input-group label {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  font-size: 14px;
+  color: #666;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  background: white;
+  padding: 0 6px;
+}
+
+/* 🔥 Floating Labels Active */
+.input-group input:focus + label,
+.input-group select:focus + label,
+.input-group input:not(:placeholder-shown) + label,
+.input-group select:not([value=""]) + label {
+  top: -8px;
+  left: 12px;
+  font-size: 12px;
+  color: #007bff;
+  background: white;
+}
+
+/* 📆 Fix Date & Dropdown Fields */
+.input-group input[type="date"],
+.input-group select {
+  font-family: inherit;
+  font-size: 16px;
+  padding-right: 30px;
+  border-radius: 8px !important; /* ✅ Forces rounded corners */
+}
+
+/* 📏 Button Spacing */
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+/* 🏆 Improve Button Size */
+.modal-actions button {
+  padding: 12px 18px;
+  font-size: 16px;
+}

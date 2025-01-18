@@ -22,11 +22,13 @@ export const useProjects = () => useContext(ProjectsContext);
 
 const SUBCOLLECTIONS = ["transactions", "shoppingList", "notes"];
 
+// --- Authentication Check ---
 const isAuthenticated = () => {
   if (!auth.currentUser) {
     toastError("No authenticated user.");
-    throw new Error("No authenticated user.");
+    return false;
   }
+  return true;
 };
 
 export const ProjectsProvider = ({ children }) => {
@@ -35,48 +37,75 @@ export const ProjectsProvider = ({ children }) => {
 
   // --- Firestore Listener ---
   useEffect(() => {
-    if (!auth.currentUser) {
-      console.warn("No authenticated user. Skipping Firestore listener setup.");
-      return;
-    }
+    let unsubscribeFirestore = null;
 
-    console.log("Setting up Firestore listener for projects...");
-    const unsubscribe = onSnapshot(
-      query(
-        collection(db, "projects"),
-        where("ownerId", "==", auth.currentUser.uid),
-        orderBy("order", "asc"),
-      ),
-      (snapshot) => {
-        const updatedProjects = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setProjects((prevProjects) => {
-          if (
-            JSON.stringify(prevProjects) !== JSON.stringify(updatedProjects)
-          ) {
-            console.log(
-              "Projects fetched and updated in state:",
-              updatedProjects,
-            );
-            return updatedProjects;
-          }
-          return prevProjects;
-        });
-      },
-      (error) => {
-        console.error("Error with Firestore listener:", error.message);
-      },
-    );
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        console.warn("No authenticated user. Clearing projects.");
+        setProjects([]); // Clear projects when logged out
+        return;
+      }
+
+      console.log("✅ User authenticated. Setting up Firestore listener...");
+
+      // Cleanup old listener before setting a new one
+      if (unsubscribeFirestore) {
+        unsubscribeFirestore();
+      }
+
+      unsubscribeFirestore = onSnapshot(
+        query(
+          collection(db, "projects"),
+          where("ownerId", "==", user.uid),
+          orderBy("order", "asc"),
+        ),
+        async (snapshot) => {
+          const updatedProjects = await Promise.all(
+            snapshot.docs.map(async (doc) => {
+              let projectData = { id: doc.id, ...doc.data() };
+
+              try {
+                // Fetch transactions for each project
+                const transactionsSnapshot = await getDocs(
+                  collection(db, `projects/${doc.id}/transactions`),
+                );
+                projectData.transactions = transactionsSnapshot.docs.map(
+                  (txn) => ({
+                    id: txn.id,
+                    ...txn.data(),
+                  }),
+                );
+              } catch (err) {
+                console.warn(
+                  `⚠️ Failed to fetch transactions for project: ${doc.id}`,
+                  err.message,
+                );
+                projectData.transactions = [];
+              }
+
+              return projectData;
+            }),
+          );
+
+          console.log(
+            "✅ Projects fetched with transactions:",
+            updatedProjects,
+          );
+          setProjects(updatedProjects);
+        },
+        (error) => {
+          console.error("🔥 Error with Firestore listener:", error.message);
+        },
+      );
+    });
 
     return () => {
-      console.log("Cleaning up Firestore listener...");
-      unsubscribe();
+      unsubscribeAuth();
+      if (unsubscribeFirestore) unsubscribeFirestore();
     };
-  }, [auth.currentUser?.uid]);
+  }, []);
 
-  // --- Consolidated Fetch Projects ---
+  // --- Fetch Projects (Manual Call) ---
   const fetchProjects = async (includeTransactions = false) => {
     setLoading(true);
     try {
@@ -122,26 +151,27 @@ export const ProjectsProvider = ({ children }) => {
   const addProject = async (
     newProject = { name: "Untitled Project", budget: 0, location: "Unknown" },
   ) => {
-    isAuthenticated();
+    if (!isAuthenticated()) return;
 
     try {
       const newDocRef = doc(collection(db, "projects"));
 
-      await setDoc(newDocRef, {
+      const projectData = {
         ...newProject,
         ownerId: auth.currentUser.uid,
         createdAt: serverTimestamp(),
         order: projects.length, // Set order dynamically
-      });
+      };
 
-      setProjects((prevProjects) => {
-        const addedProject = { id: newDocRef.id, ...newProject };
-        if (!prevProjects.some((p) => p.id === addedProject.id)) {
-          toastSuccess("Project added successfully!");
-          return [...prevProjects, addedProject];
-        }
-        return prevProjects;
-      });
+      await setDoc(newDocRef, projectData);
+
+      // **Immediate UI update instead of waiting for Firestore listener**
+      setProjects((prev) => [
+        ...prev,
+        { id: newDocRef.id, ...projectData, transactions: [] },
+      ]);
+
+      toastSuccess("Project added successfully!");
     } catch (err) {
       console.error(`Error adding project "${newProject.name}":`, err.message);
       toastError("Failed to add project.");
@@ -151,7 +181,7 @@ export const ProjectsProvider = ({ children }) => {
 
   // --- Update Project ---
   const updateProject = async (updatedProject) => {
-    isAuthenticated();
+    if (!isAuthenticated()) return;
     const docRef = doc(db, "projects", updatedProject.id);
 
     try {
@@ -159,7 +189,9 @@ export const ProjectsProvider = ({ children }) => {
 
       setProjects((prevProjects) =>
         prevProjects.map((project) =>
-          project.id === updatedProject.id ? updatedProject : project,
+          project.id === updatedProject.id
+            ? { ...project, ...updatedProject }
+            : project,
         ),
       );
       toastSuccess("Project updated successfully!");
@@ -174,23 +206,15 @@ export const ProjectsProvider = ({ children }) => {
 
   // --- Delete Project ---
   const deleteProject = async (id) => {
-    isAuthenticated();
+    if (!isAuthenticated()) return;
 
     try {
       const batch = writeBatch(db);
 
-      await Promise.all(
-        SUBCOLLECTIONS.map(async (sub) => {
-          try {
-            const subSnap = await getDocs(
-              collection(db, `projects/${id}/${sub}`),
-            );
-            subSnap.forEach((docSnap) => batch.delete(docSnap.ref));
-          } catch (err) {
-            console.warn(`Failed to delete subcollection: ${sub}`, err.message);
-          }
-        }),
-      );
+      for (const sub of SUBCOLLECTIONS) {
+        const subSnap = await getDocs(collection(db, `projects/${id}/${sub}`));
+        subSnap.forEach((docSnap) => batch.delete(docSnap.ref));
+      }
 
       batch.delete(doc(db, "projects", id));
       await batch.commit();
@@ -208,7 +232,7 @@ export const ProjectsProvider = ({ children }) => {
       value={{
         projects,
         loading,
-        fetchProjects, // Consolidated function
+        fetchProjects,
         addProject,
         updateProject,
         deleteProject,

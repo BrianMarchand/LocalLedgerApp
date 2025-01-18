@@ -1,3 +1,4 @@
+// --- Page: Chart Card ---
 import React from "react";
 
 const ChartCard = ({ title, children, className = "" }) => {

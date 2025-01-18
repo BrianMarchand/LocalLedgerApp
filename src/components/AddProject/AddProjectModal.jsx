@@ -300,6 +300,12 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
         </Form.Group>
       </Modal.Body>
       <Modal.Footer>
+        {/* Cancel Button */}
+        <Button variant="secondary" onClick={handleClose} disabled={loading}>
+          Cancel
+        </Button>
+
+        {/* Save Button */}
         <Button
           variant="primary"
           onClick={handleSave}

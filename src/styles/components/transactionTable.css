@@ -20,12 +20,12 @@
 /* ====== Apply Alternating Opacities (Desktop & Mobile) ====== */
 .transaction-card:nth-child(even),
 .transaction-row:nth-child(even) {
-  opacity: 0.8;
+  background: #fff;
 }
 
 .transaction-card:nth-child(odd),
 .transaction-row:nth-child(odd) {
-  opacity: 1;
+  background: #fafafa;
 }
 
 /* Optional: Ensure hover restores full opacity for better focus */

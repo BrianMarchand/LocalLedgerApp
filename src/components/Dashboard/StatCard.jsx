@@ -1,3 +1,4 @@
+// --- Page: Stat Card ---
 import React from "react";
 
 const StatCard = ({ title, value, icon, className = "" }) => {

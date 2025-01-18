@@ -5,29 +5,35 @@
   right: 20px;
   z-index: 1000;
   display: flex;
+  flex-direction: column-reverse; /* Buttons expand upwards */
+  gap: 10px;
+}
+
+.fab-wrapper {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
+/* Individual Buttons */
 .fab-btn {
   width: 50px;
   height: 50px;
   border-radius: 50%;
+  display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
   transition: all 0.3s ease;
-  display: inline-block !important;
-  font-style: normal !important;
-  vertical-align: 0em !important; /* Aligns with text */
-  text-rendering: auto !important; /* Ensures rendering */
-  -webkit-font-smoothing: antialiased !important;
-  -moz-osx-font-smoothing: grayscale !important;
 }
 
 .fab-btn:hover {
-  transform: scale(1.5);
+  transform: scale(1.15);
 }
 
 .fab-btn.btn-success i,
@@ -36,17 +42,18 @@
   color: white;
 }
 
-/* --- Fix for Bootstrap Icon Issues --- */
-
-.bi {
-  display: inline-block !important;
-  font-style: normal !important;
-  vertical-align: 0em !important; /* Aligns with text */
-  text-rendering: auto !important; /* Ensures rendering */
-  -webkit-font-smoothing: antialiased !important;
-  -moz-osx-font-smoothing: grayscale !important;
+/* Hide buttons by default, fade in when expanded */
+.fab-container .fab-btn:not(:last-child) {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 
-.bi {
-  font-family: "Bootstrap Icons" !important;
+/* Show buttons when expanded */
+.fab-container:hover .fab-btn:not(:last-child),
+.fab-container:focus-within .fab-btn:not(:last-child) {
+  opacity: 1;
+  transform: translateY(0);
 }

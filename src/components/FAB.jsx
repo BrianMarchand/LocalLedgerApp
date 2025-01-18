@@ -1,29 +1,57 @@
-import React from "react";
+// --- Page: FAB.jsx ---
+import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import "../styles/components/fab.css";
 
-const FAB = ({ onClick, icon, variant = "primary", tooltip }) => {
+const FAB = ({ actions }) => {
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <div className="fab-container">
-      <OverlayTrigger
-        placement="left" // Tooltip position
-        overlay={<Tooltip id="fab-tooltip">{tooltip}</Tooltip>}
+      {/* Loop through FAB actions */}
+      {expanded &&
+        actions.map((action, index) => (
+          <OverlayTrigger
+            key={index}
+            placement="left"
+            overlay={
+              <Tooltip id={`fab-tooltip-${index}`}>{action.tooltip}</Tooltip>
+            }
+          >
+            <button
+              className={`fab-btn btn btn-${action.variant}`}
+              onClick={() => {
+                action.onClick();
+                setExpanded(false); // Collapse menu after click
+              }}
+            >
+              <i className={`bi ${action.icon}`}></i>
+            </button>
+          </OverlayTrigger>
+        ))}
+
+      {/* Main FAB Button (toggles menu) */}
+      <button
+        className="fab-btn btn btn-primary"
+        onClick={() => setExpanded(!expanded)}
       >
-        <button className={`fab-btn btn btn-${variant}`} onClick={onClick}>
-          <i className={`bi ${icon}`}></i>
-        </button>
-      </OverlayTrigger>
+        <i className={`bi ${expanded ? "bi-x-lg" : "bi-plus-lg"}`}></i>
+      </button>
     </div>
   );
 };
 
 // Props Validation
 FAB.propTypes = {
-  onClick: PropTypes.func.isRequired,
-  icon: PropTypes.string.isRequired,
-  variant: PropTypes.string,
-  tooltip: PropTypes.string, // Tooltip text
+  actions: PropTypes.arrayOf(
+    PropTypes.shape({
+      onClick: PropTypes.func.isRequired,
+      icon: PropTypes.string.isRequired,
+      variant: PropTypes.string.isRequired,
+      tooltip: PropTypes.string.isRequired,
+    }),
+  ).isRequired,
 };
 
 export default FAB;
