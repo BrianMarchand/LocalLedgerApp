@@ -17,6 +17,18 @@
   border: 1px solid #ddd;
 }
 
+.sortable {
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sortable:hover {
+  color: #e5f1ff; /* Highlight effect */
+}
+
 /* ====== Apply Alternating Opacities (Desktop & Mobile) ====== */
 .transaction-card:nth-child(even),
 .transaction-row:nth-child(even) {
@@ -83,6 +95,18 @@
   gap: 8px;
   justify-content: flex-end;
   min-width: 120px;
+}
+
+/* Apply blur effect when form is active */
+.transaction-row.blurred {
+  filter: blur(3px);
+  pointer-events: none; /* Prevent interactions */
+  transition: filter 0.3s ease-in-out;
+}
+
+/* Ensure new transaction row is never blurred */
+.new-transaction-row {
+  filter: none !important;
 }
 
 /* ====== Mobile View Improvements ====== */

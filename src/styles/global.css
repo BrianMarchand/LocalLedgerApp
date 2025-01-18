@@ -111,7 +111,7 @@ body {
 /* --- Progress Bar --- */
 .progress-bar {
   height: 100%;
-  border-radius: 8px; /* Match container */
+  border-radius: 0px;
   transition: width 0.4s ease-in-out; /* Smooth animation */
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Light shadow for visibility */
   font-weight: 500; /* Slightly bold */

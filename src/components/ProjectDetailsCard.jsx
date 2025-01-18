@@ -190,11 +190,21 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
     console.log("Progress Data:", progressData);
   }, [projectDetails, progressData]);
 
+  // --- Define hasDeposit at the start of the component ---
+  const hasDeposit = validTransactions.some(
+    (txn) =>
+      txn.category === "Client Payment" &&
+      txn.description?.toLowerCase().includes("deposit"),
+  );
+
   // **Render Card**
   return (
     <div className="global-card">
       <div className="card-header d-flex justify-content-between align-items-center">
-        <h5>{project.name || "Unnamed Project"}</h5>
+        <h5>
+          <i className="bi bi-folder2 me-2"></i>
+          {project.name || "Unnamed Project"}
+        </h5>
         <span className={getBadgeClass(projectDetails.status)}>
           {getBadgeLabel(projectDetails.status)}
         </span>
@@ -203,6 +213,13 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
         <p className="lh-1">
           <i className="bi bi-geo-alt-fill text-primary me-2"></i>
           <strong>Location:</strong> {project.location || "N/A"}
+        </p>
+        <p className="lh-1">
+          <i className="bi bi-calendar-event text-info me-2"></i>
+          <strong>Estimated Completion: </strong>
+          {project.estimatedCompletionDate
+            ? new Date(project.estimatedCompletionDate).toLocaleDateString()
+            : "Not Set"}
         </p>
         <p className="lh-1">
           <i className="bi bi-bank text-success me-2"></i>
@@ -223,93 +240,45 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
         </p>
 
         {/* Status Dropdown */}
+        {/* Status Dropdown */}
         <div className="d-flex align-items-center gap-2 mb-3">
           <i className="bi bi-substack text-secondary"></i>
           <strong className="text-nowrap me-2">Change Status:</strong>
 
-          {["on-hold", "cancelled", "completed"].includes(
-            projectDetails.status,
-          ) ? (
-            <button
-              className="btn btn-outline-warning btn-sm d-flex align-items-center gap-1"
-              title="Re-open Project"
-              onClick={async () => {
-                const result = await Swal.fire({
-                  title: "Re-open Project?",
-                  text: "This will change the status back to 'New'. Continue?",
-                  icon: "question",
-                  showCancelButton: true,
-                  confirmButtonColor: "#28a745",
-                  cancelButtonColor: "#3085d6",
-                  confirmButtonText: "Yes, re-open it!",
-                  cancelButtonText: "Cancel",
-                });
-
-                if (result.isConfirmed) {
-                  try {
-                    const docRef = doc(db, "projects", projectDetails.id);
-                    await updateDoc(docRef, {
-                      status: "new",
-                      statusDate: new Date(),
-                    });
-
-                    setProjectDetails((prev) => ({
-                      ...prev,
-                      status: "new",
-                    }));
-
-                    Swal.fire(
-                      "Reopened!",
-                      "The project has been reopened.",
-                      "success",
-                    );
-                  } catch (error) {
-                    console.error("Error reopening project:", error);
-                    Swal.fire(
-                      "Error",
-                      "Failed to re-open project. Please try again.",
-                      "error",
-                    );
-                  }
-                }
-              }}
+          <select
+            id="status"
+            className="form-select w-auto"
+            value={selectedStatus}
+            onChange={(e) => {
+              setSelectedStatus(e.target.value);
+              handleStatusChange(e.target.value);
+            }}
+            disabled={!validTransactions.length}
+          >
+            {/* ✅ Prevent "New" if reopening a project that already has a deposit */}
+            <option
+              value="new"
+              disabled={projectDetails.status === "on-hold" && hasDeposit}
             >
-              <i className="bi bi-arrow-repeat"></i> Re-open
-            </button>
-          ) : (
-            <select
-              id="status"
-              className="form-select w-auto"
-              value={selectedStatus}
-              onChange={(e) => {
-                setSelectedStatus(e.target.value);
-                handleStatusChange(e.target.value);
-              }}
-              disabled={!validTransactions.length}
+              New
+            </option>
+
+            {/* ✅ Ensure "In Progress" is only enabled if a deposit exists */}
+            <option value="in-progress" disabled={!hasDeposit}>
+              In Progress
+            </option>
+
+            {/* ✅ Ensure "Completed" is only enabled if the full budget is paid */}
+            <option
+              value="completed"
+              disabled={progressData.income < (project.budget || 0)}
             >
-              <option value="new">New</option>
-              <option
-                value="in-progress"
-                disabled={
-                  !validTransactions.some(
-                    (t) =>
-                      t.category === "Client Payment" &&
-                      t.description?.toLowerCase().includes("deposit"),
-                  )
-                }
-              >
-                In Progress
-              </option>
-              <option
-                value="completed"
-                disabled={progressData.percentage < 100}
-              >
-                Completed
-              </option>
-              <option value="on-hold">On Hold</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          )}
+              Completed
+            </option>
+
+            <option value="on-hold">On Hold</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
         </div>
 
         {/* Progress Bar  */}
@@ -335,6 +304,11 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
               role="progressbar"
               style={{
                 width: `${progressData.percentage}%`,
+                fontSize: "11px", // ✅ Ensure text is readable
+                fontWeight: "normal", // ✅ Make text stand out
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
               aria-valuenow={progressData.percentage}
               aria-valuemin="0"

@@ -11,6 +11,9 @@
     "start": "dotenv vite preview"
   },
   "dependencies": {
+    "@fullcalendar/daygrid": "^6.1.15",
+    "@fullcalendar/interaction": "^6.1.15",
+    "@fullcalendar/react": "^6.1.15",
     "@hello-pangea/dnd": "^17.0.0",
     "@popperjs/core": "^2.11.8",
     "body-parser": "^1.20.3",

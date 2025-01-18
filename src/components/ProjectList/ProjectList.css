@@ -122,31 +122,6 @@
   ) !important; /* Highlighted border on hover */
 }
 
-/* Disabled Cards */
-.clickable-card.disabled {
-  pointer-events: none; /* Prevent clicks */
-  opacity: 0.8 !important; /* Softer opacity for disabled look */
-  filter: grayscale(60%) !important; /* Grayscale effect */
-  border-color: rgba(
-    0,
-    0,
-    0,
-    0.1
-  ) !important; /* Even softer border for disabled */
-}
-
-/* Allow buttons inside disabled cards to remain clickable */
-.clickable-card.disabled button {
-  pointer-events: all !important; /* Re-enable pointer events for buttons */
-  opacity: 1 !important; /* Ensure buttons remain fully visible */
-}
-
-.clickable-card.disabled button:hover {
-  filter: brightness(1.1); /* Slight highlight effect */
-  transform: scale(1.05); /* Slight pop effect */
-  transition: all 0.2s ease-in-out;
-}
-
 .clickable-card:active {
   cursor: grabbing;
 }

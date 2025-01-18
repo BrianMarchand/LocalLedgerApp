@@ -1,3 +1,5 @@
+// --- Page: projectUtils.js ---
+
 import { db } from "@config";
 import {
   collection,
@@ -11,7 +13,6 @@ import {
   where,
 } from "firebase/firestore";
 
-// --- Fetch All Projects ---
 // --- Fetch All Projects ---
 export const fetchProjectsFromDB = async (user, setProjects) => {
   // Ensure we have a valid user object

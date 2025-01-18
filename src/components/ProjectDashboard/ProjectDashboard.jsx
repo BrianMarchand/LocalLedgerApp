@@ -8,6 +8,7 @@ import FinancialSummary from "./FinancialSummary";
 import PaymentBreakdown from "./PaymentBreakdown";
 import ErrorState from "./ErrorState";
 import LoadingSpinner from "./LoadingSpinner";
+import ProjectCalendar from "./ProjectCalendar";
 import NotesModal from "../Notes/NotesModal";
 import ErrorBoundary from "/src/components/ErrorBoundary";
 import ProjectDetailsCard from "../ProjectDetailsCard";
@@ -196,14 +197,19 @@ function ProjectDashboard() {
           </button>
         </div>
 
-        {/* Project Details Card */}
-        <div className="row mb-4 mt-5">
-          <div className="col-md-6">
+        <div className="row">
+          {/* Project Details Card */}
+          <div className="col-md-6 mb-4">
             <ProjectDetailsCard
               project={project}
               transactions={transactions}
               metrics={metrics} // Pass calculated metrics
             />
+          </div>
+
+          {/* 🔹 Calendar Widget (Full Width) */}
+          <div className="col-md-6 mb-4">
+            <ProjectCalendar projectId={projectId} />
           </div>
         </div>
 

@@ -1,0 +1,71 @@
+/* Page: src/styles/components/ProjectCalendar.css */
+
+/* Ensure no extra space at the bottom */
+.global-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: var(--box-shadow);
+}
+
+.global-card .card-header {
+  margin-bottom: 10px;
+}
+
+.react-calendar {
+  flex-grow: 1; /* Ensures calendar takes up available space */
+  width: 100%;
+  max-width: 100%;
+  border: none;
+  border-radius: 8px;
+}
+
+.react-calendar__tile {
+  min-height: 40px; /* Adjust tile height if needed */
+}
+
+/* Make calendar events more visually distinct */
+.fc-event {
+  border-radius: 6px !important;
+  padding: 4px !important;
+  font-size: 12px !important;
+  font-weight: bold !important;
+}
+
+/* Add a hover effect for better interaction */
+.fc-event:hover {
+  transform: scale(1.05);
+  transition: all 0.2s ease-in-out;
+}
+
+/* Style the estimated completion event differently */
+.fc-event[title*="Estimated Completion"] {
+  background-color: #ff6347 !important; /* Tomato red */
+  border-color: #d9534f !important;
+  color: white !important;
+}
+
+/* ✅ Apply a base font size inside only the project calendar */
+.global-card .fc {
+  font-size: 12px !important; /* Adjust this as needed */
+}
+
+/* Change the color for different event categories */
+.fc-event[title*="💰"] {
+  background-color: #28a745 !important;
+  color: white !important;
+} /* Client Payment */
+.fc-event[title*="🏗️"] {
+  background-color: #007bff !important;
+  color: white !important;
+} /* Labour */
+.fc-event[title*="🏠"] {
+  background-color: #ffc107 !important;
+  color: black !important;
+} /* Materials */
+.fc-event[title*="⚙️"] {
+  background-color: #6c757d !important;
+  color: white !important;
+} /* Miscellaneous */

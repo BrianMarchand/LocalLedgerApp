@@ -1,4 +1,5 @@
-// Page: AddProjectModal.jsx
+// --- Page: AddProjectModal.jsx ---
+
 import React, { useState, useEffect } from "react";
 import {
   collection,
@@ -37,6 +38,9 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
   // Validation Errors
   const [errors, setErrors] = useState({});
 
+  // Estimated Completion Date
+  const [estimatedCompletionDate, setEstimatedCompletionDate] = useState("");
+
   // Context Methods
   const { addProject, updateProject, fetchProjects } = useProjects();
   const [isFormValid, setIsFormValid] = useState(false);
@@ -49,7 +53,8 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
       setLocation(editingProject.location || "");
       setBudget(editingProject.budget || "");
       setStatus(editingProject?.status ?? "new"); // Keep status undefined if not set!
-      setStatusNote(editingProject.statusNote || "");
+      setStatusNote(editingProject.statusNote || ""); // Ensure it's pre-filled
+      setEstimatedCompletionDate(editingProject.estimatedCompletionDate || "");
     } else {
       resetForm(); // Reset fields for new project
     }
@@ -129,6 +134,7 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
         location,
         budget: parseFloat(budget),
         status: editingProject ? status : "new", // Default to "new"
+        estimatedCompletionDate,
         statusNote,
         createdAt: editingProject?.createdAt || new Date(),
         ownerId: auth.currentUser?.uid,
@@ -270,6 +276,20 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
           </Form.Control.Feedback>
         </Form.Group>
 
+        {/* Completion Date */}
+        <Form.Group className="mb-3">
+          <Form.Label>Estimated Completion Date</Form.Label>
+          <Form.Control
+            type="date"
+            value={
+              estimatedCompletionDate
+                ? estimatedCompletionDate.split("T")[0]
+                : ""
+            }
+            onChange={(e) => setEstimatedCompletionDate(e.target.value)}
+          />
+        </Form.Group>
+
         {/* Status */}
         <Form.Group className="mb-3">
           <Form.Label>Status</Form.Label>
@@ -297,6 +317,18 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
           <Form.Control.Feedback type="invalid">
             {errors.status}
           </Form.Control.Feedback>
+        </Form.Group>
+
+        {/* Status Note Field */}
+        <Form.Group className="mb-3">
+          <Form.Label>Status Note</Form.Label>
+          <Form.Control
+            as="textarea"
+            rows={2}
+            placeholder="Enter a status note (optional)"
+            value={statusNote}
+            onChange={(e) => setStatusNote(e.target.value)}
+          />
         </Form.Group>
       </Modal.Body>
       <Modal.Footer>

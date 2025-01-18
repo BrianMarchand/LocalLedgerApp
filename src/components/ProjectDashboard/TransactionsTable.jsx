@@ -1,3 +1,4 @@
+// --- Page: TransactionsTable.jsx ---
 import React, { useState, useEffect } from "react";
 import {
   addDoc,
@@ -21,6 +22,10 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
   const [expandedTransaction, setExpandedTransaction] = useState(null);
   const [isAddingTransaction, setIsAddingTransaction] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [filterCategory, setFilterCategory] = useState("All"); // 🔹 New State for Filtering
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortDirection, setSortDirection] = useState("asc");
+  const [isAddingFocused, setIsAddingFocused] = useState(false);
 
   // Separate state for adding new transactions
   const [addTransactionForm, setAddTransactionForm] = useState({
@@ -40,12 +45,67 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
     type: "",
   });
 
+  // 🔹 Function to filter transactions
+  const filteredTransactions =
+    filterCategory === "All"
+      ? localTransactions
+      : localTransactions.filter(
+          (transaction) => transaction.category === filterCategory,
+        );
+
+  // 🔹 Function to handle sorting
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      // If already sorting by this column, toggle direction
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // Otherwise, sort by the new column in ascending order
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  // 🔹 Function to handle sorting
+  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+    if (!sortColumn) return 0; // No sorting applied
+
+    let valueA = a[sortColumn];
+    let valueB = b[sortColumn];
+
+    if (sortColumn === "amount") {
+      valueA = parseFloat(valueA) || 0;
+      valueB = parseFloat(valueB) || 0;
+    } else if (sortColumn === "date") {
+      // ✅ Convert Firestore timestamp properly
+      valueA = a.date?.seconds
+        ? new Date(a.date.seconds * 1000)
+        : new Date(a.date);
+      valueB = b.date?.seconds
+        ? new Date(b.date.seconds * 1000)
+        : new Date(b.date);
+    } else {
+      valueA = valueA?.toString().toLowerCase() || "";
+      valueB = valueB?.toString().toLowerCase() || "";
+    }
+
+    return sortDirection === "asc"
+      ? valueA > valueB
+        ? 1
+        : -1
+      : valueA < valueB
+        ? 1
+        : -1;
+  });
+
   useEffect(() => {
-    setLocalTransactions(transactions);
+    setLocalTransactions(transactions); // ✅ Keep transactions updated when the prop changes
+  }, [transactions]);
+
+  useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [transactions]);
+  }, []);
 
   const formatDateForInput = (timestamp) => {
     const date = new Date(timestamp?.seconds * 1000 || timestamp);
@@ -53,10 +113,16 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
   };
 
   const formatDate = (timestamp) => {
-    const date = new Date(timestamp?.seconds * 1000 || timestamp);
-    return isNaN(date.getTime())
+    let date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
+
+    // Ensure proper timezone conversion
+    const localDate = new Date(
+      date.toLocaleString("en-US", { timeZone: "UTC" }),
+    );
+
+    return isNaN(localDate.getTime())
       ? "Invalid Date"
-      : date.toLocaleDateString("en-US", {
+      : localDate.toLocaleDateString("en-US", {
           year: "numeric",
           month: "2-digit",
           day: "2-digit",
@@ -105,9 +171,13 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
     }
 
     try {
+      // ✅ Fix Timezone Offset: Force local timezone midnight before saving
+      const localDate = new Date(addTransactionForm.date);
+      localDate.setHours(0, 0, 0, 0); // Ensure stored time is midnight local
+
       const newTransaction = {
         ...addTransactionForm,
-        date: Timestamp.fromDate(new Date(addTransactionForm.date)),
+        date: Timestamp.fromDate(localDate),
       };
 
       await addDoc(
@@ -449,13 +519,82 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
           </>
         ) : (
           <div className="transactions-container">
-            {/* Header */}
+            <div className="card-header d-flex justify-content-between align-items-center">
+              <h5 className="mb-0">
+                <i className="bi bi-list-stars me-2"></i>Project Transactions
+              </h5>
+
+              {/* 🔹 Filter Dropdown (New Feature) */}
+              <select
+                className="form-select form-select-sm w-auto"
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+              >
+                <option value="All">All Transactions</option>
+                <option value="Client Payment">Client Payment</option>
+                <option value="Labour">Labour</option>
+                <option value="Materials">Materials</option>
+                <option value="Miscellaneous">Miscellaneous</option>
+              </select>
+            </div>
+
+            {/* Header with Sortable Columns */}
             <div className="transactions-header">
-              <div className="transaction-cell">Date</div>
-              <div className="transaction-cell">Description</div>
-              <div className="transaction-cell">Amount</div>
-              <div className="transaction-cell">Category</div>
-              <div className="transaction-cell">Type</div>
+              <div
+                className="transaction-cell sortable"
+                onClick={() => handleSort && handleSort("date")}
+              >
+                Date{" "}
+                {sortColumn === "date"
+                  ? sortDirection === "asc"
+                    ? "▲"
+                    : "▼"
+                  : ""}
+              </div>
+              <div
+                className="transaction-cell sortable"
+                onClick={() => handleSort && handleSort("description")}
+              >
+                Description{" "}
+                {sortColumn === "description"
+                  ? sortDirection === "asc"
+                    ? "▲"
+                    : "▼"
+                  : ""}
+              </div>
+              <div
+                className="transaction-cell sortable"
+                onClick={() => handleSort && handleSort("amount")}
+              >
+                Amount{" "}
+                {sortColumn === "amount"
+                  ? sortDirection === "asc"
+                    ? "▲"
+                    : "▼"
+                  : ""}
+              </div>
+              <div
+                className="transaction-cell sortable"
+                onClick={() => handleSort && handleSort("category")}
+              >
+                Category{" "}
+                {sortColumn === "category"
+                  ? sortDirection === "asc"
+                    ? "▲"
+                    : "▼"
+                  : ""}
+              </div>
+              <div
+                className="transaction-cell sortable"
+                onClick={() => handleSort && handleSort("type")}
+              >
+                Type{" "}
+                {sortColumn === "type"
+                  ? sortDirection === "asc"
+                    ? "▲"
+                    : "▼"
+                  : ""}
+              </div>
               <div className="transaction-cell">Actions</div>
             </div>
 
@@ -566,147 +705,155 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
             </div>
 
             {/* Transactions Rows */}
-            {localTransactions.map((transaction) =>
-              editingTransaction?.id === transaction.id ? (
-                <div
-                  key={transaction.id}
-                  className="transaction-row editing-row"
-                >
-                  {/* Inline Edit Row */}
-                  <div className="transaction-cell">
-                    <input
-                      type="date"
-                      name="date"
-                      className="form-control"
-                      value={editTransactionForm.date}
-                      onChange={(e) =>
-                        setEditTransactionForm({
-                          ...editTransactionForm,
-                          [e.target.name]: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="transaction-cell">
-                    <input
-                      type="text"
-                      name="description"
-                      className="form-control"
-                      value={editTransactionForm.description}
-                      onChange={(e) =>
-                        setEditTransactionForm({
-                          ...editTransactionForm,
-                          [e.target.name]: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="transaction-cell">
-                    <input
-                      type="number"
-                      name="amount"
-                      className="form-control"
-                      value={editTransactionForm.amount}
-                      onChange={(e) =>
-                        setEditTransactionForm({
-                          ...editTransactionForm,
-                          [e.target.name]: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="transaction-cell">
-                    <select
-                      name="category"
-                      className="form-select"
-                      value={editTransactionForm.category}
-                      onChange={(e) =>
-                        setEditTransactionForm({
-                          ...editTransactionForm,
-                          [e.target.name]: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="" disabled>
-                        Select Category
-                      </option>
-                      <option value="Client Payment">Client Payment</option>
-                      <option value="Labour">Labour</option>
-                      <option value="Materials">Materials</option>
-                      <option value="Miscellaneous">Miscellaneous</option>
-                    </select>
-                  </div>
-                  <div className="transaction-cell">
-                    <select
-                      name="type"
-                      className="form-select"
-                      value={editTransactionForm.type}
-                      onChange={(e) =>
-                        setEditTransactionForm({
-                          ...editTransactionForm,
-                          [e.target.name]: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="" disabled>
-                        Select Type
-                      </option>
-                      <option value="Cash">Cash</option>
-                      <option value="VISA">VISA</option>
-                      <option value="Debit">Debit</option>
-                      <option value="E-Transfer">E-Transfer</option>
-                    </select>
-                  </div>
-                  <div className="transaction-cell">
-                    <button
-                      className="btn btn-success btn-sm"
-                      onClick={handleSaveEdit}
-                      title="Save Changes"
-                    >
-                      <i className="bi bi-check-lg"></i> {/* Save Icon */}
-                    </button>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setEditingTransaction(null)}
-                      title="Cancel Edit"
-                    >
-                      <i className="bi bi-x-lg"></i> {/* Cancel Icon */}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div key={transaction.id} className="transaction-row">
-                  {/* Read-Only Row */}
-                  <div className="transaction-cell">
-                    {formatDate(transaction.date)}
-                  </div>
-                  <div className="transaction-cell">
-                    {transaction.description}
-                  </div>
-                  <div className="transaction-cell">
-                    {formatCurrency(transaction.amount)}
-                  </div>
-                  <div className="transaction-cell">{transaction.category}</div>
-                  <div className="transaction-cell">{transaction.type}</div>
-                  <div className="transaction-cell">
-                    <div className="transaction-cell action-buttons">
-                      <button
-                        className="btn btn-warning btn-sm"
-                        onClick={() => handleEdit(transaction)}
+            {sortedTransactions.length > 0 ? (
+              sortedTransactions.map((transaction) =>
+                editingTransaction?.id === transaction.id ? (
+                  <div
+                    key={transaction.id}
+                    className="transaction-row editing-row"
+                  >
+                    {/* Inline Edit Row */}
+                    <div className="transaction-cell">
+                      <input
+                        type="date"
+                        name="date"
+                        className="form-control"
+                        value={editTransactionForm.date}
+                        onChange={(e) =>
+                          setEditTransactionForm({
+                            ...editTransactionForm,
+                            [e.target.name]: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="transaction-cell">
+                      <input
+                        type="text"
+                        name="description"
+                        className="form-control"
+                        value={editTransactionForm.description}
+                        onChange={(e) =>
+                          setEditTransactionForm({
+                            ...editTransactionForm,
+                            [e.target.name]: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="transaction-cell">
+                      <input
+                        type="number"
+                        name="amount"
+                        className="form-control"
+                        value={editTransactionForm.amount}
+                        onChange={(e) =>
+                          setEditTransactionForm({
+                            ...editTransactionForm,
+                            [e.target.name]: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="transaction-cell">
+                      <select
+                        name="category"
+                        className="form-select"
+                        value={editTransactionForm.category}
+                        onChange={(e) =>
+                          setEditTransactionForm({
+                            ...editTransactionForm,
+                            [e.target.name]: e.target.value,
+                          })
+                        }
                       >
-                        <i className="bi bi-pencil-square"></i>{" "}
-                        {/* Edit Icon */}
+                        <option value="" disabled>
+                          Select Category
+                        </option>
+                        <option value="Client Payment">Client Payment</option>
+                        <option value="Labour">Labour</option>
+                        <option value="Materials">Materials</option>
+                        <option value="Miscellaneous">Miscellaneous</option>
+                      </select>
+                    </div>
+                    <div className="transaction-cell">
+                      <select
+                        name="type"
+                        className="form-select"
+                        value={editTransactionForm.type}
+                        onChange={(e) =>
+                          setEditTransactionForm({
+                            ...editTransactionForm,
+                            [e.target.name]: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="" disabled>
+                          Select Type
+                        </option>
+                        <option value="Cash">Cash</option>
+                        <option value="VISA">VISA</option>
+                        <option value="Debit">Debit</option>
+                        <option value="E-Transfer">E-Transfer</option>
+                      </select>
+                    </div>
+                    <div className="transaction-cell">
+                      <button
+                        className="btn btn-success btn-sm"
+                        onClick={handleSaveEdit}
+                        title="Save Changes"
+                      >
+                        <i className="bi bi-check-lg"></i> {/* Save Icon */}
                       </button>
                       <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => handleDelete(transaction.id)}
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setEditingTransaction(null)}
+                        title="Cancel Edit"
                       >
-                        <i className="bi bi-trash"></i> {/* Delete Icon */}
+                        <i className="bi bi-x-lg"></i> {/* Cancel Icon */}
                       </button>
                     </div>
                   </div>
-                </div>
-              ),
+                ) : (
+                  <div key={transaction.id} className="transaction-row">
+                    {/* Read-Only Row */}
+                    <div className="transaction-cell">
+                      {formatDate(transaction.date)}
+                    </div>
+                    <div className="transaction-cell">
+                      {transaction.description}
+                    </div>
+                    <div className="transaction-cell">
+                      {formatCurrency(transaction.amount)}
+                    </div>
+                    <div className="transaction-cell">
+                      {transaction.category}
+                    </div>
+                    <div className="transaction-cell">{transaction.type}</div>
+                    <div className="transaction-cell">
+                      <div className="transaction-cell action-buttons">
+                        <button
+                          className="btn btn-warning btn-sm"
+                          onClick={() => handleEdit(transaction)}
+                        >
+                          <i className="bi bi-pencil-square"></i>{" "}
+                          {/* Edit Icon */}
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDelete(transaction.id)}
+                        >
+                          <i className="bi bi-trash"></i> {/* Delete Icon */}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ),
+              )
+            ) : (
+              <div className="transaction-row text-center">
+                <p className="w-100 text-muted">No transactions found.</p>
+              </div>
             )}
           </div>
         )}

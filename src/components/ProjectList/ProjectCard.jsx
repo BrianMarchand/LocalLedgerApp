@@ -1,3 +1,5 @@
+// --- Page: ProjectCard.jsx ---
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -13,7 +15,13 @@ import { getBadgeClass, getBadgeLabel } from "../../utils/badgeUtils";
 import Swal from "sweetalert2";
 import { toastSuccess, toastError } from "../../utils/toastNotifications";
 
-const ProjectCard = ({ project, index, fetchProjects }) => {
+const ProjectCard = ({
+  project,
+  index,
+  fetchProjects,
+  setEditingProject,
+  setShowModal,
+}) => {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
   const [progressData, setProgressData] = useState({
@@ -89,6 +97,11 @@ const ProjectCard = ({ project, index, fetchProjects }) => {
     }
   };
 
+  // ✅ Calculate total income from Client Payments only
+  const totalIncome = transactions
+    .filter((t) => t.category === "Client Payment")
+    .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
   return (
     <div className="col-md-4 mb-4">
       <div
@@ -109,6 +122,13 @@ const ProjectCard = ({ project, index, fetchProjects }) => {
             <strong>Location:</strong> {project.location || "N/A"}
           </p>
           <p className="mb-3">
+            <i className="bi bi-calendar-event text-info me-2"></i>
+            <strong>Estimated Completion: </strong>
+            {project.estimatedCompletionDate
+              ? new Date(project.estimatedCompletionDate).toLocaleDateString()
+              : "Not Set"}
+          </p>
+          <p className="mb-3">
             <i className="bi bi-bank text-success me-2"></i>
             <strong>Budget:</strong> $
             {Number(project.budget)?.toLocaleString() || "0"}
@@ -126,11 +146,18 @@ const ProjectCard = ({ project, index, fetchProjects }) => {
           {/* --- Progress Bar --- */}
           <i className="bi bi-graph-up-arrow text-secondary me-2 mb-3"></i>
           <strong>Progress:</strong>
-          <div className="progress" style={{ height: "10px" }}>
+          <div className="progress" style={{ height: "24px" }}>
             <div
               className={`progress-bar ${progressData.status === "completed" ? "bg-success" : progressData.status === "over-budget" ? "bg-danger" : "bg-primary"}`}
               role="progressbar"
-              style={{ width: `${progressData.percentage}%` }}
+              style={{
+                width: `${progressData.percentage}%`,
+                fontSize: "11px", // ✅ Ensure text is readable
+                fontWeight: "normal", // ✅ Make text stand out
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
               aria-valuenow={progressData.percentage}
               aria-valuemin="0"
               aria-valuemax="100"
@@ -141,7 +168,9 @@ const ProjectCard = ({ project, index, fetchProjects }) => {
         </div>
 
         {/* --- FOOTER (BUTTON GROUP) --- */}
+        {/* --- BUTTON GROUP (FIXED LOGIC) --- */}
         <div className="card-footer d-flex flex-wrap gap-2">
+          {/* Always Show View Project */}
           <button
             className="btn btn-primary"
             title="View Project"
@@ -149,68 +178,73 @@ const ProjectCard = ({ project, index, fetchProjects }) => {
           >
             <i className="bi bi-eye"></i>
           </button>
+
+          {/* Always Show Edit Project */}
           <button
-            className="btn btn-warning"
-            title="Put on Hold"
-            onClick={() =>
-              confirmAction(
-                () => updateProjectStatus("on-hold"),
-                "Put Project on Hold?",
-                `Are you sure you want to put "${project.name}" on hold?`,
-                `Project "${project.name}" is now on hold.`,
-              )
-            }
+            className="btn btn-secondary"
+            title="Edit Project"
+            onClick={() => {
+              setEditingProject(project); // ✅ Store project for editing
+              setShowModal(true); // ✅ Open modal
+            }}
           >
-            <i className="bi bi-pause-circle"></i>
-          </button>
-          <button
-            className="btn btn-success"
-            title="Mark as Complete"
-            onClick={() =>
-              confirmAction(
-                () => updateProjectStatus("completed"),
-                "Mark as Complete?",
-                `Mark "${project.name}" as complete? This action cannot be undone.`,
-                `Project "${project.name}" marked as complete!`,
-              )
-            }
-          >
-            <i className="bi bi-check-circle"></i>
-          </button>
-          <button
-            className="btn btn-danger"
-            title="Cancel Project"
-            onClick={() =>
-              confirmAction(
-                () => updateProjectStatus("cancelled"),
-                "Cancel Project?",
-                `Are you sure you want to cancel "${project.name}"? This cannot be undone.`,
-                `Project "${project.name}" has been cancelled.`,
-              )
-            }
-          >
-            <i className="bi bi-x-circle"></i>
+            <i className="bi bi-pencil-square"></i>
           </button>
 
-          {/* --- REOPEN BUTTON (Styled & Corrected) --- */}
-          {["cancelled", "on-hold", "completed"].includes(project.status) && (
+          {/* Show 'Reopen' if Project is On Hold, Cancelled, or Completed */}
+          {["on-hold", "cancelled", "completed"].includes(project.status) && (
             <button
               className="btn btn-warning d-flex align-items-center"
               title="Reopen Project"
               onClick={async () => {
-                const result = await Swal.fire({
-                  title: "Reopen Project?",
-                  text: `Are you sure you want to reopen "${project.name}"? This will reset its status to 'New'.`,
-                  icon: "question",
-                  showCancelButton: true,
-                  confirmButtonColor: "#ffc107",
-                  cancelButtonColor: "#3085d6",
-                  confirmButtonText: "Yes, reopen it!",
-                  cancelButtonText: "Cancel",
-                });
+                try {
+                  // Confirm action with user
+                  const result = await Swal.fire({
+                    title: "Reopen Project?",
+                    text: `Reopening "${project.name}". The status will be determined based on existing transactions.`,
+                    icon: "question",
+                    showCancelButton: true,
+                    confirmButtonColor: "#ffc107",
+                    cancelButtonColor: "#3085d6",
+                    confirmButtonText: "Yes, reopen it!",
+                    cancelButtonText: "Cancel",
+                  });
 
-                if (result.isConfirmed) {
-                  updateProjectStatus("new");
+                  if (!result.isConfirmed) return;
+
+                  // ✅ Fetch transactions to check for a deposit
+                  const transactionsRef = collection(
+                    db,
+                    `projects/${project.id}/transactions`,
+                  );
+                  const transactionsSnap = await getDocs(transactionsRef);
+                  const transactions = transactionsSnap.docs.map((doc) =>
+                    doc.data(),
+                  );
+
+                  // ✅ Determine if project has a deposit
+                  const hasDeposit = transactions.some(
+                    (t) =>
+                      t.category === "Client Payment" &&
+                      t.description?.toLowerCase().includes("deposit"),
+                  );
+
+                  const newStatus = hasDeposit ? "in-progress" : "new"; // ✅ Auto-set status
+
+                  // ✅ Update Firestore with the correct status
+                  const docRef = doc(db, "projects", project.id);
+                  await updateDoc(docRef, {
+                    status: newStatus,
+                    statusDate: new Date(),
+                  });
+
+                  toastSuccess(
+                    `Project "${project.name}" reopened as "${newStatus}".`,
+                  );
+                  fetchProjects(); // ✅ Refresh project list
+                } catch (error) {
+                  console.error("Error reopening project:", error);
+                  toastError("Failed to reopen project.");
                 }
               }}
             >
@@ -218,7 +252,58 @@ const ProjectCard = ({ project, index, fetchProjects }) => {
             </button>
           )}
 
-          {/* --- DELETE BUTTON --- */}
+          {/* Show 'Put on Hold' & 'Mark as Complete' Only If Not On Hold, Cancelled, or Completed */}
+          {!["on-hold", "cancelled", "completed"].includes(project.status) && (
+            <>
+              <button
+                className="btn btn-warning"
+                title="Put on Hold"
+                onClick={() =>
+                  confirmAction(
+                    () => updateProjectStatus("on-hold"),
+                    "Put Project on Hold?",
+                    `Are you sure you want to put "${project.name}" on hold?`,
+                    `Project "${project.name}" is now on hold.`,
+                  )
+                }
+              >
+                <i className="bi bi-pause-circle"></i>
+              </button>
+              {/* ✅ Show "Mark as Complete" only if the total Client Payment matches or exceeds the budget */}
+              {totalIncome >= project.budget && (
+                <button
+                  className="btn btn-success"
+                  title="Mark as Complete"
+                  onClick={() =>
+                    confirmAction(
+                      () => updateProjectStatus("completed"),
+                      "Mark as Complete?",
+                      `Mark "${project.name}" as complete? This action cannot be undone.`,
+                      `Project "${project.name}" marked as complete!`,
+                    )
+                  }
+                >
+                  <i className="bi bi-check-circle"></i>
+                </button>
+              )}
+              <button
+                className="btn btn-danger"
+                title="Cancel Project"
+                onClick={() =>
+                  confirmAction(
+                    () => updateProjectStatus("cancelled"),
+                    "Cancel Project?",
+                    `Are you sure you want to cancel "${project.name}"? This cannot be undone.`,
+                    `Project "${project.name}" has been cancelled.`,
+                  )
+                }
+              >
+                <i className="bi bi-x-circle"></i>
+              </button>
+            </>
+          )}
+
+          {/* Always Show Delete Button */}
           <button
             className="btn btn-danger"
             title="Delete Project"

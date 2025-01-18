@@ -1,3 +1,5 @@
+// --- Page: ProjectList.jsx ---
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProjects } from "../../context/ProjectsContext";
@@ -18,6 +20,7 @@ function ProjectList() {
     useProjects();
   const { currentUser } = useAuth(); // This is already handling auth
   const [showModal, setShowModal] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
 
   useEffect(() => {
     if (currentUser) {
@@ -27,6 +30,54 @@ function ProjectList() {
       console.warn("No authenticated user found.");
     }
   }, [currentUser]);
+
+  // ✅ Function to determine correct status when reopening a project
+  const handleReopenProject = async (project) => {
+    try {
+      const transactionsRef = collection(
+        db,
+        `projects/${project.id}/transactions`,
+      );
+      const transactionsSnap = await getDocs(transactionsRef);
+      const transactions = transactionsSnap.docs.map((doc) => doc.data());
+
+      // Check if any transactions contain "deposit" and are in "Client Payment"
+      const hasDeposit = transactions.some(
+        (t) =>
+          t.category === "Client Payment" &&
+          t.description?.toLowerCase().includes("deposit"),
+      );
+
+      const newStatus = hasDeposit ? "in-progress" : "new"; // ✅ Determine correct status
+
+      // Confirm action
+      const result = await Swal.fire({
+        title: "Reopen Project?",
+        text: `Reopening "${project.name}". Status will be set to "${newStatus}".`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#ffc107",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, reopen it!",
+        cancelButtonText: "Cancel",
+      });
+
+      if (result.isConfirmed) {
+        // Update Firestore
+        const docRef = doc(db, "projects", project.id);
+        await updateDoc(docRef, {
+          status: newStatus,
+          statusDate: new Date(),
+        });
+
+        toastSuccess(`Project "${project.name}" reopened as "${newStatus}".`);
+        fetchProjects(); // ✅ Refresh projects
+      }
+    } catch (error) {
+      console.error("Error reopening project:", error);
+      toastError("Failed to reopen project.");
+    }
+  };
 
   return (
     <div>
@@ -59,6 +110,8 @@ function ProjectList() {
                       index={index}
                       fetchProjects={fetchProjects}
                       transactions={project.transactions || []}
+                      setEditingProject={setEditingProject} // ✅ Allows editing
+                      setShowModal={setShowModal} // ✅ Opens modal
                     />
                   ))}
                   {provided.placeholder}
@@ -70,8 +123,12 @@ function ProjectList() {
 
         <AddProjectModal
           show={showModal}
-          handleClose={() => setShowModal(false)}
+          handleClose={() => {
+            setShowModal(false);
+            setEditingProject(null); // Reset after closing
+          }}
           saveProject={addProject}
+          editingProject={editingProject} // Pass the selected project for editing
         />
       </div>
     </div>

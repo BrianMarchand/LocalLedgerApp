@@ -28,6 +28,7 @@ const useFetchData = (projectId) => {
 
       if (projectSnap.exists()) {
         const projectData = { id: projectSnap.id, ...projectSnap.data() };
+
         console.log("Fetched Project:", projectData);
         setProject(projectData);
         return projectData;

@@ -1,3 +1,4 @@
+// --- Page: ProjectsContext.jsx ---
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { db, auth } from "@config";
 import {
@@ -149,7 +150,12 @@ export const ProjectsProvider = ({ children }) => {
 
   // --- Add Project ---
   const addProject = async (
-    newProject = { name: "Untitled Project", budget: 0, location: "Unknown" },
+    newProject = {
+      name: "Untitled Project",
+      budget: 0,
+      location: "Unknown",
+      estimatedCompletionDate: null,
+    },
   ) => {
     if (!isAuthenticated()) return;
 
@@ -165,7 +171,7 @@ export const ProjectsProvider = ({ children }) => {
 
       await setDoc(newDocRef, projectData);
 
-      // **Immediate UI update instead of waiting for Firestore listener**
+      // **Immediate UI update**
       setProjects((prev) => [
         ...prev,
         { id: newDocRef.id, ...projectData, transactions: [] },
