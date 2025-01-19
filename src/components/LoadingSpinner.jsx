@@ -1,3 +1,5 @@
+// --- Page: LoadingSpinner.jsx ---
+
 import React from "react";
 import { ProgressBar } from "react-loader-spinner";
 

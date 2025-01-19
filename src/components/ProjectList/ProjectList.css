@@ -1,5 +1,8 @@
 /* --- DRAGGABLE CARD FIX --- */
 .draggable-card {
+  width: 100%; /* ✅ Ensures full width inside grid cell */
+  min-width: 300px; /* ✅ Prevents shrinking */
+  max-width: 400px; /* ✅ Keeps a balanced width */
   padding: 1rem; /* Original padding */
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
@@ -12,14 +15,14 @@
     box-shadow 0.2s ease;
 
   /* --- Fix height issues --- */
-  height: 150px; /* Fixed height for consistent spacing */
+  min-height: 150px; /* Instead of fixed height, allows natural expansion */
   overflow: hidden; /* Prevent content overflow */
 }
 
 /* Highlight dragged card */
 /* Fixes the "sticky" feeling */
 .dragging-card {
-  position: absolute !important;
+  position: relative !important; /* Instead of absolute, allows natural positioning */
   width: 300px; /* Match grid width */
   z-index: 9999 !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
@@ -65,8 +68,10 @@
 .droppable-wrapper {
   display: grid; /* Keeps grid look */
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Responsive */
-  gap: 1rem; /* Consistent spacing */
+  gap: 20px;
   padding: 1rem; /* Adds padding inside drop zone */
+  justify-content: center; /* ✅ Keeps items centered */
+  width: 100%;
 }
 
 /* Ensure flex behavior for DnD */

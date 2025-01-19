@@ -26,7 +26,7 @@
 }
 
 .sortable:hover {
-  color: #e5f1ff; /* Highlight effect */
+  color: #44b4f6; /* Highlight effect */
 }
 
 /* ====== Apply Alternating Opacities (Desktop & Mobile) ====== */
@@ -51,10 +51,13 @@
 
 .transactions-header {
   display: flex;
-  background-color: #007bff;
-  color: #fff;
-  padding: 8px;
+  background-color: rgba(255, 255, 255, 0.3);
+  color: #333;
+  padding: 20px;
   font-weight: bold;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
 }
 
 .transaction-row {

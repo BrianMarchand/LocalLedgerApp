@@ -1,5 +1,11 @@
 // --- Page: ProjectsContext.jsx ---
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+} from "react";
 import { db, auth } from "@config";
 import {
   collection,
@@ -16,11 +22,8 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { toastSuccess, toastError } from "../utils/toastNotifications";
-
 const ProjectsContext = createContext();
-
 export const useProjects = () => useContext(ProjectsContext);
-
 const SUBCOLLECTIONS = ["transactions", "shoppingList", "notes"];
 
 // --- Authentication Check ---
@@ -35,21 +38,19 @@ const isAuthenticated = () => {
 export const ProjectsProvider = ({ children }) => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [dragging, setDragging] = useState(false); // ✅ New state
+  const [isReordering, setIsReordering] = useState(false); // ✅ Track reordering
+  const prevProjectsRef = useRef(null); // ✅ Store previous project order
 
   // --- Firestore Listener ---
   useEffect(() => {
     let unsubscribeFirestore = null;
 
-    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
-      if (!user) {
-        console.warn("No authenticated user. Clearing projects.");
-        setProjects([]); // Clear projects when logged out
-        return;
-      }
+    const setupFirestoreListener = (user) => {
+      if (!user) return;
 
       console.log("✅ User authenticated. Setting up Firestore listener...");
 
-      // Cleanup old listener before setting a new one
       if (unsubscribeFirestore) {
         unsubscribeFirestore();
       }
@@ -60,44 +61,35 @@ export const ProjectsProvider = ({ children }) => {
           where("ownerId", "==", user.uid),
           orderBy("order", "asc"),
         ),
-        async (snapshot) => {
-          const updatedProjects = await Promise.all(
-            snapshot.docs.map(async (doc) => {
-              let projectData = { id: doc.id, ...doc.data() };
+        (snapshot) => {
+          const updatedProjects = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
 
-              try {
-                // Fetch transactions for each project
-                const transactionsSnapshot = await getDocs(
-                  collection(db, `projects/${doc.id}/transactions`),
-                );
-                projectData.transactions = transactionsSnapshot.docs.map(
-                  (txn) => ({
-                    id: txn.id,
-                    ...txn.data(),
-                  }),
-                );
-              } catch (err) {
-                console.warn(
-                  `⚠️ Failed to fetch transactions for project: ${doc.id}`,
-                  err.message,
-                );
-                projectData.transactions = [];
-              }
+          // 🚀 Prevent flickering: Only update if projects actually changed
+          const prevOrder = prevProjectsRef.current?.map((p) => p.id).join(",");
+          const newOrder = updatedProjects.map((p) => p.id).join(",");
 
-              return projectData;
-            }),
-          );
+          if (prevOrder === newOrder) {
+            console.log("🔄 Skipping UI update (Order unchanged)");
+            return;
+          }
 
-          console.log(
-            "✅ Projects fetched with transactions:",
-            updatedProjects,
-          );
+          console.log("✅ Projects fetched:", updatedProjects);
+          prevProjectsRef.current = updatedProjects;
           setProjects(updatedProjects);
         },
         (error) => {
-          console.error("🔥 Error with Firestore listener:", error.message);
+          console.error("🔥 Firestore listener error:", error.message);
         },
       );
+    };
+
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setupFirestoreListener(user);
+      }
     });
 
     return () => {
@@ -108,6 +100,8 @@ export const ProjectsProvider = ({ children }) => {
 
   // --- Fetch Projects (Manual Call) ---
   const fetchProjects = async (includeTransactions = false) => {
+    if (dragging) return; // ✅ Skip fetching if drag is active
+
     setLoading(true);
     try {
       const snapshot = await getDocs(
@@ -170,12 +164,6 @@ export const ProjectsProvider = ({ children }) => {
       };
 
       await setDoc(newDocRef, projectData);
-
-      // **Immediate UI update**
-      setProjects((prev) => [
-        ...prev,
-        { id: newDocRef.id, ...projectData, transactions: [] },
-      ]);
 
       toastSuccess("Project added successfully!");
     } catch (err) {
@@ -243,6 +231,9 @@ export const ProjectsProvider = ({ children }) => {
         updateProject,
         deleteProject,
         setProjects,
+        setDragging,
+        isReordering,
+        setIsReordering,
       }}
     >
       {children}

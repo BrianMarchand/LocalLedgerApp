@@ -692,14 +692,14 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                   onClick={handleSave}
                   title="Add Transaction"
                 >
-                  <i className="bi bi-plus-lg"></i> {/* Add Icon */}
+                  <i className="bi bi-plus-square"></i> {/* Add Icon */}
                 </button>
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={resetForm}
                   title="Clear Form"
                 >
-                  <i className="bi bi-x-lg"></i> {/* Clear Icon */}
+                  <i className="bi bi-x-square"></i> {/* Clear Icon */}
                 </button>
               </div>
             </div>
