@@ -69,28 +69,19 @@ const Dashboard = () => {
       let totalSpent = 0;
       let totalRevenue = 0;
 
-      proj.transactions?.forEach((txn) => {
-        const amount = parseFloat(txn.amount) || 0;
-        if (txn.category === "Client Payment") {
-          totalRevenue += amount;
-        } else {
-          totalSpent += amount;
-        }
-      });
+      if (proj.transactions && Array.isArray(proj.transactions)) {
+        proj.transactions.forEach((txn) => {
+          const amount = parseFloat(txn.amount) || 0;
+          if (txn.category === "Client Payment") {
+            totalRevenue += amount;
+          } else {
+            totalSpent += amount;
+          }
+        });
+      }
 
-      if (totalSpent > proj.budget) {
-        newAlerts.push({
-          type: "budget",
-          message: `⚠️ ${proj.name} exceeded budget!`,
-        });
-      }
-      if (totalRevenue < proj.budget * 0.5) {
-        newAlerts.push({
-          type: "revenue",
-          message: `📉 ${proj.name} received less than 50% of budget.`,
-        });
-      }
-      if (totalRevenue === 0 && proj.transactions.length > 0) {
+      if (totalRevenue === 0 && (proj.transactions?.length || 0) > 0) {
+        // ✅ Now Safe
         newAlerts.push({
           type: "payment",
           message: `❌ ${proj.name} has expenses but no payments.`,
@@ -118,23 +109,26 @@ const Dashboard = () => {
       let totalSpent = 0;
       let totalRevenue = 0;
 
-      proj.transactions?.forEach((txn) => {
-        const parsedAmount = parseFloat(txn.amount) || 0;
-        const category = txn.category || "Miscellaneous";
-        categoryTotals[category] =
-          (categoryTotals[category] || 0) + parsedAmount;
+      if (proj.transactions && Array.isArray(proj.transactions)) {
+        // ✅ Ensure transactions exist
+        proj.transactions.forEach((txn) => {
+          const parsedAmount = parseFloat(txn.amount) || 0;
+          const category = txn.category || "Miscellaneous";
+          categoryTotals[category] =
+            (categoryTotals[category] || 0) + parsedAmount;
 
-        const year = txn.date?.toDate().toISOString().substring(0, 4);
-        if (year) {
-          yearlyData[year] = (yearlyData[year] || 0) + parsedAmount;
-        }
+          const year = txn.date?.toDate().toISOString().substring(0, 4);
+          if (year) {
+            yearlyData[year] = (yearlyData[year] || 0) + parsedAmount;
+          }
 
-        if (txn.category === "Client Payment") {
-          totalRevenue += parsedAmount;
-        } else {
-          totalSpent += parsedAmount;
-        }
-      });
+          if (txn.category === "Client Payment") {
+            totalRevenue += parsedAmount;
+          } else {
+            totalSpent += parsedAmount;
+          }
+        });
+      }
 
       projectRevenues.push({ name: proj.name, revenue: totalRevenue });
     });
