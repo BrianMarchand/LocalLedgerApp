@@ -14,6 +14,7 @@ import ErrorBoundary from "/src/components/ErrorBoundary";
 import ProjectDetailsCard from "../ProjectDetailsCard";
 import useFetchData from "../../hooks/useFetchData";
 import { formatCurrency } from "../../utils/formatUtils";
+import QuickActions from "../../components/QuickActions";
 
 function ProjectDashboard() {
   const { id: projectId } = useParams();
@@ -186,15 +187,24 @@ function ProjectDashboard() {
     <div>
       <Navbar page="Project Dashboard" />
       <div className="container mt-5">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h1>{project?.name || "Project Details"}</h1>
-          <button
-            className="btn btn-primary"
-            onClick={() => setShowNotes(true)}
-            aria-label="Add a note to this project"
-          >
-            Add Note
-          </button>
+        {/* 🔹 Quick Actions Header */}
+        <div className="dashboard-header mb-4">
+          <h1 className="dashboard-title">
+            🗄 {project?.name || "Project Details"}
+          </h1>
+          <div className="quick-actions-wrapper">
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowNotes(true)}
+              aria-label="Add a note to this project"
+            >
+              <i className="bi bi-sticky"></i> Add Note
+            </button>
+            <QuickActions
+              onAddProject={() => setShowModal(true)}
+              onAddTransaction={() => setShowTransactionModal(true)}
+            />
+          </div>
         </div>
 
         <div className="row">

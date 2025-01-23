@@ -23,7 +23,7 @@ const NotesModal = ({ showNotes, setShowNotes, projectId }) => {
     >
       {/* Header */}
       <Modal.Header closeButton>
-        <Modal.Title>Project Notes</Modal.Title>
+        <Modal.Title>📋 Project Notes</Modal.Title>
       </Modal.Header>
 
       {/* Body */}

@@ -14,6 +14,7 @@ import ProjectCard from "./ProjectCard";
 import LoadingSpinner from "../LoadingSpinner"; // Import the spinner
 import { fetchProjectsFromDB, handleDragEnd } from "./projectUtils";
 import { useAuth } from "../../context/AuthContext"; // Uses Firebase AuthContext
+import QuickActions from "../../components/QuickActions";
 
 function ProjectList() {
   const navigate = useNavigate();
@@ -92,12 +93,16 @@ function ProjectList() {
       <Navbar page="projectDashboard" />
       <div className="container-fluid mt-5">
         <div className="container-xl">
-          {" "}
-          {/* ✅ Restrict width */} {/* ✅ Restrict width to match dashboard */}
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h1>Your Current Projects</h1>
-            <p>Something here.</p>
-          </div>
+          {/* 🔹 Quick Actions Header */}
+          <div className="dashboard-header mb-4">
+            <h1 className="dashboard-title">🗂 Current Projects</h1>
+            <div className="quick-actions-wrapper">
+              <QuickActions
+                onAddProject={() => setShowModal(true)}
+                onAddTransaction={() => setShowTransactionModal(true)}
+              />
+            </div>
+          </div>{" "}
           {/* ✅ Prevent full "Loading Your Projects..." state if just reordering */}
           {loading && !isUpdating ? (
             <div className="text-center py-5">

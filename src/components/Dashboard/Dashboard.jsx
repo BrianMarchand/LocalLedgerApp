@@ -1,3 +1,5 @@
+// --- Page: Dashboard.jsx ---
+
 import React, { useEffect, useState } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@config";
@@ -20,7 +22,7 @@ import {
 } from "chart.js";
 import Navbar from "../../components/Navbar";
 import AddProjectModal from "../../components/AddProject/AddProjectModal";
-import QuickActions from "./QuickActions";
+import QuickActions from "../../components/QuickActions";
 import FinancialInsights from "./FinancialInsights";
 import NotificationsPanel from "./NotificationsPanel";
 import BestProjects from "./BestProjects";
@@ -191,9 +193,9 @@ const Dashboard = () => {
   return (
     <div>
       <Navbar page="dashboard" />
-      <div className="container-fluid dashboard-container">
+      <div className="container mt-5">
         {/* 🔹 Dashboard Header */}
-        <div className="dashboard-header">
+        <div className="dashboard-header mb-4">
           <h1 className="dashboard-title">📊 Project Dashboard</h1>
           <div className="quick-actions-wrapper">
             <QuickActions
