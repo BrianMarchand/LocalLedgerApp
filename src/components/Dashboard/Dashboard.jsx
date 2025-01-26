@@ -1,7 +1,13 @@
 // --- Page: Dashboard.jsx ---
-
 import React, { useEffect, useState } from "react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  deleteDoc,
+  doc,
+  getDocs,
+} from "firebase/firestore"; // Import getDocs
 import { db } from "@config";
 import { toastSuccess, toastError } from "../../utils/toastNotifications";
 import { useNavigate } from "react-router-dom";
@@ -30,6 +36,8 @@ import ChartCard from "./ChartCard";
 import CalendarWidget from "./CalendarWidget";
 import TransactionModal from "../../components/TransactionModal";
 import { useProjects } from "../../context/ProjectsContext";
+import CustomersCard from "../Customers/CustomersCard";
+import { setDoc } from "firebase/firestore";
 
 ChartJS.register(
   ArcElement,
@@ -52,6 +60,29 @@ const Dashboard = () => {
   const [yearlyPerformanceData, setYearlyPerformanceData] = useState({});
   const [alerts, setAlerts] = useState([]);
   const [bestProjects, setBestProjects] = useState([]);
+  // State for customer modal
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [customers, setCustomers] = useState([]);
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const customersCollection = collection(db, "customers");
+        const customerSnapshot = await getDocs(customersCollection);
+        const customerList = customerSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        setCustomers(customerList);
+        console.log("Customers fetched on Dashboard load:", customerList);
+      } catch (error) {
+        console.error("Error fetching customers in Dashboard:", error);
+      }
+    };
+
+    fetchCustomers();
+  }, []);
 
   // 🔄 Filter Projects
   useEffect(() => {
@@ -164,6 +195,78 @@ const Dashboard = () => {
     });
   }, [filteredProjects]);
 
+  // ✅ Save New Customer
+  const handleSaveCustomer = async (customerData) => {
+    try {
+      console.log("customer data to save", customerData);
+      const customersRef = collection(db, "customers");
+      await addDoc(customersRef, customerData);
+
+      // Re-fetch customers
+      const customersCollection = collection(db, "customers");
+      const customerSnapshot = await getDocs(customersCollection);
+      const customerList = customerSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setCustomers(customerList);
+
+      toastSuccess("Customer added successfully!");
+      setShowCustomerModal(false);
+    } catch (error) {
+      console.error("Error adding customer:", error);
+      toastError("Failed to add customer.");
+    }
+  };
+
+  // ✅ Save Edited Customer
+  const handleEditCustomer = async (customerData) => {
+    try {
+      console.log("customer data to edit", customerData);
+      const customerRef = doc(db, "customers", customerData.id);
+      await setDoc(customerRef, customerData);
+
+      // Re-fetch customers
+      const customersCollection = collection(db, "customers");
+      const customerSnapshot = await getDocs(customersCollection);
+      const customerList = customerSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setCustomers(customerList);
+
+      toastSuccess("Customer updated successfully!");
+      setShowCustomerModal(false);
+    } catch (error) {
+      console.error("Error editing customer:", error);
+      toastError("Failed to edit customer.");
+    }
+  };
+  // ✅ Delete a Customer
+  const handleDeleteCustomer = async (customerId) => {
+    try {
+      console.log("customer data to delete", customerId);
+      const customerRef = doc(db, "customers", customerId);
+      await deleteDoc(customerRef);
+
+      // Re-fetch customers
+      const customersCollection = collection(db, "customers");
+      const customerSnapshot = await getDocs(customersCollection);
+      const customerList = customerSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setCustomers(customerList);
+      toastSuccess("Customer deleted successfully!");
+      setShowCustomerModal(false);
+    } catch (error) {
+      console.error("Error deleting customer", error);
+      toastError("Failed to delete customer.");
+    }
+  };
+
   // ✅ Save New Transaction
   const handleTransactionSave = async (newTransaction) => {
     if (!newTransaction.projectId) {
@@ -204,7 +307,18 @@ const Dashboard = () => {
             />
           </div>
         </div>
-
+        {/* Customers */}
+        <div className="dashboard-card mb-4">
+          <CustomersCard
+            customers={customers}
+            handleSaveCustomer={handleSaveCustomer}
+            handleShowModal={() => setShowCustomerModal(true)}
+            showCustomerModal={showCustomerModal}
+            handleCloseModal={() => setShowCustomerModal(false)}
+            handleEditCustomer={handleEditCustomer}
+            handleDeleteCustomer={handleDeleteCustomer}
+          />
+        </div>
         {/* 🔹 Dashboard Grid */}
         <div className="dashboard-grid">
           {/* 🔹 Financial Insights */}

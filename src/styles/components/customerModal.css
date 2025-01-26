@@ -1,0 +1,119 @@
+/* customerModal.css */
+
+/* ==============================
+   Form Elements
+   ============================== */
+.modern-form fieldset {
+  margin-bottom: 1em;
+  border-radius: 8px;
+}
+
+.modern-form legend {
+  font-size: 1.2em;
+  font-weight: 500;
+  padding: 0 0.5em;
+  margin-bottom: 1em;
+}
+
+.modern-form .row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: -15px;
+  margin-left: -15px;
+}
+
+/* Clearfix for IE */
+.modern-form .row:before,
+.modern-form .row:after {
+  display: table;
+  content: " ";
+}
+
+.modern-form .row:after {
+  clear: both;
+}
+
+.modern-form .col-md-3 {
+  flex: 0 0 25%;
+  max-width: 25%;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+.modern-form .col-md-6 {
+  flex: 0 0 50%;
+  max-width: 50%;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+.modern-form .col-md-9 {
+  flex: 0 0 75%;
+  max-width: 75%;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+/* Input Group Styles */
+.modern-form .input-group {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.modern-form .input-group input,
+.modern-form .input-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  transition: border-color 0.3s ease;
+  outline: none;
+  font-size: 1em;
+  background-color: transparent;
+}
+
+.modern-form .input-group input:focus,
+.modern-form .input-group select:focus {
+  border-color: #007bff;
+}
+
+/* Floating Label Style */
+.modern-form .input-group label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  color: #999;
+}
+
+.modern-form .input-group input:focus + label,
+.modern-form .input-group input:not(:placeholder-shown) + label,
+.modern-form .input-group select:focus + label,
+.modern-form .input-group select:not(:placeholder-shown) + label {
+  top: -8px;
+  left: 5px;
+  font-size: 0.8em;
+  color: #007bff;
+  background-color: white;
+  padding: 0 5px;
+  border-radius: 2px;
+}
+
+.modern-form .input-group input::placeholder {
+  color: transparent;
+}
+
+/* ==============================
+   Modal Footer Buttons
+   ============================== */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.modal-footer button {
+  margin-left: 0.5rem;
+}

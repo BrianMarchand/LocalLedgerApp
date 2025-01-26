@@ -3,7 +3,11 @@ import { Dropdown } from "react-bootstrap";
 import { useTheme } from "../context/ThemeContext";
 import { useNavigate, useLocation } from "react-router-dom"; // Routing hooks
 
-const QuickActionsDropdown = ({ onAddProject, onAddTransaction }) => {
+const QuickActionsDropdown = ({
+  onAddProject,
+  onAddTransaction,
+  onAddCustomer,
+}) => {
   const { darkMode, toggleTheme } = useTheme(); // Access theme context
   const navigate = useNavigate(); // Navigation hook
   const location = useLocation(); // Track current route
@@ -39,6 +43,11 @@ const QuickActionsDropdown = ({ onAddProject, onAddTransaction }) => {
         {/* Add New Project */}
         <Dropdown.Item onClick={onAddProject}>
           <i className="bi bi-folder-plus me-2"></i>Add New Project
+        </Dropdown.Item>
+
+        {/* Add Customer */}
+        <Dropdown.Item onClick={onAddCustomer}>
+          <i className="bi bi-person-plus me-2"></i>Add Customer
         </Dropdown.Item>
 
         {/* Add Transaction */}

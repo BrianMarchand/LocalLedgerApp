@@ -1,0 +1,270 @@
+/* ====== Customers Card Styling ====== */
+.global-card {
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: white;
+  border: 1px solid #ddd;
+}
+
+/* Header Section */
+.customers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #eee;
+}
+
+/* Customers Table Wrapper */
+.customers-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Table Header Row (Aligns Exactly Like Transactions) */
+.customers-header-row {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.6);
+  color: #333;
+  font-weight: bold;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  padding: 12px;
+}
+
+/* Customer Rows */
+.customer-row {
+  display: flex;
+  align-items: center;
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
+/* Ensure Header and Rows Use Identical Flex Values */
+.customer-header-cell,
+.customer-cell {
+  flex: 1;
+  text-align: left;
+  padding: 10px 12px;
+}
+
+/* Specific Column Widths */
+.customer-header-cell:nth-child(1),
+.customer-cell:nth-child(1) {
+  flex: 1.5; /* Name */
+}
+.customer-header-cell:nth-child(2),
+.customer-cell:nth-child(2) {
+  flex: 2; /* Email */
+}
+.customer-header-cell:nth-child(3),
+.customer-cell:nth-child(3) {
+  flex: 1.2; /* Phone */
+}
+.customer-header-cell:nth-child(4),
+.customer-cell:nth-child(4) {
+  flex: 1.5; /* Project */
+}
+
+/* Actions Column: Fixed Width */
+.customer-header-cell:last-child,
+.customer-cell:last-child {
+  flex: 0 0 120px;
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Ensure headers don’t wrap */
+.customer-header-cell {
+  white-space: nowrap;
+}
+
+/* Alternating Background Colors (Matches Transactions) */
+.customer-row:nth-child(even) {
+  background: #fafafa;
+}
+
+.customer-row:hover {
+  background: #f8f9fa;
+  transition: 0.2s ease-in-out;
+}
+
+/* Buttons */
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 14px;
+  border-radius: 4px;
+}
+
+.btn-warning {
+  background: #ffbe3d;
+  border: none;
+}
+.btn-danger {
+  background: #ff4b5c;
+  border: none;
+}
+
+/* Email Link */
+.email-link {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.email-link:hover {
+  text-decoration: underline;
+  color: #0056b3;
+}
+
+/* Phone Link (Tap-to-Call on Mobile) */
+.phone-link {
+  color: #28a745;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.phone-link:hover {
+  text-decoration: underline;
+  color: #218838;
+}
+
+/* Address Link */
+.address-link {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.address-link:hover {
+  text-decoration: underline;
+  color: #0056b3;
+}
+
+/* 🔹 Input Group - Floating Label Styling */
+.input-group {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.input-group input,
+.input-group select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 16px;
+  background: white;
+  outline: none;
+}
+
+.input-group label {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.2s ease-in-out;
+  background: white;
+  padding: 0 4px;
+  font-size: 16px;
+  color: #999;
+  pointer-events: none;
+}
+
+/* Move label to top when input is filled or focused */
+.input-group input:focus + label,
+.input-group input:not(:placeholder-shown) + label {
+  top: 6px;
+  font-size: 12px;
+  color: #007bff;
+}
+
+/* 🔹 Fix for Select (Dropdown) Label - Should Not Float */
+/* 🔹 Fix for Select (Dropdown) Label - Matches Other Labels */
+/* 🔹 Fix for Select (Dropdown) Label - Stays Above Input */
+.dropdown-group {
+  position: relative;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Make the label always visible and properly aligned */
+.dropdown-group label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 600;
+  margin-bottom: 5px; /* Creates space between label and dropdown */
+  display: block;
+}
+
+/* Match dropdown appearance with inputs */
+.dropdown-group select {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: white;
+  outline: none;
+  appearance: none; /* Removes default browser styling */
+}
+
+/* 🔹 Button Styling */
+.btn-secondary {
+  background: #17a2b8;
+  border: none;
+}
+
+.btn-primary {
+  background: #a855f7;
+  border: none;
+}
+
+/* 🔹 Mobile Responsive */
+@media (max-width: 768px) {
+  .input-group input,
+  .dropdown-group select {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  .input-group label {
+    font-size: 14px;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .customers-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .customers-header-row {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  .customer-row {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px;
+  }
+
+  .customer-cell {
+    font-size: 14px;
+  }
+  .input-group .smart-input {
+    min-height: 40px;
+    font-size: 14px;
+    padding: 8px;
+  }
+}

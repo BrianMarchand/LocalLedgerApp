@@ -1,6 +1,7 @@
-// --- Page: Navbar.jsx ---
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { db } from "@config";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore"; // ✅ Import missing functions
 import { useAuth } from "../context/AuthContext";
 import { Dropdown } from "react-bootstrap";
 
@@ -13,6 +14,7 @@ import UserDropdown from "./UserDropdown";
 import FAB from "./FAB";
 import AddProjectModal from "/src/components/AddProject/AddProjectModal";
 import TransactionModal from "/src/components/TransactionModal";
+import CustomerModal from "/src/components/CustomerModal"; // ✅ Import CustomerModal
 import { useProjects } from "../context/ProjectsContext"; // ✅ Import useProjects()
 
 const Navbar = () => {
@@ -25,6 +27,8 @@ const Navbar = () => {
   // 🔄 State for Modals
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [showCustomerModal, setShowCustomerModal] = useState(false); // ✅ New state for CustomerModal
+
   const { projects } = useProjects(); // ✅ Get projects from context
 
   // 🔄 Scroll Effect
@@ -41,6 +45,21 @@ const Navbar = () => {
       navigate("/login");
     } catch (error) {
       console.error("Logout Error:", error.message);
+    }
+  };
+
+  const handleSaveCustomer = async (customer) => {
+    console.log("Saving Customer:", customer);
+
+    try {
+      const customersCollection = collection(db, "customers"); // ✅ Correct Firestore reference
+      await addDoc(customersCollection, {
+        ...customer,
+        createdAt: serverTimestamp(), // ✅ Timestamp for sorting
+      });
+      console.log("✅ Customer saved successfully!");
+    } catch (error) {
+      console.error("❌ Error saving customer:", error);
     }
   };
 
@@ -63,6 +82,7 @@ const Navbar = () => {
           <QuickActionsDropdown
             onAddProject={() => setShowProjectModal(true)}
             onAddTransaction={() => setShowTransactionModal(true)}
+            onAddCustomer={() => setShowCustomerModal(true)} // ✅ Pass prop
           />
 
           {/* Profile Dropdown */}
@@ -86,7 +106,6 @@ const Navbar = () => {
           )}
         </div>
       </nav>
-
       {/* 🔹 Floating Action Button (FAB) */}
       <div className="fab-wrapper">
         <FAB
@@ -103,10 +122,15 @@ const Navbar = () => {
               variant: "warning",
               tooltip: "Add Transaction",
             },
+            {
+              onClick: () => setShowCustomerModal(true), // ✅ FAB button for customers
+              icon: "bi-person-plus",
+              variant: "info",
+              tooltip: "Add Customer",
+            },
           ]}
         />
       </div>
-
       {/* 🔹 Modals */}
       <AddProjectModal
         show={showProjectModal}
@@ -116,6 +140,12 @@ const Navbar = () => {
         show={showTransactionModal}
         handleClose={() => setShowTransactionModal(false)}
         projects={projects} // ✅ Pass projects prop
+      />
+      <CustomerModal
+        show={showCustomerModal}
+        handleClose={() => setShowCustomerModal(false)}
+        handleSave={handleSaveCustomer} // ✅ Pass function
+        projects={projects}
       />
     </>
   );

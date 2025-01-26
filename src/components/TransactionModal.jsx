@@ -1,3 +1,5 @@
+// --- Page: TransactionModal.jsx ---
+
 import React, { useState } from "react";
 import { Modal, Button } from "react-bootstrap";
 import "../styles/components/TransactionModal.css"; // Updated styles
