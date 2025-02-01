@@ -612,3 +612,25 @@ li {
 .bi {
   font-family: "Bootstrap Icons" !important;
 }
+
+/* Ensure the summary grid uses CSS Grid with 3 equal columns */
+.dashboard-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Three equal columns */
+  gap: 1rem; /* Adjust gap between cards as needed */
+  margin-bottom: 2rem; /* Optional: extra spacing below the grid */
+}
+
+/* Optional: If your .dashboard-card elements inside the summary grid need to fill the available space */
+.dashboard-summary-grid .dashboard-card {
+  padding: 1rem; /* Adjust padding as needed */
+  background-color: #fff; /* Example background, adjust as needed */
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.error-message {
+  color: red;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}

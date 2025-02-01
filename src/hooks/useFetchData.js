@@ -1,5 +1,3 @@
-// -- Page: useFetchData.js --
-
 import { useEffect, useState, useCallback } from "react";
 import {
   doc,
@@ -28,7 +26,6 @@ const useFetchData = (projectId) => {
 
       if (projectSnap.exists()) {
         const projectData = { id: projectSnap.id, ...projectSnap.data() };
-
         console.log("Fetched Project:", projectData);
         setProject(projectData);
         return projectData;
@@ -46,10 +43,7 @@ const useFetchData = (projectId) => {
 
   const fetchTransactions = async () => {
     try {
-      const transactionsRef = collection(
-        db,
-        `projects/${projectId}/transactions`,
-      );
+      const transactionsRef = collection(db, `projects/${projectId}/transactions`);
       const transactionsSnap = await getDocs(transactionsRef);
 
       const transactionsData = transactionsSnap.docs.map((doc) => {
@@ -76,11 +70,10 @@ const useFetchData = (projectId) => {
       return;
     }
 
-    // Validate transition to "In Progress" for "new" projects
     const { valid, reason } = validateStatusTransition(
       "in-progress",
       transactions,
-      { percentage: project.progress || 0 },
+      { percentage: project.progress || 0 }
     );
 
     if (valid && project.status === "new") {

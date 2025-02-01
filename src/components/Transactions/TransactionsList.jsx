@@ -1,3 +1,5 @@
+// File: src/components/Transactions/TransactionsList.jsx
+
 import { formatFirestoreTimestamp } from "../../utils/formatUtils";
 
 const TransactionsList = ({ transactions }) => {
@@ -29,3 +31,5 @@ const TransactionsList = ({ transactions }) => {
     </div>
   );
 };
+
+export default TransactionsList;

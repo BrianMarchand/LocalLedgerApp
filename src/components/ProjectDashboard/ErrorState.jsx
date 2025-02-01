@@ -1,3 +1,5 @@
+// --- Page: ErrorState.jsx ---
+
 import React from "react";
 
 function ErrorState({ onRetry }) {

@@ -1,3 +1,5 @@
+// File: src/hooks/useTransactions.js
+
 import { useState, useEffect } from "react";
 import {
   addDoc,
@@ -8,7 +10,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "@config";
-import { toastSuccess, toastError } from "../utils/toastNotifications";
+import Swal from "sweetalert2";
 
 const useTransactions = (transactions, projectId, fetchTransactions) => {
   const [localTransactions, setLocalTransactions] = useState(transactions);
@@ -67,63 +69,91 @@ const useTransactions = (transactions, projectId, fetchTransactions) => {
     });
   };
 
+  // Convert a "YYYY-MM-DD" string to a Date at local midnight.
+  const parseLocalDateString = (dateString) => {
+    const [year, month, day] = dateString.split("-");
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  };
+
   const handleSave = async () => {
     if (
       !addTransactionForm.description ||
       !addTransactionForm.amount ||
-      !addTransactionForm.category
+      !addTransactionForm.category ||
+      !addTransactionForm.date
     ) {
-      toastError("All fields are required.");
+      await Swal.fire({
+        icon: "error",
+        title: "Missing Fields",
+        text: "All fields are required.",
+      });
       return;
     }
 
     try {
-      const localDate = new Date(addTransactionForm.date);
-      localDate.setHours(0, 0, 0, 0);
-
+      const localDate = parseLocalDateString(addTransactionForm.date);
       await addDoc(collection(db, `projects/${projectId}/transactions`), {
         ...addTransactionForm,
         date: Timestamp.fromDate(localDate),
       });
 
-      toastSuccess("Transaction added!");
+      await Swal.fire({
+        icon: "success",
+        title: "Transaction Added",
+        text: "The transaction was successfully added.",
+      });
       setIsAddingTransaction(false);
       fetchTransactions();
     } catch (error) {
       console.error("Error adding transaction:", error);
-      toastError("Failed to add transaction.");
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to add transaction.",
+      });
     }
   };
 
-  const handleSaveEdit = async () => {
-    try {
-      await updateDoc(
-        doc(db, `projects/${projectId}/transactions`, editingTransaction.id),
-        {
-          ...editTransactionForm,
-          date: Timestamp.fromDate(new Date(editTransactionForm.date)),
-        },
-      );
+  // Confirm deletion via SweetAlert2.
+  // After deletion, if the transaction is a deposit, show an additional modal.
+  const handleDelete = async (transaction) => {
+    const confirmResult = await Swal.fire({
+      title: "Delete Transaction?",
+      text: "Are you sure you want to delete this transaction?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
+    if (!confirmResult.isConfirmed) return;
 
-      toastSuccess("Transaction updated!");
-      setEditingTransaction(null);
-      fetchTransactions();
-    } catch (error) {
-      console.error("Error updating transaction:", error);
-      toastError("Failed to update transaction.");
-    }
-  };
-
-  const handleDelete = async (transactionId) => {
     try {
-      await deleteDoc(
-        doc(db, `projects/${projectId}/transactions`, transactionId),
-      );
-      toastSuccess("Transaction deleted!");
+      await deleteDoc(doc(db, `projects/${projectId}/transactions`, transaction.id));
+
+      if (
+        transaction.category.toLowerCase() === "client payment" &&
+        transaction.description.toLowerCase().includes("deposit")
+      ) {
+        await Swal.fire({
+          title: "Deposit Deleted",
+          text: "The deposit transaction was deleted. The project status will revert to New.",
+          icon: "info",
+        });
+      } else {
+        await Swal.fire({
+          title: "Transaction Deleted",
+          text: "The transaction was successfully deleted.",
+          icon: "success",
+        });
+      }
       fetchTransactions();
     } catch (error) {
       console.error("Error deleting transaction:", error);
-      toastError("Failed to delete transaction.");
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to delete transaction.",
+      });
     }
   };
 
@@ -136,7 +166,7 @@ const useTransactions = (transactions, projectId, fetchTransactions) => {
     sortDirection,
     handleSort,
     handleSave,
-    handleSaveEdit,
+    handleEditTransactionChange,
     handleDelete,
     isAddingTransaction,
     setIsAddingTransaction,
@@ -145,7 +175,6 @@ const useTransactions = (transactions, projectId, fetchTransactions) => {
     addTransactionForm,
     handleAddTransactionChange,
     editTransactionForm,
-    handleEditTransactionChange,
   };
 };
 

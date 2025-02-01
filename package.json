@@ -21,6 +21,7 @@
     "canvas-confetti": "^1.9.3",
     "chart.js": "^4.4.7",
     "cors": "^2.8.5",
+    "dayjs": "^1.11.13",
     "dnd-multi-backend": "^8.1.2",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

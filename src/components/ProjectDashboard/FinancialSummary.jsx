@@ -1,3 +1,5 @@
+// --- Page: FinancialSummary.jsx --- 
+
 import React from "react";
 
 const FinancialSummary = ({

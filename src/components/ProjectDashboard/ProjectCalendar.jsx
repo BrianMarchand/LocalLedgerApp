@@ -2,129 +2,167 @@ import React, { useEffect, useState, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot, collection } from "firebase/firestore";
 import { db } from "@config";
 import Swal from "sweetalert2";
 import "../../styles/components/ProjectCalendar.css";
 
+// Helper: Given a Firestore Timestamp or Date input, return a local "YYYY-MM-DD" string.
+const toLocalDateString = (dateInput) => {
+  let d;
+  if (dateInput?.toDate) {
+    d = dateInput.toDate();
+  } else {
+    d = new Date(dateInput);
+  }
+  // Create a new Date using local year, month, and day.
+  const localDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return localDate.toISOString().split("T")[0];
+};
+
+const DEBUG = process.env.NODE_ENV === "development";
+
 const ProjectCalendar = ({ projectId }) => {
   const [events, setEvents] = useState([]);
-  const [view, setView] = useState("dayGridFourWeek"); // ✅ Default to 3-week view
-  const calendarRef = useRef(null); // ✅ Create a reference to the calendar instance
+  // Use a custom 3‑week view (adjust as needed)
+  const [view, setView] = useState("dayGridThreeWeek");
+  const calendarRef = useRef(null);
 
+  // Local state for events from the project document and transactions.
+  const [projectEvents, setProjectEvents] = useState([]);
+  const [transactionEvents, setTransactionEvents] = useState([]);
+
+  // Listen to the project document for project dates.
   useEffect(() => {
-    const fetchProjectData = async () => {
-      try {
-        const docRef = doc(db, "projects", projectId);
-        const docSnap = await getDoc(docRef);
-
+    const unsubscribe = onSnapshot(
+      doc(db, "projects", projectId),
+      (docSnap) => {
         if (docSnap.exists()) {
           const project = docSnap.data();
-          const newEvents = [];
+          const eventsFromProject = [];
 
-          console.log("📌 Retrieved Project Data:", project); // Debugging
+          if (DEBUG) {
+            console.log("📌 Retrieved Project Data:", project);
+          }
 
-          // ✅ Add Estimated Completion Date
+          // Add project start date event using createdAt.
+          if (project.createdAt) {
+            const startDateString = toLocalDateString(project.createdAt);
+            eventsFromProject.push({
+              title: "Project Start 🚀",
+              start: startDateString,
+              color: "#17a2b8",
+              allDay: true,
+            });
+          }
+
+          // Add Estimated Completion Date event.
           if (project.estimatedCompletionDate) {
-            newEvents.push({
+            const compDateString = toLocalDateString(project.estimatedCompletionDate);
+            eventsFromProject.push({
               title: "Estimated Completion 🏁",
-              start: new Date(project.estimatedCompletionDate),
-              color: "#ff6347", // Tomato red
+              start: compDateString,
+              color: "#ff6347",
+              allDay: true,
             });
           }
 
-          // ✅ Add Transactions to Calendar (Fix Firestore Timestamp Issue)
-          if (project.transactions && Array.isArray(project.transactions)) {
-            project.transactions.forEach((transaction) => {
-              if (!transaction.date) {
-                console.warn(
-                  "🚨 Skipping transaction without date:",
-                  transaction,
-                );
-                return; // Skip transactions without a date
-              }
-
-              // 🔥 Fix Firestore Timestamp conversion
-              // 🔥 Fix Firestore Timestamp conversion and force time to midnight
-              let transactionDate;
-              if (transaction.date.toDate) {
-                transactionDate = transaction.date.toDate(); // Convert Firestore Timestamp to Date
-              } else {
-                transactionDate = new Date(transaction.date); // Already a Date format
-              }
-
-              // ✅ Force all events to appear at 00:00 (midnight)
-              transactionDate.setHours(0, 0, 0, 0);
-
-              if (isNaN(transactionDate)) {
-                console.warn("🚨 Invalid transaction date:", transaction);
-                return; // Skip if the date is invalid
-              }
-
-              let color = "#6c757d"; // Default gray
-              let icon = "⚙️"; // Default icon
-
-              switch (transaction.category) {
-                case "Client Payment":
-                  color = "#28a745"; // Green
-                  icon = "💰";
-                  break;
-                case "Labour":
-                  color = "#007bff"; // Blue
-                  icon = "🏗️";
-                  break;
-                case "Materials":
-                  color = "#ffc107"; // Yellow
-                  icon = "🏠";
-                  break;
-                case "Miscellaneous":
-                  color = "#6c757d"; // Gray
-                  icon = "⚙️";
-                  break;
-                default:
-                  break;
-              }
-
-              newEvents.push({
-                title: `${icon} ${transaction.description || "Transaction"}`,
-                start: transactionDate,
-                color,
-                extendedProps: transaction, // Store full transaction data
-              });
-            });
-
-            console.log("✅ Transactions Added to Calendar:", newEvents); // Debugging
-          } else {
-            console.warn("⚠️ No transactions found for project:", projectId);
-          }
-
-          setEvents(newEvents);
+          setProjectEvents(eventsFromProject);
         } else {
-          console.warn("⚠️ Project not found:", projectId);
+          if (DEBUG) {
+            console.warn("⚠️ Project not found:", projectId);
+          }
         }
-      } catch (error) {
+      },
+      (error) => {
         console.error("Error fetching project data:", error);
       }
-    };
-
-    fetchProjectData();
+    );
+    return () => unsubscribe();
   }, [projectId]);
 
-  // ✅ Show Transaction Details on Click
+  // Listen to the transactions subcollection for events.
+  useEffect(() => {
+    const transactionsRef = collection(db, "projects", projectId, "transactions");
+    const unsubscribe = onSnapshot(
+      transactionsRef,
+      (snapshot) => {
+        const eventsFromTransactions = [];
+        snapshot.docs.forEach((docSnap) => {
+          const transaction = docSnap.data();
+          if (!transaction.date) {
+            if (DEBUG) {
+              console.warn("🚨 Skipping transaction without date:", transaction);
+            }
+            return;
+          }
+          // If the stored date is a Timestamp, convert it; if it’s a string, use it.
+          const dateString =
+            typeof transaction.date === "string"
+              ? transaction.date
+              : toLocalDateString(transaction.date);
+
+          let color = "#6c757d"; // Default gray
+          let icon = "⚙️";       // Default icon
+          switch (transaction.category) {
+            case "Client Payment":
+              color = "#28a745";
+              icon = "💰";
+              break;
+            case "Labour":
+              color = "#007bff";
+              icon = "🏗️";
+              break;
+            case "Materials":
+              color = "#ffc107";
+              icon = "🏠";
+              break;
+            case "Miscellaneous":
+              color = "#6c757d";
+              icon = "⚙️";
+              break;
+            default:
+              break;
+          }
+
+          eventsFromTransactions.push({
+            title: `${icon} ${transaction.description || "Transaction"}`,
+            start: dateString,
+            color,
+            extendedProps: transaction,
+            allDay: true,
+          });
+        });
+
+        if (DEBUG) {
+          console.log("✅ Transactions Added to Calendar:", eventsFromTransactions);
+        }
+        setTransactionEvents(eventsFromTransactions);
+      },
+      (error) => {
+        console.error("Error fetching transactions:", error);
+      }
+    );
+    return () => unsubscribe();
+  }, [projectId]);
+
+  // Combine project and transaction events.
+  useEffect(() => {
+    setEvents([...projectEvents, ...transactionEvents]);
+  }, [projectEvents, transactionEvents]);
+
+  // Event click handler.
   const handleEventClick = ({ event }) => {
     const { title, extendedProps } = event;
-
-    if (title.includes("Estimated Completion")) {
-      // ✅ Handle Estimated Completion Event
+    if (title.includes("Estimated Completion") || title.includes("Project Start")) {
       Swal.fire({
-        title: "Estimated Completion Date",
-        html: `<strong>Completion Date:</strong> ${event.start.toLocaleDateString()}`,
+        title,
+        html: `<strong>Date:</strong> ${event.start}`,
         icon: "info",
       });
     } else if (extendedProps) {
-      // ✅ Handle Transactions
       Swal.fire({
-        title: title,
+        title,
         html: `<strong>Amount:</strong> $${extendedProps.amount?.toLocaleString() || "N/A"}<br>
                <strong>Category:</strong> ${extendedProps.category || "N/A"}<br>
                <strong>Type:</strong> ${extendedProps.type || "N/A"}<br>
@@ -132,18 +170,18 @@ const ProjectCalendar = ({ projectId }) => {
         icon: "info",
       });
     } else {
-      console.warn("Event clicked, but missing expected data:", event);
+      if (DEBUG) {
+        console.warn("Event clicked, but missing expected data:", event);
+      }
     }
   };
 
-  // ✅ Handle View Change (Now Works!)
   const handleViewChange = (e) => {
     const newView = e.target.value;
     setView(newView);
-
     if (calendarRef.current) {
       const calendarApi = calendarRef.current.getApi();
-      calendarApi.changeView(newView); // ✅ This updates the view dynamically
+      calendarApi.changeView(newView);
     }
   };
 
@@ -153,22 +191,22 @@ const ProjectCalendar = ({ projectId }) => {
         <h5 className="mb-0">
           <i className="bi bi-calendar3 me-2"></i>Project Calendar
         </h5>
-        {/* ✅ View Selector */}
         <select
           className="form-select form-select-sm w-auto"
           value={view}
-          onChange={handleViewChange} // ✅ Now properly updates the view
+          onChange={handleViewChange}
+          aria-label="Select calendar view"
         >
-          <option value="dayGridFourWeek">4 Weeks</option>
+          <option value="dayGridThreeWeek">3 Weeks</option>
           <option value="dayGridMonth">Full Month</option>
         </select>
       </div>
       <FullCalendar
-        ref={calendarRef} // ✅ Attach the ref to the calendar
+        ref={calendarRef}
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView={view}
         views={{
-          dayGridFourWeek: { type: "dayGrid", duration: { weeks: 4 } }, // ✅ Custom 3-week view
+          dayGridThreeWeek: { type: "dayGrid", duration: { weeks: 3 } },
         }}
         events={events}
         eventClick={handleEventClick}

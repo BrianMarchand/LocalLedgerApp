@@ -1,9 +1,11 @@
+// File: src/pages/Login.jsx
+
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { auth } from "@config";
 
 import "../styles/pages/LoginStyles.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"; // Changed: Using Link for SPA navigation
 import Swal from "sweetalert2";
 
 const Login = () => {
@@ -11,26 +13,28 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // NEW: Password toggle state
+  const [showPassword, setShowPassword] = useState(false); // Toggle state for password visibility
 
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // --- Email Validation ---
+  // --- Email Validation Function ---
   const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Basic email regex
+    // Basic regex for email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
   // --- Handle Form Submit ---
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevent page refresh
+    e.preventDefault(); // Prevent default form submission
 
-    // Clear previous alerts
+    // Clear any previous alerts
     Swal.close();
 
     // --- Input Validation ---
-    if (!email.trim() || !password.trim()) {
+    // Trim email input; note: we do not trim password to allow intentional spaces.
+    if (!email.trim() || !password) {
       Swal.fire("Oops!", "Please fill in all fields!", "error");
       return;
     }
@@ -40,20 +44,22 @@ const Login = () => {
       return;
     }
 
-    try {
-      setLoading(true); // Start loading spinner
+    setLoading(true); // Start loading spinner
 
+    try {
       // --- Attempt Login ---
-      await login(email, password);
+      // Pass the trimmed email and raw password to the login function
+      await login(email.trim(), password);
 
       // --- Email Verification Check ---
-      if (!auth.currentUser.emailVerified) {
+      // Use optional chaining to safely access emailVerified property
+      if (!auth.currentUser?.emailVerified) {
         throw new Error("Please verify your email before logging in.");
       }
 
       // --- Success ---
       Swal.fire("Welcome Back!", "Login successful. 🎉", "success");
-      navigate("/select-app"); // Redirect to Selector Screen
+      navigate("/select-app"); // Redirect to the selector screen
     } catch (error) {
       console.error("Login Error:", error.message);
 
@@ -63,9 +69,10 @@ const Login = () => {
       } else {
         Swal.fire("Login Failed!", "Invalid email or password.", "error");
       }
+    } finally {
+      // Ensure loading spinner is stopped regardless of outcome
+      setLoading(false);
     }
-
-    setLoading(false); // Stop loading spinner
   };
 
   return (
@@ -80,9 +87,9 @@ const Login = () => {
             <input
               type="email"
               id="email"
-              className={`form-control ${!validateEmail(email) && email ? "is-invalid" : ""}`} // Highlight invalid input
+              className={`form-control ${!validateEmail(email) && email ? "is-invalid" : ""}`} // Highlights invalid input
               value={email}
-              onChange={(e) => setEmail(e.target.value.trim())}
+              onChange={(e) => setEmail(e.target.value)} // Update email (trimming will occur on submit)
               placeholder="Enter your email"
             />
           </div>
@@ -96,16 +103,15 @@ const Login = () => {
                 id="password"
                 className="form-control"
                 value={password}
-                onChange={(e) => setPassword(e.target.value.trim())}
+                onChange={(e) => setPassword(e.target.value)} // Update password (no trimming here)
                 placeholder="Enter your password"
               />
               <span
                 className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={() => setShowPassword((prev) => !prev)}
+                style={{ cursor: "pointer" }} // Added cursor style for better UX
               >
-                <i
-                  className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}
-                ></i>
+                <i className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}></i>
               </span>
             </div>
           </div>
@@ -114,10 +120,10 @@ const Login = () => {
           <button
             type="submit"
             className="auth-btn"
-            disabled={loading} // Disable button when loading
+            disabled={loading} // Button is disabled while loading
           >
             {loading ? (
-              <span className="spinner-border spinner-border-sm"></span> // Spinner
+              <span className="spinner-border spinner-border-sm"></span> // Loading spinner
             ) : (
               "Log In"
             )}
@@ -126,16 +132,16 @@ const Login = () => {
           {/* --- Signup Redirect --- */}
           <p className="mt-3">
             Need an account?{" "}
-            <a href="/signup" className="auth-link">
+            <Link to="/signup" className="auth-link">
               Sign Up
-            </a>
+            </Link>
           </p>
 
           {/* --- Forgot Password Link --- */}
           <p className="mt-2">
-            <a href="/forgot-password" className="auth-link">
+            <Link to="/forgot-password" className="auth-link">
               Forgot Password?
-            </a>
+            </Link>
           </p>
         </form>
       </div>

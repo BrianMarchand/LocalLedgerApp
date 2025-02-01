@@ -1,3 +1,5 @@
+// --- Page: TransactionsHeader.jsx ---
+
 import React from "react";
 
 const TransactionsHeader = ({

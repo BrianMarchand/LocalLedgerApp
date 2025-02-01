@@ -1,3 +1,5 @@
+// --- Page: TransactionsMobileView.jsx ---
+
 import React, { useState } from "react";
 import { formatDate, formatCurrency } from "../../utils/formatUtils";
 

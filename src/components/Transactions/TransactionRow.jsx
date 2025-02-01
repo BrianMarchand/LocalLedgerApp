@@ -1,3 +1,5 @@
+// --- Page: TransactionRow.jsx ---
+
 import React from "react";
 import { formatDate, formatCurrency } from "../../utils/formatUtils";
 

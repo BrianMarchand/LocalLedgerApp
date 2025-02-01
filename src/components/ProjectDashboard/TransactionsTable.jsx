@@ -1,5 +1,3 @@
-// --- Page: TransactionsTable.jsx ---
-
 import React, { useState, useEffect } from "react";
 import {
   addDoc,
@@ -27,6 +25,7 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
   const [sortColumn, setSortColumn] = useState(null);
   const [sortDirection, setSortDirection] = useState("asc");
   const [isAddingFocused, setIsAddingFocused] = useState(false);
+  const [addTransactionErrors, setAddTransactionErrors] = useState({});
 
   // Separate state for adding new transactions
   const [addTransactionForm, setAddTransactionForm] = useState({
@@ -51,7 +50,7 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
     filterCategory === "All"
       ? localTransactions
       : localTransactions.filter(
-          (transaction) => transaction.category === filterCategory,
+          (transaction) => transaction.category === filterCategory
         );
 
   // 🔹 Function to handle sorting
@@ -94,8 +93,8 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
         ? 1
         : -1
       : valueA < valueB
-        ? 1
-        : -1;
+      ? 1
+      : -1;
   });
 
   useEffect(() => {
@@ -118,7 +117,7 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
 
     // Ensure proper timezone conversion
     const localDate = new Date(
-      date.toLocaleString("en-US", { timeZone: "UTC" }),
+      date.toLocaleString("en-US", { timeZone: "UTC" })
     );
 
     return isNaN(localDate.getTime())
@@ -136,11 +135,15 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
       currency: "USD",
     }).format(parseFloat(amount || 0));
 
+  // Updated change handler: update form value and clear error for that field if it exists
   const handleAddTransactionChange = (e) => {
-    setAddTransactionForm({
-      ...addTransactionForm,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    setAddTransactionForm((prev) => ({ ...prev, [name]: value }));
+    if (addTransactionErrors[name]) {
+      const newErrors = { ...addTransactionErrors };
+      delete newErrors[name];
+      setAddTransactionErrors(newErrors);
+    }
   };
 
   const handleEditTransactionChange = (e) => {
@@ -162,28 +165,51 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
   };
 
   const handleSave = async () => {
-    if (
-      !addTransactionForm.description ||
-      !addTransactionForm.amount ||
-      !addTransactionForm.category
-    ) {
-      toastError("All fields are required.");
-      return;
+    // Reset previous errors
+    const errors = {};
+
+    // Validate each field
+    if (!addTransactionForm.date) {
+      errors.date = " ";
+    } else {
+      const localDate = new Date(addTransactionForm.date);
+      if (isNaN(localDate.getTime())) {
+        errors.date = " ";
+      }
+    }
+    if (!addTransactionForm.description) {
+      errors.description = " ";
+    }
+    if (!addTransactionForm.amount) {
+      errors.amount = " ";
+    }
+    if (!addTransactionForm.category) {
+      errors.category = " ";
+    }
+    if (!addTransactionForm.type) {
+      errors.type = " ";
     }
 
+    // If there are errors, update state and abort saving
+    if (Object.keys(errors).length > 0) {
+      setAddTransactionErrors(errors);
+      return;
+    } else {
+      setAddTransactionErrors({});
+    }
+
+    // Proceed with saving if no errors exist
+    const localDate = new Date(addTransactionForm.date);
+    localDate.setHours(0, 0, 0, 0); // Set time to midnight to avoid timezone issues
+    const newTransaction = {
+      ...addTransactionForm,
+      date: Timestamp.fromDate(localDate),
+    };
+
     try {
-      // ✅ Fix Timezone Offset: Force local timezone midnight before saving
-      const localDate = new Date(addTransactionForm.date);
-      localDate.setHours(0, 0, 0, 0); // Ensure stored time is midnight local
-
-      const newTransaction = {
-        ...addTransactionForm,
-        date: Timestamp.fromDate(localDate),
-      };
-
       await addDoc(
         collection(db, `projects/${projectId}/transactions`),
-        newTransaction,
+        newTransaction
       );
       toastSuccess("Transaction added!");
       setIsAddingTransaction(false);
@@ -202,7 +228,7 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
         {
           ...editTransactionForm,
           date: Timestamp.fromDate(new Date(editTransactionForm.date)),
-        },
+        }
       );
       toastSuccess("Transaction updated!");
       setEditingTransaction(null);
@@ -216,7 +242,7 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
   const handleDelete = async (transactionId) => {
     try {
       await deleteDoc(
-        doc(db, `projects/${projectId}/transactions`, transactionId),
+        doc(db, `projects/${projectId}/transactions`, transactionId)
       );
       toastSuccess("Transaction deleted!");
       fetchTransactions();
@@ -242,132 +268,175 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
       <div className="transactions-container">
         {isMobile ? (
           <>
-            {/* Add New Transaction Card */}
+            {/* Mobile Add New Transaction Card */}
             <div className="transaction-card">
               <div className="transaction-card-header">
                 <div className="transaction-header-left">
                   <span>Add New Transaction</span>
                 </div>
                 <i
-                  className={`bi ${isAddingTransaction ? "bi-dash-circle-fill" : "bi-plus-circle-fill"} expand-icon`}
+                  className={`bi ${
+                    isAddingTransaction
+                      ? "bi-dash-circle-fill"
+                      : "bi-plus-circle-fill"
+                  } expand-icon`}
                   onClick={() => setIsAddingTransaction(!isAddingTransaction)}
                 ></i>
               </div>
               {isAddingTransaction && (
                 <div className="transaction-card-body">
+                  {/* Debug block to show errors object (remove or comment out in production) */}
+                  {Object.keys(addTransactionErrors).length > 0 && (
+                    <pre style={{ color: "red", marginBottom: "0.5rem" }}>
+                      {JSON.stringify(addTransactionErrors, null, 2)}
+                    </pre>
+                  )}
                   {/* Row 1: Date & Amount */}
                   <div className="input-group">
-                    <input
-                      type="date"
-                      name="date"
-                      className="form-control"
-                      value={addTransactionForm.date}
-                      onChange={(e) =>
-                        setAddTransactionForm({
-                          ...addTransactionForm,
-                          [e.target.name]: e.target.value,
-                        })
-                      }
-                    />
-                    <input
-                      type="number"
-                      name="amount"
-                      className="form-control"
-                      placeholder="$ Enter amount"
-                      value={addTransactionForm.amount}
-                      onChange={(e) =>
-                        setAddTransactionForm({
-                          ...addTransactionForm,
-                          [e.target.name]: e.target.value,
-                        })
-                      }
-                    />
+                    <div className="w-50">
+                      <input
+                        type="date"
+                        name="date"
+                        className={`form-control ${
+                          addTransactionErrors.date ? "is-invalid" : ""
+                        }`}
+                        value={addTransactionForm.date}
+                        onChange={handleAddTransactionChange}
+                      />
+                      {addTransactionErrors.date && (
+                        <div className="error-message">
+                          {addTransactionErrors.date}
+                        </div>
+                      )}
+                    </div>
+                    <div className="w-50">
+                      <input
+                        type="number"
+                        name="amount"
+                        className={`form-control ${
+                          addTransactionErrors.amount ? "is-invalid" : ""
+                        }`}
+                        placeholder="$ Enter amount"
+                        value={addTransactionForm.amount}
+                        onFocus={(e) => (e.target.placeholder = "")}
+                        onBlur={(e) => {
+                          if (!e.target.value)
+                            e.target.placeholder = "$ Enter amount";
+                        }}
+                        onChange={handleAddTransactionChange}
+                      />
+                      {addTransactionErrors.amount && (
+                        <div className="error-message">
+                          {addTransactionErrors.amount}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Row 2: Description (Full Width) */}
-                  <input
-                    type="text"
-                    name="description"
-                    className="form-control"
-                    placeholder="Enter description"
-                    value={addTransactionForm.description}
-                    onChange={(e) =>
-                      setAddTransactionForm({
-                        ...addTransactionForm,
-                        [e.target.name]: e.target.value,
-                      })
-                    }
-                  />
+                  {/* Row 2: Description */}
+                  <div className="mt-2">
+                    <input
+                      type="text"
+                      name="description"
+                      className={`form-control ${
+                        addTransactionErrors.description ? "is-invalid" : ""
+                      }`}
+                      placeholder="Enter description"
+                      value={addTransactionForm.description}
+                      onFocus={(e) => (e.target.placeholder = "")}
+                      onBlur={(e) => {
+                        if (!e.target.value)
+                          e.target.placeholder = "Enter description";
+                      }}
+                      onChange={handleAddTransactionChange}
+                    />
+                    {addTransactionErrors.description && (
+                      <div className="error-message">
+                        {addTransactionErrors.description}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Row 3: Category & Type */}
-                  <div className="input-group">
-                    <select
-                      name="category"
-                      className="form-select"
-                      value={addTransactionForm.category}
-                      onChange={(e) =>
-                        setAddTransactionForm({
-                          ...addTransactionForm,
-                          [e.target.name]: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="" disabled>
-                        Select Category
-                      </option>
-                      <option value="Client Payment">Client Payment</option>
-                      <option value="Labour">Labour</option>
-                      <option value="Materials">Materials</option>
-                      <option value="Miscellaneous">Miscellaneous</option>
-                    </select>
-
-                    <select
-                      name="type"
-                      className="form-select"
-                      value={addTransactionForm.type}
-                      onChange={(e) =>
-                        setAddTransactionForm({
-                          ...addTransactionForm,
-                          [e.target.name]: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="" disabled>
-                        Select Type
-                      </option>
-                      <option value="Cash">Cash</option>
-                      <option value="VISA">VISA</option>
-                      <option value="Debit">Debit</option>
-                      <option value="E-Transfer">E-Transfer</option>
-                    </select>
+                  <div className="input-group mt-2">
+                    <div className="w-50">
+                      <select
+                        name="category"
+                        className={`form-select ${
+                          addTransactionErrors.category ? "is-invalid" : ""
+                        }`}
+                        value={addTransactionForm.category}
+                        onChange={handleAddTransactionChange}
+                      >
+                        <option value="" disabled>
+                          Select Category
+                        </option>
+                        <option value="Client Payment">Client Payment</option>
+                        <option value="Labour">Labour</option>
+                        <option value="Materials">Materials</option>
+                        <option value="Miscellaneous">
+                          Miscellaneous
+                        </option>
+                      </select>
+                      {addTransactionErrors.category && (
+                        <div className="error-message">
+                          {addTransactionErrors.category}
+                        </div>
+                      )}
+                    </div>
+                    <div className="w-50">
+                      <select
+                        name="type"
+                        className={`form-select ${
+                          addTransactionErrors.type ? "is-invalid" : ""
+                        }`}
+                        value={addTransactionForm.type}
+                        onChange={handleAddTransactionChange}
+                      >
+                        <option value="" disabled>
+                          Select Type
+                        </option>
+                        <option value="Cash">Cash</option>
+                        <option value="VISA">VISA</option>
+                        <option value="Debit">Debit</option>
+                        <option value="E-Transfer">E-Transfer</option>
+                      </select>
+                      {addTransactionErrors.type && (
+                        <div className="error-message">
+                          {addTransactionErrors.type}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Save & Cancel Buttons */}
-                  <div className="mobile-action-buttons">
+                  <div className="mobile-action-buttons mt-2">
                     <button
                       className="btn btn-success btn-sm"
                       onClick={handleSave}
-                      title="Save"
+                      title="Save Transaction"
                     >
-                      <i className="bi bi-check-lg"></i> {/* Save Icon */}
+                      <i className="bi bi-check-lg"></i>
                     </button>
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={resetForm}
-                      title="Cancel"
+                      title="Clear Form"
                     >
-                      <i className="bi bi-x-lg"></i> {/* Cancel Icon */}
+                      <i className="bi bi-x-lg"></i>
                     </button>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Transactions List */}
+            {/* Mobile Transactions List */}
             {localTransactions.map((transaction, index) => (
               <div
                 key={transaction.id}
-                className={`transaction-card ${index % 2 === 0 ? "transaction-card-alt" : ""}`}
+                className={`transaction-card ${
+                  index % 2 === 0 ? "transaction-card-alt" : ""
+                }`}
               >
                 {/* Collapsed View - Only shows Date | Amount | Truncated Description */}
                 <div className="transaction-card-header">
@@ -387,12 +456,16 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                     </span>
                   </div>
                   <i
-                    className={`bi ${expandedTransaction === transaction.id ? "bi-eye-slash" : "bi-eye"} expand-icon`}
+                    className={`bi ${
+                      expandedTransaction === transaction.id
+                        ? "bi-eye-slash"
+                        : "bi-eye"
+                    } expand-icon`}
                     onClick={() =>
                       setExpandedTransaction(
                         expandedTransaction === transaction.id
                           ? null
-                          : transaction.id,
+                          : transaction.id
                       )
                     }
                   ></i>
@@ -453,10 +526,14 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                           <option value="" disabled>
                             Select Category
                           </option>
-                          <option value="Client Payment">Client Payment</option>
+                          <option value="Client Payment">
+                            Client Payment
+                          </option>
                           <option value="Labour">Labour</option>
                           <option value="Materials">Materials</option>
-                          <option value="Miscellaneous">Miscellaneous</option>
+                          <option value="Miscellaneous">
+                            Miscellaneous
+                          </option>
                         </select>
                         <select
                           name="type"
@@ -519,6 +596,7 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
             ))}
           </>
         ) : (
+          // Desktop View
           <div className="transactions-container">
             <div className="card-header d-flex justify-content-between align-items-center">
               <h5 className="mb-0">
@@ -599,93 +677,113 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
               <div className="transaction-cell">Actions</div>
             </div>
 
-            {/* Add New Transaction Row */}
+            {/* Add New Transaction Row for Desktop */}
             <div className="transaction-row">
               <div className="transaction-cell">
                 <input
                   type="date"
                   name="date"
-                  className="form-control"
+                  className={`form-control ${
+                    addTransactionErrors.date ? "is-invalid" : ""
+                  }`}
                   value={addTransactionForm.date}
-                  onChange={(e) =>
-                    setAddTransactionForm({
-                      ...addTransactionForm,
-                      [e.target.name]: e.target.value,
-                    })
-                  }
+                  onChange={handleAddTransactionChange}
                 />
+                {addTransactionErrors.date && (
+                  <div className="error-message">
+                    {addTransactionErrors.date}
+                  </div>
+                )}
               </div>
               <div className="transaction-cell">
                 <input
                   type="text"
                   name="description"
-                  className="form-control"
+                  className={`form-control ${
+                    addTransactionErrors.description ? "is-invalid" : ""
+                  }`}
                   placeholder="Enter description"
                   value={addTransactionForm.description}
-                  onChange={(e) =>
-                    setAddTransactionForm({
-                      ...addTransactionForm,
-                      [e.target.name]: e.target.value,
-                    })
-                  }
+                  onFocus={(e) => (e.target.placeholder = "")}
+                  onBlur={(e) => {
+                    if (!e.target.value)
+                      e.target.placeholder = "Enter description";
+                  }}
+                  onChange={handleAddTransactionChange}
                 />
+                {addTransactionErrors.description && (
+                  <div className="error-message">
+                    {addTransactionErrors.description}
+                  </div>
+                )}
               </div>
               <div className="transaction-cell">
                 <input
                   type="number"
                   name="amount"
-                  className="form-control"
-                  placeholder="Enter amount"
+                  className={`form-control ${
+                    addTransactionErrors.amount ? "is-invalid" : ""
+                  }`}
+                  placeholder="$ 0.00"
                   value={addTransactionForm.amount}
-                  onChange={(e) =>
-                    setAddTransactionForm({
-                      ...addTransactionForm,
-                      [e.target.name]: e.target.value,
-                    })
-                  }
+                  onFocus={(e) => (e.target.placeholder = "")}
+                  onBlur={(e) => {
+                    if (!e.target.value)
+                      e.target.placeholder = "Enter amount";
+                  }}
+                  onChange={handleAddTransactionChange}
                 />
+                {addTransactionErrors.amount && (
+                  <div className="error-message">
+                    {addTransactionErrors.amount}
+                  </div>
+                )}
               </div>
               <div className="transaction-cell">
                 <select
                   name="category"
-                  className="form-select"
+                  className={`form-select ${
+                    addTransactionErrors.category ? "is-invalid" : ""
+                  }`}
                   value={addTransactionForm.category}
-                  onChange={(e) =>
-                    setAddTransactionForm({
-                      ...addTransactionForm,
-                      [e.target.name]: e.target.value,
-                    })
-                  }
+                  onChange={handleAddTransactionChange}
                 >
                   <option value="" disabled>
-                    Select Category
+                    Category
                   </option>
                   <option value="Client Payment">Client Payment</option>
                   <option value="Labour">Labour</option>
                   <option value="Materials">Materials</option>
                   <option value="Miscellaneous">Miscellaneous</option>
                 </select>
+                {addTransactionErrors.category && (
+                  <div className="error-message">
+                    {addTransactionErrors.category}
+                  </div>
+                )}
               </div>
               <div className="transaction-cell">
                 <select
                   name="type"
-                  className="form-select"
+                  className={`form-select ${
+                    addTransactionErrors.type ? "is-invalid" : ""
+                  }`}
                   value={addTransactionForm.type}
-                  onChange={(e) =>
-                    setAddTransactionForm({
-                      ...addTransactionForm,
-                      [e.target.name]: e.target.value,
-                    })
-                  }
+                  onChange={handleAddTransactionChange}
                 >
                   <option value="" disabled>
-                    Select Type
+                    Type
                   </option>
                   <option value="Cash">Cash</option>
                   <option value="VISA">VISA</option>
                   <option value="Debit">Debit</option>
                   <option value="E-Transfer">E-Transfer</option>
                 </select>
+                {addTransactionErrors.type && (
+                  <div className="error-message">
+                    {addTransactionErrors.type}
+                  </div>
+                )}
               </div>
               <div className="transaction-cell">
                 <button
@@ -693,14 +791,14 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                   onClick={handleSave}
                   title="Add Transaction"
                 >
-                  <i className="bi bi-plus-square"></i> {/* Add Icon */}
+                  <i className="bi bi-plus-square"></i>
                 </button>
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={resetForm}
                   title="Clear Form"
                 >
-                  <i className="bi bi-x-square"></i> {/* Clear Icon */}
+                  <i className="bi bi-x-square"></i>
                 </button>
               </div>
             </div>
@@ -774,7 +872,9 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                         <option value="Client Payment">Client Payment</option>
                         <option value="Labour">Labour</option>
                         <option value="Materials">Materials</option>
-                        <option value="Miscellaneous">Miscellaneous</option>
+                        <option value="Miscellaneous">
+                          Miscellaneous
+                        </option>
                       </select>
                     </div>
                     <div className="transaction-cell">
@@ -830,7 +930,9 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                     <div className="transaction-cell">
                       {transaction.category}
                     </div>
-                    <div className="transaction-cell">{transaction.type}</div>
+                    <div className="transaction-cell">
+                      {transaction.type}
+                    </div>
                     <div className="transaction-cell">
                       <div className="transaction-cell action-buttons">
                         <button
@@ -849,7 +951,7 @@ const TransactionsTable = ({ transactions, projectId, fetchTransactions }) => {
                       </div>
                     </div>
                   </div>
-                ),
+                )
               )
             ) : (
               <div className="transaction-row text-center">

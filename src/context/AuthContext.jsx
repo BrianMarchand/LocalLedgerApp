@@ -1,3 +1,5 @@
+// File: src/context/AuthContext.jsx
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { auth } from "@config";
 import {
@@ -5,7 +7,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  updateEmail,
+  sendPasswordResetEmail, // Import this for password resets
 } from "firebase/auth";
 
 const AuthContext = createContext();
@@ -16,19 +18,12 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Signup function
+  // --- Signup Function ---
   const signup = async (email, password) => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password,
-      );
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
-      await user.reload();
-      setCurrentUser(auth.currentUser);
-
+      setCurrentUser(user);
       console.log("Signup successful. User ID:", user.uid);
       return user;
     } catch (error) {
@@ -37,16 +32,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Login function
+  // --- Login Function ---
   const login = async (email, password) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password,
-      );
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
       setCurrentUser(user);
       console.log("Login successful. User ID:", user.uid);
       return user;
@@ -56,7 +46,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout function
+  // --- Logout Function ---
   const logout = async () => {
     try {
       await signOut(auth);
@@ -68,7 +58,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Listener for authentication state
+  // --- Reset Password Function ---
+  // This function now includes actionCodeSettings to specify a custom redirect URL.
+  const resetPassword = async (email) => {
+    const actionCodeSettings = {
+      // When in development, use your local URL; otherwise, use your live URL.
+      url:
+        process.env.NODE_ENV === "development"
+          ? "http://localhost:5173/password-reset"
+          : "https://localledger.app/password-reset",
+      handleCodeInApp: true,
+    };
+    try {
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      console.log("Password reset email sent to:", email);
+    } catch (error) {
+      console.error("Reset Password Error:", error.message);
+      throw error;
+    }
+  };
+
+  // --- Listen for Authentication State ---
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user || null);
@@ -79,14 +89,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider
-      value={{
-        currentUser,
-        signup,
-        login,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={{ currentUser, signup, login, logout, resetPassword }}>
       {!loading && children}
     </AuthContext.Provider>
   );
