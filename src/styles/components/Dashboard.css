@@ -1,0 +1,229 @@
+/* Overall layout container */
+.dashboard-main-container {
+  display: flex;
+  width: 100%;
+}
+
+/* Sidebar is handled by Sidebar.css (imported in Sidebar.jsx) */
+
+/* Dashboard content container: takes the remaining width */
+.dashboard-content-container {
+  flex: 1;
+  padding: 20px;
+}
+
+/* Dashboard header within content */
+.dashboard-header {
+  background: white;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Dashboard content (columns for analytics and summary) */
+.dashboard-content {
+  display: flex;
+  gap: 20px;
+}
+
+/* Left side (analytics/charts) */
+.dashboard-left {
+  flex: 2;
+}
+
+/* Right side (summary and recent activity) */
+.dashboard-right {
+  flex: 1;
+  padding-left: 15px;
+  border-left: 1px solid #ddd;
+}
+
+/* =========================
+   Engaging Dashboard Card Styles
+   ========================= */
+
+/* Base Dashboard Card Styles */
+.dashboard-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px; /* increased rounding */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  position: relative;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* Hover effect: slight lift and deeper shadow */
+.dashboard-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Left accent bar for visual interest */
+.dashboard-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+
+/* Specific card accent colors (using your brand guidelines) */
+.card-projects::before {
+  background-color: #471843; /* Foundation */
+}
+
+.card-transactions::before {
+  background-color: #132342; /* Ledger */
+}
+
+.card-customers::before {
+  background-color: #1bceb4; /* Limestone */
+}
+
+/* New Recent Activity Card Accent */
+.card-activity::before {
+  background-color: #f8384c; /* Brick Red accent */
+}
+
+/* Enhance the card heading for visual hierarchy */
+.dashboard-card h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.25rem;
+  color: #334154; /* Steel or a complementary shade */
+}
+
+/* Style for the dashboard count */
+.dashboard-count {
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 0 0 10px;
+  color: #64748b; /* Iron */
+}
+
+/* Link styling to match your brand */
+.card-link {
+  text-decoration: none;
+  color: #6ba1dd; /* Blueprint accent */
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.card-link:hover {
+  color: #1a76fc; /* a more saturated blue */
+}
+
+/* Charts: ensure responsiveness */
+.dashboard-card canvas {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* =========================
+   Layout Containers
+   ========================= */
+
+/* Summary Cards: Flex container for top summary cards */
+.dashboard-summary-cards {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.dashboard-summary-cards .dashboard-card {
+  flex: 1;
+  min-width: 250px; /* Ensures the cards don’t shrink too much */
+}
+
+/* Dashboard Grid: Arrange charts and other cards in a responsive grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* Recent Activity Section (if used outside summary row) */
+.dashboard-recent-activity {
+  margin-top: 20px;
+  background: #fff;
+  padding: 15px;
+  border-radius: 4px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Recent Activity List Container */
+.recent-activity-list {
+  max-height: 200px; /* Adjust as needed */
+  overflow-y: auto;
+  padding-right: 10px;
+  margin-top: 10px;
+  overflow-y: scroll;
+}
+
+/* Styling for the list */
+.recent-activity-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Each activity item styling */
+.recent-activity-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  font-size: 0.85rem; /* Slightly smaller font size */
+  color: #6c757d; /* Lighter, muted text color */
+  border: none;
+  border-bottom: 1px solid #eee !important;
+}
+
+.recent-activity-list li:last-child {
+  border-bottom: none;
+}
+
+/* Icon styling for activity items */
+.recent-activity-list li i {
+  font-size: 1rem;
+  color: #007bff; /* Or adjust to fit your brand palette */
+}
+
+/* Styling for individual parts */
+.activity-date {
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.activity-type {
+  flex-grow: 1;
+}
+
+.activity-message {
+  flex-grow: 2;
+  opacity: 0.8;
+}
+
+/* =========================
+   Responsive Adjustments
+   ========================= */
+@media (max-width: 768px) {
+  .dashboard-main-container {
+    flex-direction: column;
+  }
+  .dashboard-content {
+    flex-direction: column;
+  }
+  .dashboard-right {
+    border-left: none;
+    padding-left: 0;
+  }
+}

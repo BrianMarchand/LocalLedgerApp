@@ -1,27 +1,27 @@
-// --- Page: QuickActions.jsx
+import React from 'react';
+import PropTypes from 'prop-types';
+import { Button } from 'react-bootstrap';
 
-import React from "react";
-import { useNavigate } from "react-router-dom";
-
-const QuickActions = ({ onAddProject, onAddTransaction }) => {
-  const navigate = useNavigate();
-
+const QuickActions = ({ onAddProject, onAddTransaction, onAddCustomer }) => {
   return (
     <div className="quick-actions">
-      <button className="btn btn-primary" onClick={onAddProject}>
-        <i className="bi bi-plus-lg"></i> Add Project
-      </button>
-      <button className="btn btn-success" onClick={onAddTransaction}>
-        <i className="bi bi-cash-stack"></i> Add Transaction
-      </button>
-      <button
-        className="btn btn-secondary"
-        onClick={() => navigate("/projects")}
-      >
-        <i className="bi bi-card-list"></i> View All Projects
-      </button>
+      <Button variant="primary" onClick={onAddProject}>
+        Add Project
+      </Button>
+      <Button variant="secondary" onClick={onAddTransaction}>
+        Add Transaction
+      </Button>
+      <Button variant="success" onClick={onAddCustomer}>
+        Add New Customer
+      </Button>
     </div>
   );
+};
+
+QuickActions.propTypes = {
+  onAddProject: PropTypes.func,
+  onAddTransaction: PropTypes.func,
+  onAddCustomer: PropTypes.func,
 };
 
 export default QuickActions;

@@ -1,151 +1,187 @@
 // File: src/pages/Login.jsx
 
-import React, { useState } from "react";
+import React, { useState } from "react"; 
 import { useAuth } from "../context/AuthContext";
 import { auth } from "@config";
-
-import "../styles/pages/LoginStyles.css";
-import { useNavigate, Link } from "react-router-dom"; // Changed: Using Link for SPA navigation
-import Swal from "sweetalert2";
+import AuthLayout from "../pages/AuthLayout"; // New layout component
+import { useNavigate, Link } from "react-router-dom";
 
 const Login = () => {
   // --- State Management ---
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // Toggle state for password visibility
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
 
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   // --- Email Validation Function ---
   const validateEmail = (email) => {
-    // Basic regex for email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
   // --- Handle Form Submit ---
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevent default form submission
+    e.preventDefault();
+    setError(""); // Clear previous errors
 
-    // Clear any previous alerts
-    Swal.close();
-
-    // --- Input Validation ---
-    // Trim email input; note: we do not trim password to allow intentional spaces.
     if (!email.trim() || !password) {
-      Swal.fire("Oops!", "Please fill in all fields!", "error");
+      setError("Please fill in all fields!");
       return;
     }
 
     if (!validateEmail(email)) {
-      Swal.fire("Invalid Email!", "Enter a valid email address.", "error");
+      setError("Enter a valid email address.");
       return;
     }
 
-    setLoading(true); // Start loading spinner
-
+    setLoading(true);
     try {
-      // --- Attempt Login ---
-      // Pass the trimmed email and raw password to the login function
       await login(email.trim(), password);
-
-      // --- Email Verification Check ---
-      // Use optional chaining to safely access emailVerified property
       if (!auth.currentUser?.emailVerified) {
         throw new Error("Please verify your email before logging in.");
       }
-
-      // --- Success ---
-      Swal.fire("Welcome Back!", "Login successful. 🎉", "success");
-      navigate("/select-app"); // Redirect to the selector screen
-    } catch (error) {
-      console.error("Login Error:", error.message);
-
-      // --- Error Feedback ---
-      if (error.message.includes("verify your email")) {
-        Swal.fire("Email Not Verified!", error.message, "warning");
+      navigate("/select-app");
+    } catch (err) {
+      console.error("Login Error:", err.message);
+      if (err.message.includes("verify your email")) {
+        setError("Email Not Verified! " + err.message);
       } else {
-        Swal.fire("Login Failed!", "Invalid email or password.", "error");
+        setError("Login Failed! Invalid email or password.");
       }
     } finally {
-      // Ensure loading spinner is stopped regardless of outcome
+      setLoading(false);
+    }
+  };
+
+  // --- Handle Google Login ---
+  const handleGoogleLogin = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      await loginWithGoogle();
+      navigate("/select-app");
+    } catch (err) {
+      console.error("Google Login Error:", err.message);
+      setError("Google Login Failed: " + err.message);
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <form onSubmit={handleSubmit}>
-          <h2 className="mb-4">Log In</h2>
+    <AuthLayout page="login">
+      <form onSubmit={handleSubmit} noValidate>
+        <h2 className="mb-2 text-center">Sign in with email</h2>
+        <p className="mb-4 text-center small">
+          Start managing your entire project lifecycle all in one place,
+          effectively and completely free!
+        </p>
 
-          {/* --- Email Field --- */}
-          <div className="auth-form-group">
-            <label htmlFor="email">Email Address</label>
+        {error && (
+          <div className="alert alert-danger" role="alert">
+            {error}
+          </div>
+        )}
+
+        {/* --- Email Field --- */}
+        <div className="auth-form-group">
+          <label htmlFor="email">Email Address</label>
+          <div className="input-container">
+            <span className="input-icon">
+              {error && (!email.trim() || !validateEmail(email)) ? (
+                <i className="bi bi-exclamation-triangle-fill"></i>
+              ) : (
+                <i className="bi bi-envelope"></i>
+              )}
+            </span>
             <input
               type="email"
               id="email"
-              className={`form-control ${!validateEmail(email) && email ? "is-invalid" : ""}`} // Highlights invalid input
+              className={`form-control ${
+                error && (!email.trim() || !validateEmail(email)) ? "is-invalid" : ""
+              }`}
               value={email}
-              onChange={(e) => setEmail(e.target.value)} // Update email (trimming will occur on submit)
-              placeholder="Enter your email"
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@email.com"
             />
           </div>
+        </div>
 
-          {/* --- Password Field --- */}
-          <div className="auth-form-group">
-            <label htmlFor="password">Password</label>
-            <div className="input-container">
-              <input
-                type={showPassword ? "text" : "password"}
-                id="password"
-                className="form-control"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)} // Update password (no trimming here)
-                placeholder="Enter your password"
-              />
-              <span
-                className="password-toggle"
-                onClick={() => setShowPassword((prev) => !prev)}
-                style={{ cursor: "pointer" }} // Added cursor style for better UX
-              >
-                <i className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}></i>
-              </span>
-            </div>
-          </div>
-
-          {/* --- Submit Button --- */}
-          <button
-            type="submit"
-            className="auth-btn"
-            disabled={loading} // Button is disabled while loading
-          >
-            {loading ? (
-              <span className="spinner-border spinner-border-sm"></span> // Loading spinner
-            ) : (
-              "Log In"
-            )}
-          </button>
-
-          {/* --- Signup Redirect --- */}
-          <p className="mt-3">
-            Need an account?{" "}
-            <Link to="/signup" className="auth-link">
-              Sign Up
-            </Link>
-          </p>
-
-          {/* --- Forgot Password Link --- */}
-          <p className="mt-2">
-            <Link to="/forgot-password" className="auth-link">
+        {/* --- Password Field with Inline Forgot Password Link --- */}
+        <div className="auth-form-group">
+          <div className="password-label-wrapper">
+            <label htmlFor="password" className="password-label">
+              Password
+            </label>
+            <Link to="/forgot-password" className="forgot-password">
               Forgot Password?
             </Link>
-          </p>
-        </form>
-      </div>
-    </div>
+          </div>
+          <div className="input-container">
+            <span className="input-icon">
+              {error && !password ? (
+                <i className="bi bi-exclamation-triangle-fill"></i>
+              ) : (
+                <i className="bi bi-shield-lock"></i>
+              )}
+            </span>
+            <input
+              type={showPassword ? "text" : "password"}
+              id="password"
+              className={`form-control ${error && !password ? "is-invalid" : ""}`}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="•••••••••••"
+            />
+            <span
+              className="password-toggle"
+              onClick={() => setShowPassword((prev) => !prev)}
+              style={{ cursor: "pointer" }}
+            >
+              <i className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}></i>
+            </span>
+          </div>
+        </div>
+
+        {/* --- Submit Button --- */}
+        <button type="submit" className="auth-btn" disabled={loading}>
+          {loading ? (
+            <span className="spinner-border spinner-border-sm"></span>
+          ) : (
+            "Get Started"
+          )}
+        </button>
+        {/* Divider */}
+        <div className="divider">
+          <span>or sign in with</span>
+        </div>
+        {/* --- Google Login Button --- */}
+        <button
+          type="button"
+          className="btn btn-outline-secondary w-100"
+          onClick={handleGoogleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <span className="spinner-border spinner-border-sm"></span>
+          ) : (
+            "Sign in with Google"
+          )}
+        </button>
+
+        {/* --- Signup Redirect --- */}
+        <p className="mt-3 text-center small">
+          Need an account?{" "}
+          <Link to="/signup" className="auth-link">
+            Sign Up
+          </Link>
+        </p>
+      </form>
+    </AuthLayout>
   );
 };
 

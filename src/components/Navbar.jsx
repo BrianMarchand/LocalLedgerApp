@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "@config";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"; // ✅ Import missing functions
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { Dropdown } from "react-bootstrap";
 
@@ -14,8 +14,8 @@ import UserDropdown from "./UserDropdown";
 import FAB from "./FAB";
 import AddProjectModal from "/src/components/AddProject/AddProjectModal";
 import TransactionModal from "/src/components/TransactionModal";
-import CustomerModal from "/src/components/CustomerModal"; // ✅ Import CustomerModal
-import { useProjects } from "../context/ProjectsContext"; // ✅ Import useProjects()
+import CustomerModal from "/src/components/CustomerModal";
+import { useProjects } from "../context/ProjectsContext";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ const Navbar = () => {
   // 🔄 State for Modals
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [showCustomerModal, setShowCustomerModal] = useState(false); // ✅ New state for CustomerModal
+  const [showCustomerModal, setShowCustomerModal] = useState(false); //
 
   const { projects } = useProjects(); // ✅ Get projects from context
 
@@ -52,7 +52,7 @@ const Navbar = () => {
     console.log("Saving Customer:", customer);
 
     try {
-      const customersCollection = collection(db, "customers"); // ✅ Correct Firestore reference
+      const customersCollection = collection(db, "customers"); 
       await addDoc(customersCollection, {
         ...customer,
         createdAt: serverTimestamp(), // ✅ Timestamp for sorting

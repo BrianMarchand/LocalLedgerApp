@@ -1,13 +1,51 @@
-/* Container Styling */
-.auth-container {
+/* Global Reset for html & body */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Main Parent Container */
+.auth-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
   background: #f7f7f7;
+  width: 100vw;
+  height: 100vh;
+  padding: 10px; /* Added padding so the inner card is visible */
 }
 
-/* Card Styling */
+/* Two‑column container styled as a card */
+.auth-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-image: url("/images/bg-pale-blue.jpg");
+  box-shadow: 0 0 10px rgba(57, 6, 118, 0.3); /* Slight box-shadow */
+  border-radius: 4px; /* Rounded corners */
+}
+
+/* Left Side: Gradient Background */
+.auth-gradient {
+  width: 50%;
+  background: linear-gradient(135deg, #F52F94, #8B43FA);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Right Side: Login Card Container */
+.auth-right {
+  width: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Card Styling for the login form inside the right container */
 .auth-card {
   background: #fff;
   padding: 2rem;
@@ -19,7 +57,7 @@
 
 /* Form Fields */
 .auth-form-group {
-  position: relative; /* Ensure parent is positioned for absolute children */
+  position: relative; /* For absolute children */
   margin-bottom: 1rem;
 }
 
@@ -33,11 +71,78 @@
 .auth-form-group input {
   width: 100%;
   padding-right: 40px; /* Space for toggle */
-  height: 40px; /* Consistent height */
-  line-height: 40px; /* Match height for vertical alignment */
-  padding: 0 12px; /* Internal padding */
+  height: 40px;
+  line-height: 40px;
+  padding: 0 12px;
   border: 1px solid #ced4da;
   border-radius: 4px;
+}
+
+/* Password label wrapper to align the label and forgot link on the same line */
+.password-label-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+/* Ensure the Password label has no extra margin */
+.password-label {
+  margin: 0;
+}
+
+/* Style the Forgot Password link */
+.forgot-password {
+  font-size: 0.85rem;      /* Smaller text */
+  color: #6c757d;          /* Desaturated color (similar to Bootstrap's text-muted) */
+  text-decoration: none;
+}
+
+.forgot-password:hover {
+  text-decoration: underline;
+}
+
+/* Style for the left content container inside the gradient */
+.left-content {
+  text-align: left;
+  color: #fff;
+  padding: 20px;
+  max-width: 80%;
+  margin: auto;
+}
+
+.left-content .logo {
+  width: 150px;          /* Adjust the logo size as needed */
+  margin-bottom: 20px;
+}
+
+.left-content h1 {
+  font-size: 2rem;
+  margin: 10px 0;
+}
+
+.left-content h3 {
+  font-size: 1.25rem;
+  margin: 10px 0;
+  font-weight: 400;
+}
+
+.left-content hr {
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  width: 80%;
+  margin: 20px auto;
+}
+
+.left-content p {
+  font-size: 1rem;
+  margin: 10px 0;
+}
+
+.left-content small {
+  font-size: 0.8rem;
+  display: block;
+  margin-top: 10px;
+  opacity: 0.8;
 }
 
 /* Error Highlight */
@@ -53,10 +158,46 @@
   width: 100%;
 }
 
-.input-container input {
+.auth-form-group input {
   flex: 1; /* Input takes remaining space */
-  padding-right: 40px; /* Ensure space for the icon */
-  height: 40px;
+  width: 100%;
+  height: 48px; /* Input height */
+  border: none;
+  border-radius: 4px;
+  padding-left: 48px; /* Space for icon */
+  padding-right: 48px; /* Space for toggle (if applicable) */
+  background-color: #F5F5F5;
+  font-size: 1rem;
+  color: #333333;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  color: #808080; /* Icon color */
+}
+
+/* Divider */
+.divider {
+  width: 100%;
+  border-top: 1px solid #ddd;
+  position: relative;
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.divider span {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #FFFFFF;
+  padding: 0 12px;
+  font-size: 0.9rem;
+  color: #666666;
 }
 
 .password-toggle {
@@ -64,13 +205,13 @@
   right: 12px; /* Near the right edge */
   top: 50%; /* Vertically center */
   transform: translateY(-50%);
-  cursor: pointer; /* Clickable */
-  font-size: 1.25rem; /* Slightly larger icon size */
-  color: #6c757d; /* Muted gray */
+  cursor: pointer;
+  font-size: 1.25rem;
+  color: #6c757d;
 }
 
 .password-toggle:hover {
-  color: #007bff; /* Highlight on hover */
+  color: #007bff;
 }
 
 /* Button Styling */
@@ -79,9 +220,14 @@
   padding: 0.75rem;
   border: none;
   border-radius: 4px;
-  background-color: #007bff;
+  background-color: #8B43FA;
   color: white;
   font-weight: 500;
+  transition: background-color 0.3s ease;
+}
+
+.auth-btn:hover {
+  background-color: #732ed5;
 }
 
 .auth-btn:disabled {
@@ -104,3 +250,41 @@
   width: 1rem;
   height: 1rem;
 }
+
+/* 
+  1. Set the placeholder (hint text) opacity to 30% by default 
+  2. Hide the placeholder when the input is focused 
+*/
+.form-control::placeholder {
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+}
+.form-control:focus::placeholder {
+  opacity: 0;
+}
+
+/* 
+  3. Red border styling for invalid inputs.
+     (If you’re using Bootstrap, .is-invalid usually applies similar styling,
+      but you can adjust it here as needed.)
+*/
+.form-control.is-invalid {
+  border-color: red;
+  box-shadow: none;
+}
+
+/* Optional: styling for the input icon */
+.input-icon {
+  margin-right: 0.5rem;
+  display: flex;
+  align-items: center;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+/* Optional: if you wish the warning icon to appear in red */
+.input-icon > .bi-exclamation-triangle-fill {
+  color: red;
+}
+
+/* (Additional styles for your layout, spacing, etc., can be added below) */

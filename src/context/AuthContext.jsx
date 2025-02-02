@@ -7,7 +7,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  sendPasswordResetEmail, // Import this for password resets
+  sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from "firebase/auth";
 
 const AuthContext = createContext();
@@ -46,6 +48,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // --- Google Login Function ---
+  const loginWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      const userCredential = await signInWithPopup(auth, provider);
+      const user = userCredential.user;
+      setCurrentUser(user);
+      console.log("Google login successful. User ID:", user.uid);
+      return user;
+    } catch (error) {
+      console.error("Google Login Error:", error.message);
+      throw error;
+    }
+  };
+
   // --- Logout Function ---
   const logout = async () => {
     try {
@@ -59,10 +76,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   // --- Reset Password Function ---
-  // This function now includes actionCodeSettings to specify a custom redirect URL.
   const resetPassword = async (email) => {
     const actionCodeSettings = {
-      // When in development, use your local URL; otherwise, use your live URL.
       url:
         process.env.NODE_ENV === "development"
           ? "http://localhost:5173/password-reset"
@@ -89,7 +104,9 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ currentUser, signup, login, logout, resetPassword }}>
+    <AuthContext.Provider
+      value={{ currentUser, signup, login, loginWithGoogle, logout, resetPassword }}
+    >
       {!loading && children}
     </AuthContext.Provider>
   );

@@ -1,0 +1,207 @@
+/* Base sidebar styles */
+.sidebar {
+    width: 220px;
+    background: linear-gradient(36deg, #64748B, #334154);
+    color: #fff;
+    min-height: 100vh;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s, padding 0.3s;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+}
+  
+/* Collapsed sidebar: narrower with symmetric padding */
+.sidebar.collapsed {
+    width: 60px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+  
+/* Header styles */
+.sidebar-header {
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+  
+.sidebar-title {
+    font-size: 1.5rem;
+    margin: 0;
+}
+  
+.toggle-btn {
+    background: none;
+    border: none;
+    color: #fff;
+}
+  
+/* Custom list styles to override any global list styles */
+.sidebar-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+  
+/* Base list item styling */
+.sidebar-list-item {
+    margin: 0 !important;
+    display: flex;
+    align-items: center;
+    padding: 6px 10px; /* reduced padding */
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    background: none !important;
+    border: none !important;
+}
+  
+/* Base text size for links and spans */
+.sidebar-link,
+.sidebar-list-item span {
+    font-size: 0.9rem;  /* decreased text size */
+}
+  
+/* Default hover (fallback) */
+.sidebar-list-item:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+  
+/* In collapsed mode, center the icons, remove extra spacing, and ensure full width */
+.sidebar.collapsed .sidebar-list-item {
+    justify-content: center;
+    width: 100%;
+}
+.sidebar.collapsed .sidebar-list-item i {
+    margin-right: 0;
+}
+  
+/* Icon spacing for normal state */
+.sidebar-list-item i {
+    font-size: 1rem; /* decreased icon size */
+    margin-right: 8px; /* reduced margin */
+}
+  
+/* Link styles */
+.sidebar-link {
+    color: #fff;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 6px 10px; /* reduced padding */
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    box-sizing: border-box;
+}
+  
+/* Divider style */
+.sidebar-divider {
+    border-color: rgb(255, 255, 255);
+    margin: 20px 0;
+}
+  
+/* -------------------------------------------------------
+   Color Coding – Quick Actions (Unique colors per item)
+   ------------------------------------------------------- */
+/* Add Project (Blueprint: HEX #6BA1DD) */
+.quick-actions li.add-project {
+    background-color: rgba(107,161,221, 0.1) !important;
+    border: 1px solid rgba(107,161,221, 0.2) !important;
+}
+.quick-actions li.add-project:hover {
+    background-color: rgba(107,161,221, 0.2) !important;
+    border: 1px solid rgba(107,161,221, 0.3) !important;
+}
+.quick-actions li.add-project:active {
+    background-color: rgba(107,161,221, 0.3) !important;
+    border: 1px solid rgba(107,161,221, 0.4) !important;
+}
+  
+/* Add Transaction (Cedar Orange: HEX #F99A3D) */
+.quick-actions li.add-transaction {
+    background-color: rgba(249,154,61, 0.1) !important;
+    border: 1px solid rgba(249,154,61, 0.2) !important;
+}
+.quick-actions li.add-transaction:hover {
+    background-color: rgba(249,154,61, 0.2) !important;
+    border: 1px solid rgba(249,154,61, 0.3) !important;
+}
+.quick-actions li.add-transaction:active {
+    background-color: rgba(249,154,61, 0.3) !important;
+    border: 1px solid rgba(249,154,61, 0.4) !important;
+}
+  
+/* Add Customer (Limestone: HEX #1BCEB4) */
+.quick-actions li.add-customer {
+    background-color: rgba(27,206,180, 0.1) !important;
+    border: 1px solid rgba(27,206,180, 0.2) !important;
+}
+.quick-actions li.add-customer:hover {
+    background-color: rgba(27,206,180, 0.2) !important;
+    border: 1px solid rgba(27,206,180, 0.3) !important;
+}
+.quick-actions li.add-customer:active {
+    background-color: rgba(27,206,180, 0.3) !important;
+    border: 1px solid rgba(27,206,180, 0.4) !important;
+}
+  
+/* -------------------------------------------------------
+   Color Coding – Navigation Items (Unique colors per item)
+   ------------------------------------------------------- */
+/* Dashboard (Ledger: HEX #132342) */
+.navigation li.nav-item.dashboard .sidebar-link {
+    background-color: rgba(19,35,66, 0.1);
+}
+.navigation li.nav-item.dashboard:hover .sidebar-link {
+    background-color: rgba(19,35,66, 0.2);
+}
+.navigation li.nav-item.dashboard .sidebar-link.active {
+    background-color: rgba(19,35,66, 0.4);
+}
+  
+/* Projects (Foundation: HEX #471843) */
+.navigation li.nav-item.projects .sidebar-link {
+    background-color: rgba(71,24,67, 0.1);
+}
+.navigation li.nav-item.projects:hover .sidebar-link {
+    background-color: rgba(71,24,67, 0.2);
+}
+.navigation li.nav-item.projects .sidebar-link.active {
+    background-color: rgba(71,24,67, 0.4);
+}
+  
+/* Transactions (Skylite Blue: HEX #5B54E0) */
+.navigation li.nav-item.transactions .sidebar-link {
+    background-color: rgba(91,84,224, 0.1);
+}
+.navigation li.nav-item.transactions:hover .sidebar-link {
+    background-color: rgba(91,84,224, 0.2);
+}
+.navigation li.nav-item.transactions .sidebar-link.active {
+    background-color: rgba(91,84,224, 0.4);
+}
+  
+/* Customers (Iron: HEX #64748B) */
+.navigation li.nav-item.customers .sidebar-link {
+    background-color: rgba(100,116,139, 0.1);
+}
+.navigation li.nav-item.customers:hover .sidebar-link {
+    background-color: rgba(100,116,139, 0.2);
+}
+.navigation li.nav-item.customers .sidebar-link.active {
+    background-color: rgba(100,116,139, 0.4);
+}
+
+/* In collapsed mode, adjust navigation link styles */
+.sidebar .navigation .sidebar-list-item {
+    padding: 0 !important;
+  }
+  
+.sidebar.collapsed .navigation .sidebar-link {
+    width: 100%;
+    padding: 6px 10px !important;
+    justify-content: center;
+    box-sizing: border-box;
+}

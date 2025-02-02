@@ -1,9 +1,13 @@
+// File: src/components/CustomerModal.jsx
+
 import React, { useState, useEffect } from "react";
 import { Modal, Button } from "react-bootstrap";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@config";
 import "../styles/components/customerModal.css";
 import Swal from "sweetalert2";
+// Import the activity logger
+import { logActivity } from "../utils/activityLogger";
 
 const CustomerModal = ({
   show,
@@ -59,7 +63,7 @@ const CustomerModal = ({
     "South Africa",
   ];
 
-  // ✅ Fetch projects when modal opens
+  // Fetch projects when modal opens
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -83,7 +87,7 @@ const CustomerModal = ({
     fetchProjects();
   }, []);
 
-  // ✅ Ensure Address Field is Pre-Filled Correctly
+  // Ensure Address Field is Pre-Filled Correctly
   useEffect(() => {
     if (customer) {
       setCustomerData({
@@ -117,7 +121,7 @@ const CustomerModal = ({
     }
   }, [customer]);
 
-  // 🔹 Format phone number (Live formatting)
+  // Format phone number (Live formatting)
   const formatPhoneNumber = (value) => {
     if (!value) return "";
     const cleaned = value.replace(/\D/g, ""); // Remove non-numeric chars
@@ -163,9 +167,21 @@ const CustomerModal = ({
       }
 
       if (customer?.id) {
+        // Edit existing customer
         await handleEditCustomer(customerData);
+        // Log the update activity
+        await logActivity(
+          "Customer Updated",
+          `Customer ${customerData.firstName} ${customerData.lastName} was updated.`
+        );
       } else {
+        // Add new customer
         await handleSave(customerData);
+        // Log the new customer activity
+        await logActivity(
+          "New Customer",
+          `${customerData.firstName} ${customerData.lastName} was added.`
+        );
       }
 
       handleClose();
@@ -346,7 +362,7 @@ const CustomerModal = ({
             </div>
 
             <legend>Associated Projects</legend>
-            {/* 🔹 Associate with Project (Dropdown - Label Stays at Top) */}
+            {/* Associate with Project (Dropdown) */}
             <div className="input-group">
               <select
                 id="projectId"
@@ -355,8 +371,7 @@ const CustomerModal = ({
                 onChange={handleChange}
                 required
               >
-                <option value="" hidden></option>{" "}
-                {/* Empty option to trigger floating effect */}
+                <option value="" hidden></option>
                 {projects.map((project) => (
                   <option key={project.id} value={project.id}>
                     {project.name}
@@ -366,7 +381,7 @@ const CustomerModal = ({
               <label htmlFor="projectId">Associate with Project</label>
             </div>
           </fieldset>
-          {/* 🔹 Buttons */}
+          {/* Buttons */}
           <Modal.Footer>
             <Button variant="secondary" onClick={handleClose}>
               Cancel

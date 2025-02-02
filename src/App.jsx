@@ -1,3 +1,5 @@
+// File: src/App.jsx
+
 // ================================
 // 1. Core React and Third-Party Libraries
 // ================================
@@ -47,7 +49,7 @@ import Dashboard from "./components/Dashboard/Dashboard";
 import ProjectDashboard from "./components/ProjectDashboard/ProjectDashboard";
 import Customers from "./components/Customers/Customers";
 import TransactionSummary from "./components/Transactions/TransactionSummary";
-
+import Activity from "./components/Activity";
 
 // ================================
 // 5. Marchand Household Budget
@@ -58,7 +60,6 @@ import MarchandDashboard from "./MarchandHousehold/pages/MarchandDashboard";
 // ================================
 // 6. Final Setup - Default Component
 // ================================
-
 const App = () => {
   return (
     <ThemeProvider>
@@ -86,12 +87,14 @@ const App = () => {
             <Route path="/projects" element={<ProjectList />} />
             <Route path="/project/:id" element={<ProjectDashboard />} />
             <Route path="/customers" element={<Customers />} />
-            <Route path="/transaction-summary" element={<TransactionSummary />} />
-
-            {/* New Routes */}
+            <Route
+              path="/transaction-summary"
+              element={<TransactionSummary />}
+            />
+            <Route path="/activity" element={<Activity />} />{" "}
+            {/* New Activity Route */}
             <Route path="/select-app" element={<AppSelector />} />
             <Route path="/marchand-household" element={<MarchandDashboard />} />
-
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/login" />} />
           </Routes>

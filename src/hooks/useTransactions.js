@@ -173,7 +173,7 @@ const useTransactions = (transactions, projectId, fetchTransactions) => {
     editingTransaction,
     setEditingTransaction,
     addTransactionForm,
-    handleAddTransactionChange,
+    handleAddTransactionChange, 
     editTransactionForm,
   };
 };
