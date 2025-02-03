@@ -4,8 +4,6 @@
   width: 100%;
 }
 
-/* Sidebar is handled by Sidebar.css (imported in Sidebar.jsx) */
-
 /* Dashboard content container: takes the remaining width */
 .dashboard-content-container {
   flex: 1;
@@ -43,20 +41,20 @@
    Engaging Dashboard Card Styles
    ========================= */
 
-/* Base Dashboard Card Styles */
 .dashboard-card {
   background: #fff;
   padding: 20px;
   border-radius: 10px; /* increased rounding */
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
   position: relative;
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
 }
 
-/* Hover effect: slight lift and deeper shadow */
 .dashboard-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
@@ -74,56 +72,117 @@
   border-bottom-left-radius: 10px;
 }
 
-/* Specific card accent colors (using your brand guidelines) */
+/* Specific card accent colors */
 .card-projects::before {
-  background-color: #471843; /* Foundation */
+  background-color: #6ba1dd;
 }
 
 .card-transactions::before {
-  background-color: #132342; /* Ledger */
+  background-color: #f99a3d;
 }
 
 .card-customers::before {
-  background-color: #1bceb4; /* Limestone */
+  background-color: #1bceb4;
 }
 
-/* New Recent Activity Card Accent */
 .card-activity::before {
-  background-color: #f8384c; /* Brick Red accent */
+  background-color: #f2318c;
 }
 
-/* Enhance the card heading for visual hierarchy */
-.dashboard-card h3 {
-  margin-top: 0;
-  margin-bottom: 10px;
+/* --- New Card Header: Icon & Title --- */
+.dashboard-card .card-header {
+  display: flex;
+  align-items: center;
   font-size: 1.25rem;
-  color: #334154; /* Steel or a complementary shade */
+  color: #334154;
+  margin-bottom: 10px;
 }
 
-/* Style for the dashboard count */
-.dashboard-count {
+.dashboard-card .card-header i {
+  margin-right: 8px;
+  font-size: 1.5rem;
+}
+
+.dashboard-card .card-header span {
+  font-size: 1.3rem;
+  letter-spacing: -0.02rem;
+  font-weight: 200;
+  margin-bottom: 3px;
+}
+
+/* --- Highlighted Number --- */
+.dashboard-card .dashboard-count {
   font-size: 2rem;
-  font-weight: bold;
-  margin: 0 0 10px;
-  color: #64748b; /* Iron */
+  font-weight: 200;
+  margin-bottom: 10px;
+  color: #64748b;
 }
 
-/* Link styling to match your brand */
-.card-link {
+/* --- Divider --- */
+.dashboard-card .card-divider {
+  border: 0;
+  height: 1px;
+  background: #ddd;
+  margin: 15px 0;
+}
+
+/* --- Link styling aligned bottom --- */
+.dashboard-card .card-link {
   text-decoration: none;
-  color: #6ba1dd; /* Blueprint accent */
+  color: #6ba1dd;
   font-weight: 500;
+  margin-top: auto;
+  text-align: right;
   transition: color 0.2s ease;
 }
 
-.card-link:hover {
-  color: #1a76fc; /* a more saturated blue */
+.dashboard-card .card-link:hover {
+  color: #1a76fc;
 }
 
 /* Charts: ensure responsiveness */
 .dashboard-card canvas {
   max-width: 100% !important;
   height: auto !important;
+}
+
+/* =========================
+   Activity Timeline Styles (for card-activity)
+   ========================= */
+
+.card-activity .activity-timeline ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.card-activity .activity-timeline li {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.card-activity .timeline-date {
+  font-size: 0.85rem;
+  font-weight: bold;
+  margin-right: 10px;
+  color: #6c757d;
+  min-width: 80px;
+}
+
+.card-activity .timeline-content {
+  flex: 1;
+}
+
+.card-activity .timeline-content strong {
+  display: block;
+  color: #334154;
+}
+
+.card-activity .timeline-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6c757d;
 }
 
 /* =========================
@@ -140,7 +199,8 @@
 
 .dashboard-summary-cards .dashboard-card {
   flex: 1;
-  min-width: 250px; /* Ensures the cards don’t shrink too much */
+  min-width: 250px;
+  position: relative;
 }
 
 /* Dashboard Grid: Arrange charts and other cards in a responsive grid */
@@ -150,7 +210,7 @@
   gap: 20px;
 }
 
-/* Recent Activity Section (if used outside summary row) */
+/* Recent Activity Section (if used elsewhere) */
 .dashboard-recent-activity {
   margin-top: 20px;
   background: #fff;
@@ -161,40 +221,32 @@
 
 /* Recent Activity List Container */
 .recent-activity-list {
-  max-height: 200px; /* Adjust as needed */
+  max-height: 200px;
   overflow-y: auto;
   padding-right: 10px;
   margin-top: 10px;
-  overflow-y: scroll;
 }
 
 /* Styling for the list */
 .recent-activity-list ul {
-  list-style: none;
+  list-style: none !important;
   padding: 0;
   margin: 0;
 }
 
-/* Each activity item styling */
+/* Each activity item styling (old style, if needed) */
 .recent-activity-list li {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 6px 4px;
-  font-size: 0.85rem; /* Slightly smaller font size */
-  color: #6c757d; /* Lighter, muted text color */
-  border: none;
-  border-bottom: 1px solid #eee !important;
+  font-size: 0.85rem;
+  color: #6c757d;
+  border-bottom: 1px solid #eee;
 }
 
 .recent-activity-list li:last-child {
   border-bottom: none;
-}
-
-/* Icon styling for activity items */
-.recent-activity-list li i {
-  font-size: 1rem;
-  color: #007bff; /* Or adjust to fit your brand palette */
 }
 
 /* Styling for individual parts */
@@ -213,8 +265,10 @@
 }
 
 /* =========================
-   Responsive Adjustments
+   Responsive Adjustments for Dashboard
    ========================= */
+
+/* Tablet and small screens */
 @media (max-width: 768px) {
   .dashboard-main-container {
     flex-direction: column;
@@ -225,5 +279,136 @@
   .dashboard-right {
     border-left: none;
     padding-left: 0;
+  }
+  .dashboard-summary-cards {
+    flex-direction: column;
+    gap: 15px;
+  }
+}
+
+/* =========================
+   Activity Ticker Card Styling (Updated for Roll-Up Animation)
+   ========================= */
+
+.activity-ticker-card {
+  width: 100%;
+  margin-bottom: 20px;
+  min-height: 40px; /* slim card height */
+  display: flex;
+  align-items: center;
+  padding: 8px 20px; /* horizontal padding; reduced vertical padding */
+  /* The left accent (if any) is inherited from .card-activity */
+}
+
+/* Wrapper that clips the animated content */
+.ticker-content-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
+}
+
+.ticker-header {
+  display: flex;
+  align-items: center;
+}
+
+.ticker-header i {
+  font-size: 1.5rem;
+  margin-right: 5px;
+}
+
+.ticker-title {
+  font-size: 1.2rem;
+  color: #334154;
+}
+
+.vertical-divider {
+  width: 1px;
+  height: 40px;
+  background: #000;
+  margin: 0 15px;
+}
+
+/* The ticker-content element now has a fixed height and block display */
+.ticker-content {
+  flex: 1;
+  font-size: 0.95rem;
+  color: #64748b;
+  position: relative;
+  /* Use flex to center the content vertically and horizontally */
+  display: flex;
+  align-items: left;
+  justify-content: left;
+  height: 40px;
+  overflow: hidden;
+}
+
+/* Roll-out animation: current content slides upward and out */
+.ticker-content.roll-out {
+  animation: rollOut 0.5s ease forwards;
+}
+
+/* Roll-in animation: new content starts below and slides up into view */
+.ticker-content.roll-in {
+  animation: rollIn 0.5s ease forwards;
+}
+
+/* Keyframes for roll-out (slide up and out) */
+@keyframes rollOut {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+/* Keyframes for roll-in (start from below and slide up) */
+@keyframes rollIn {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.ticker-date {
+  font-weight: 400;
+  color: #7b8b9a;
+  margin-right: 8px;
+}
+
+.ticker-text {
+  color: #f2318c;
+}
+
+/* Ensure the link is clickable */
+.ticker-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  pointer-events: auto;
+}
+
+/* Very small mobile screens */
+@media (max-width: 480px) {
+  .dashboard-content-container {
+    padding: 10px;
+  }
+  .dashboard-card {
+    padding: 15px;
+  }
+  .dashboard-card .card-header {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+  .dashboard-card .dashboard-count {
+    font-size: 1.5rem;
+  }
+  .dashboard-grid {
+    grid-template-columns: 1fr;
   }
 }

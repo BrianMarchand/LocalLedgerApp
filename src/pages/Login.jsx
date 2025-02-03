@@ -1,6 +1,6 @@
 // File: src/pages/Login.jsx
 
-import React, { useState } from "react"; 
+import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { auth } from "@config";
 import AuthLayout from "../pages/AuthLayout"; // New layout component
@@ -102,7 +102,9 @@ const Login = () => {
               type="email"
               id="email"
               className={`form-control ${
-                error && (!email.trim() || !validateEmail(email)) ? "is-invalid" : ""
+                error && (!email.trim() || !validateEmail(email))
+                  ? "is-invalid"
+                  : ""
               }`}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -135,14 +137,16 @@ const Login = () => {
               className={`form-control ${error && !password ? "is-invalid" : ""}`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="•••••••••••"
+              placeholder="Password"
             />
             <span
               className="password-toggle"
               onClick={() => setShowPassword((prev) => !prev)}
               style={{ cursor: "pointer" }}
             >
-              <i className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}></i>
+              <i
+                className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}
+              ></i>
             </span>
           </div>
         </div>
@@ -175,9 +179,9 @@ const Login = () => {
 
         {/* --- Signup Redirect --- */}
         <p className="mt-3 text-center small">
-          Need an account?{" "}
+          Don't have an account yet?{" "}
           <Link to="/signup" className="auth-link">
-            Sign Up
+            Sign up for free!{" "}
           </Link>
         </p>
       </form>

@@ -116,7 +116,7 @@ const Signup = () => {
   return (
     <AuthLayout page="signup">
       <form onSubmit={handleSubmit} noValidate>
-      <h2 className="mb-2 text-center">Sign up with email</h2>
+        <h2 className="mb-2 text-center">Sign up with email</h2>
         <p className="mb-4 text-center small">
           Start managing your entire project lifecycle all in one place,
           effectively and completely free!
@@ -182,7 +182,9 @@ const Signup = () => {
               onClick={() => setShowPassword(!showPassword)}
               style={{ cursor: "pointer" }}
             >
-              <i className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}></i>
+              <i
+                className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}
+              ></i>
             </span>
           </div>
         </div>
@@ -215,7 +217,9 @@ const Signup = () => {
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               style={{ cursor: "pointer" }}
             >
-              <i className={`bi ${showConfirmPassword ? "bi-eye-slash" : "bi-eye"}`}></i>
+              <i
+                className={`bi ${showConfirmPassword ? "bi-eye-slash" : "bi-eye"}`}
+              ></i>
             </span>
           </div>
         </div>
@@ -303,10 +307,10 @@ const Signup = () => {
         </button>
 
         {/* Redirect to Login */}
-        <p className="mt-3 text-center">
-          Already have an account?{" "}
+        <p className="mt-3 text-center small">
+          Already have a LocalLedger account?{" "}
           <Link to="/login" className="auth-link">
-            Log In
+            Log In Here
           </Link>
         </p>
       </form>

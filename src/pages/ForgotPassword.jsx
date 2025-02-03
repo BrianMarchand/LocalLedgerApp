@@ -12,17 +12,25 @@ const ForgotPassword = () => {
   const { resetPassword } = useAuth();
   const navigate = useNavigate();
 
+  // --- Email Validation Function ---
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // --- Handle Form Submit ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-    setLoading(true);
 
-    if (!email.trim()) {
-      setError("Please enter a valid email address.");
-      setLoading(false);
+    // Validate email input
+    if (!email.trim() || !validateEmail(email)) {
+      setError("Enter a valid email address.");
       return;
     }
+
+    setLoading(true);
 
     try {
       await resetPassword(email.trim());
@@ -40,7 +48,11 @@ const ForgotPassword = () => {
   return (
     <AuthLayout page="forgot">
       <form onSubmit={handleSubmit} noValidate>
-        <h2 className="mb-3 text-center">Forgot Password</h2>
+        <h2 className="mb-2 text-center">Forgot Password?</h2>
+        <p className="mb-4 text-center small">
+          To recover your password, please give us your email address and we
+          will send you a password reset link.
+        </p>
         {error && (
           <div className="alert alert-danger" role="alert">
             {error}
@@ -53,23 +65,40 @@ const ForgotPassword = () => {
         )}
         <div className="auth-form-group">
           <label htmlFor="reset-email">Email Address</label>
-          <input
-            type="email"
-            id="reset-email"
-            className="form-control"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-          />
+          <div className="input-container">
+            <span className="input-icon">
+              {error && (!email.trim() || !validateEmail(email)) ? (
+                <i className="bi bi-exclamation-triangle-fill"></i>
+              ) : (
+                <i className="bi bi-envelope"></i>
+              )}
+            </span>
+            <input
+              type="email"
+              id="reset-email"
+              className={`form-control ${
+                error && (!email.trim() || !validateEmail(email))
+                  ? "is-invalid"
+                  : ""
+              }`}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+            />
+          </div>
         </div>
-        <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+        <button
+          type="submit"
+          className="btn btn-primary w-100"
+          disabled={loading}
+        >
           {loading ? "Sending..." : "Send Reset Link"}
         </button>
-        <div className="text-center mt-3">
+        <div className="text-center mt-3 small">
           <p>
             Remembered your password?{" "}
             <Link to="/login" className="auth-link">
-              Back to Login
+              Go Back to Login
             </Link>
           </p>
         </div>

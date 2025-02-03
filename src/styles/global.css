@@ -1,3 +1,45 @@
+/* === Custom Font Definitions === */
+@font-face {
+  font-family: "Noway";
+  src: url("/fonts/noway-regular-webfont.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Noway";
+  src: url("/fonts/noway-light-webfont.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Noway";
+  src: url("/fonts/noway-medium-webfont.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Noway";
+  src: url("/fonts/noway-bold-webfont.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* === Global Link Styles === */
+a {
+  color: #6ba1dd !important;
+  text-decoration: none;
+  transition: color 0.3s ease-in-out;
+}
+
+a:hover {
+  color: #f2318c !important;
+  text-decoration: none !important;
+}
+
+/* === Global Body Styles === */
 body {
   height: 100%;
   width: 100%;
@@ -5,15 +47,19 @@ body {
   padding: 0;
   box-sizing: border-box;
 
-  /* Background Image */
+  /* Background Settings */
   background-image: url("/images/bg-pale-blue.jpg");
-  background-size: cover; /* Cover the entire page without stretching */
-  background-repeat: no-repeat; /* Prevent tiling */
-  background-position: center; /* Center the image */
-  background-attachment: fixed; /* Fixed background while scrolling */
-  font-family: Arial, sans-serif;
-  padding: 20px;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-attachment: fixed;
   background-color: #f9f9f9;
+
+  /* Global Font */
+  font-family: "Noway", Arial, sans-serif;
+
+  /* Padding & Transition */
+  padding: 20px;
   transition:
     background-color 0.3s ease,
     color 0.3s ease;

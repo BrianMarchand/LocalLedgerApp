@@ -1,5 +1,6 @@
 /* Global Reset for html & body */
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -31,7 +32,7 @@ html, body {
 /* Left Side: Gradient Background */
 .auth-gradient {
   width: 50%;
-  background: linear-gradient(135deg, #F52F94, #8B43FA);
+  background: linear-gradient(135deg, #f52f94, #8b43fa);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -41,8 +42,18 @@ html, body {
 .auth-right {
   width: 50%;
   display: flex;
+  flex-direction: column; /* Stack children vertically */
   align-items: center;
   justify-content: center;
+}
+
+/* Styles for the disclaimer placed below the form card */
+.auth-disclaimer {
+  display: block;
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: #6c757d;
 }
 
 /* Card Styling for the login form inside the right container */
@@ -52,7 +63,20 @@ html, body {
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 400px;
+  max-width: 500px;
+}
+
+/* Container for the logo stamp above the auth card content */
+.auth-stamp-container {
+  text-align: center;
+  margin-bottom: 1rem; /* Reasonable padding below the stamp */
+}
+
+/* Styling for the logo stamp image */
+.auth-stamp {
+  max-width: 80px; /* Adjust size as needed */
+  width: 100%;
+  height: auto;
 }
 
 /* Form Fields */
@@ -93,8 +117,8 @@ html, body {
 
 /* Style the Forgot Password link */
 .forgot-password {
-  font-size: 0.85rem;      /* Smaller text */
-  color: #6c757d;          /* Desaturated color (similar to Bootstrap's text-muted) */
+  font-size: 0.85rem; /* Smaller text */
+  color: #6c757d; /* Desaturated color (similar to Bootstrap's text-muted) */
   text-decoration: none;
 }
 
@@ -112,7 +136,7 @@ html, body {
 }
 
 .left-content .logo {
-  width: 150px;          /* Adjust the logo size as needed */
+  width: 250px; /* Adjust the logo size as needed */
   margin-bottom: 20px;
 }
 
@@ -130,7 +154,7 @@ html, body {
 .left-content hr {
   border: 1px solid rgba(255, 255, 255, 0.5);
   width: 80%;
-  margin: 20px auto;
+  margin: 0;
 }
 
 .left-content p {
@@ -166,7 +190,7 @@ html, body {
   border-radius: 4px;
   padding-left: 48px; /* Space for icon */
   padding-right: 48px; /* Space for toggle (if applicable) */
-  background-color: #F5F5F5;
+  background-color: #f5f5f5;
   font-size: 1rem;
   color: #333333;
 }
@@ -194,7 +218,7 @@ html, body {
   top: -12px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #FFFFFF;
+  background-color: #ffffff;
   padding: 0 12px;
   font-size: 0.9rem;
   color: #666666;
@@ -220,7 +244,7 @@ html, body {
   padding: 0.75rem;
   border: none;
   border-radius: 4px;
-  background-color: #8B43FA;
+  background-color: #8b43fa;
   color: white;
   font-weight: 500;
   transition: background-color 0.3s ease;
@@ -251,10 +275,7 @@ html, body {
   height: 1rem;
 }
 
-/* 
-  1. Set the placeholder (hint text) opacity to 30% by default 
-  2. Hide the placeholder when the input is focused 
-*/
+/* Placeholder and Invalid Input Styling */
 .form-control::placeholder {
   opacity: 0.3;
   transition: opacity 0.2s ease;
@@ -262,12 +283,6 @@ html, body {
 .form-control:focus::placeholder {
   opacity: 0;
 }
-
-/* 
-  3. Red border styling for invalid inputs.
-     (If you’re using Bootstrap, .is-invalid usually applies similar styling,
-      but you can adjust it here as needed.)
-*/
 .form-control.is-invalid {
   border-color: red;
   box-shadow: none;
@@ -287,4 +302,98 @@ html, body {
   color: red;
 }
 
-/* (Additional styles for your layout, spacing, etc., can be added below) */
+/* Mobile & Tablet Breakpoints */
+@media (max-width: 768px) {
+  .auth-wrapper {
+    height: auto;
+    align-items: flex-start;
+    overflow-y: auto;
+    padding: 0 !important;
+  }
+
+  /* Stack the two columns vertically */
+  .auth-container {
+    flex-direction: column;
+    padding: 0;
+    border-radius: 0;
+  }
+  .auth-gradient,
+  .auth-right {
+    width: 100%;
+  }
+
+  /* Adjust the left-side gradient area */
+  .auth-gradient {
+    padding: 1rem;
+    padding-top: 35px;
+    text-align: center;
+    /* Optionally reduce height for smaller screens */
+    min-height: 100px;
+  }
+
+  /* Add some padding to the right side (form area) */
+  .auth-right {
+    padding: 1rem;
+  }
+
+  /* Make the auth card more fluid */
+  .auth-card {
+    max-width: 100%;
+    margin: 0 auto;
+  }
+  /* In the left column, only display the logo */
+  .auth-gradient .left-content h1,
+  .auth-gradient .left-content hr,
+  .auth-gradient .left-content p {
+    display: none;
+  }
+
+  .left-content {
+    text-align: center;
+  }
+
+  .left-content h3 {
+    font-size: 1.05rem;
+    font-weight: 200;
+    text-align: center;
+  }
+
+  .left-content .logo {
+    display: block;
+    width: 250px; /* Adjust the logo size as needed */
+    margin: 0 auto 15px; /* Centers the logo and adds bottom margin */
+  }
+
+  /* Optionally, adjust the left-content container to remove extra vertical spacing */
+  .auth-gradient .left-content {
+    padding: 0;
+    margin: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Scale down header fonts */
+  .left-content h1 {
+    font-size: 1.5rem;
+  }
+
+  .left-content h3 {
+    font-size: 1rem;
+  }
+
+  /* Reduce padding on the auth card for extra-small screens */
+  .auth-card {
+    padding: 1rem;
+  }
+
+  /* Adjust input heights and font sizes */
+  .auth-form-group input {
+    height: 40px;
+    font-size: 0.9rem;
+  }
+
+  .auth-btn {
+    padding: 0.65rem;
+    font-size: 0.9rem;
+  }
+}

@@ -1,3 +1,4 @@
+// File: src/components/Dashboard/Dashboard.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import {
   collection,
@@ -32,6 +33,7 @@ import Sidebar from "../../components/Sidebar";
 import AddProjectModal from "../../components/AddProject/AddProjectModal";
 import TransactionModal from "../../components/TransactionModal";
 import CustomerModal from "../../components/CustomerModal";
+import ActivityTicker from "../../components/ActivityTicker";
 import { useProjects } from "../../context/ProjectsContext";
 import useTotalTransactions from "../../hooks/useTotalTransactions";
 
@@ -60,7 +62,6 @@ const Dashboard = () => {
   const [recentActivities, setRecentActivities] = useState([]);
 
   useEffect(() => {
-    // Query the "activity" collection for the 3 most recent events
     const q = query(
       collection(db, "activity"),
       orderBy("timestamp", "desc"),
@@ -78,8 +79,6 @@ const Dashboard = () => {
 
   // State for customers (for computing total customers count)
   const [customers, setCustomers] = useState([]);
-
-  // --- Helper Function: Fetch Customers ---
   const fetchCustomers = async () => {
     try {
       const customersCollection = collection(db, "customers");
@@ -98,7 +97,6 @@ const Dashboard = () => {
     const fetch = async () => {
       const customerList = await fetchCustomers();
       setCustomers(customerList);
-      console.log("Customers fetched on Dashboard load:", customerList);
     };
     fetch();
   }, []);
@@ -108,7 +106,6 @@ const Dashboard = () => {
     setFilteredProjects(projects);
   }, [projects]);
 
-  // --- Compute Expense Chart Data Using useMemo ---
   const expenseChartData = useMemo(() => {
     if (!filteredProjects.length) return {};
     let categoryTotals = { Labour: 0, Materials: 0, Miscellaneous: 0 };
@@ -128,27 +125,22 @@ const Dashboard = () => {
         {
           label: "Expenses",
           data: Object.values(categoryTotals),
-          // Updated to use your custom brand colors:
-          // Blueprint for Labour, Foundation for Materials, Limestone for Miscellaneous
           backgroundColor: ["#6BA1DD", "#471843", "#1BCEB4"],
         },
       ],
     };
   }, [filteredProjects]);
 
-  // --- Compute Summary Totals Using useMemo ---
   const totalProjects = useMemo(
     () => (projects ? projects.length : 0),
     [projects]
   );
-  // Replace old calculation with our new hook for total transactions:
   const totalTransactions = useTotalTransactions();
   const totalCustomers = useMemo(
     () => (customers ? customers.length : 0),
     [customers]
   );
 
-  // --- Transaction Save Handler ---
   const handleTransactionSave = async (newTransaction) => {
     if (!newTransaction.projectId) {
       toastError("Please select a project first.");
@@ -171,8 +163,6 @@ const Dashboard = () => {
     }
   };
 
-  // --- Additional Dynamic Chart Data (Example) ---
-  // Monthly Expense Trend (placeholder data)
   const monthlyExpenseData = useMemo(() => {
     return {
       labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
@@ -188,9 +178,7 @@ const Dashboard = () => {
     };
   }, []);
 
-  // Helper function to format activity entries
   const formatActivity = (activity) => {
-    // Format the timestamp as "Day Month Year"
     const dateStr = activity.timestamp
       ? new Date(activity.timestamp.seconds * 1000).toLocaleDateString(
           "en-US",
@@ -201,23 +189,17 @@ const Dashboard = () => {
           }
         )
       : "";
-
     let eventType = activity.title || "Event";
     let message = activity.description || "";
-
-    // Customize formatting for new customer activities
     if (activity.type === "new_customer") {
       eventType = "New Customer";
-      // Use customerName if available; otherwise, process the description.
       if (activity.customerName) {
         message = `${activity.customerName} was added.`;
       } else if (activity.description) {
         let desc = activity.description;
-        // Remove the "Customer " prefix if present
         if (desc.startsWith("Customer ")) {
           desc = desc.substring("Customer ".length);
         }
-        // If there's " with email", remove that part
         const idx = desc.indexOf(" with email");
         if (idx !== -1) {
           desc = desc.substring(0, idx);
@@ -225,11 +207,9 @@ const Dashboard = () => {
         message = `${desc.trim()} was added.`;
       }
     }
-
     return { dateStr, eventType, message };
   };
 
-  // Budget vs Actual Expenses (placeholder data)
   const budgetVsActualData = useMemo(() => {
     const labels = projects.map((p) => p.name);
     const budgets = projects.map((p) => p.budget || 0);
@@ -269,61 +249,54 @@ const Dashboard = () => {
           onAddCustomer={() => setShowCustomerModal(true)}
         />
         <div className="dashboard-content-container">
+          {/* Activity ticker card sits at the top */}
+          <ActivityTicker
+            activities={recentActivities}
+            formatActivity={formatActivity}
+          />
           <div className="dashboard-content">
             <div className="dashboard-left">
               <div className="dashboard-summary-cards">
                 <div className="dashboard-card card-projects">
-                  <h3>Total Projects</h3>
-                  <p className="dashboard-count">{totalProjects}</p>
+                  <div className="card-header">
+                    <i className="bi bi-folder2-open"></i>
+                    <span>Total Projects</span>
+                  </div>
+                  <div className="dashboard-count">{totalProjects}</div>
+                  <hr className="card-divider" />
                   <Link to="/projects" className="card-link">
                     View All Projects
                   </Link>
                 </div>
                 <div className="dashboard-card card-transactions">
-                  <h3>Total Transactions</h3>
-                  <p className="dashboard-count">{totalTransactions}</p>
+                  <div className="card-header">
+                    <i className="bi bi-receipt"></i>
+                    <span>Total Transactions</span>
+                  </div>
+                  <div className="dashboard-count">{totalTransactions}</div>
+                  <hr className="card-divider" />
                   <Link to="/transaction-summary" className="card-link">
                     View All Transactions
                   </Link>
                 </div>
                 <div className="dashboard-card card-customers">
-                  <h3>Total Customers</h3>
-                  <p className="dashboard-count">{totalCustomers}</p>
+                  <div className="card-header">
+                    <i className="bi bi-people"></i>
+                    <span>Total Customers</span>
+                  </div>
+                  <div className="dashboard-count">{totalCustomers}</div>
+                  <hr className="card-divider" />
                   <Link to="/customers" className="card-link">
                     Manage Customers
-                  </Link>
-                </div>
-                <div className="dashboard-card card-activity">
-                  <h3>Recent Activity</h3>
-                  <div className="recent-activity-list">
-                    {recentActivities.length > 0 ? (
-                      <ul>
-                        {recentActivities.map((activity) => {
-                          const { dateStr, eventType, message } =
-                            formatActivity(activity);
-                          return (
-                            <li key={activity.id}>
-                              <span className="activity-date">{dateStr}</span>
-                              <span className="activity-type">{eventType}</span>
-                              <span className="activity-message">
-                                {message}
-                              </span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    ) : (
-                      <p>No recent activity available.</p>
-                    )}
-                  </div>
-                  <Link to="/activity" className="card-link">
-                    View Activity Log
                   </Link>
                 </div>
               </div>
               <div className="dashboard-grid">
                 <div className="dashboard-card">
-                  <h3>Expense Breakdown</h3>
+                  <div className="card-header">
+                    <i className="bi bi-pie-chart"></i>
+                    <span>Expense Breakdown</span>
+                  </div>
                   {expenseChartData.labels ? (
                     <Pie data={expenseChartData} />
                   ) : (
@@ -331,11 +304,17 @@ const Dashboard = () => {
                   )}
                 </div>
                 <div className="dashboard-card">
-                  <h3>Monthly Expense Trend</h3>
+                  <div className="card-header">
+                    <i className="bi bi-bar-chart-line"></i>
+                    <span>Monthly Expense Trend</span>
+                  </div>
                   <Line data={monthlyExpenseData} />
                 </div>
                 <div className="dashboard-card">
-                  <h3>Budget vs. Actual Expenses</h3>
+                  <div className="card-header">
+                    <i className="bi bi-bar-chart"></i>
+                    <span>Budget vs. Actual Expenses</span>
+                  </div>
                   <Bar data={budgetVsActualData} />
                 </div>
               </div>

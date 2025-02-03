@@ -10,25 +10,47 @@ const authCopy = {
     subheader: "Effortless Project Tracking for Contractors™",
     description:
       "To begin, you can login to your account or sign up for a free account if you just found us!",
-    disclaimer:
-      "By creating your account, you agree to the Terms of Service and Privacy Notice.",
+    disclaimer: (
+      <>
+        By creating your account, you agree to the{" "}
+        <a href="#" className="auth-link">
+          Terms of Service
+        </a>{" "}
+        |{" "}
+        <a href="#" className="auth-link">
+          Privacy Notice
+        </a>
+        .
+      </>
+    ),
   },
   signup: {
     logo: "/images/LL-main-logo-light.svg",
     header: "Create Your Account",
-    subheader: "Join LocalLedger Today",
+    subheader: "Effortless Project Tracking for Contractors™",
     description:
       "Sign up now to experience effortless project tracking for contractors.",
-    disclaimer:
-      "By signing up, you agree to our Terms of Service and Privacy Policy.",
+    disclaimer: (
+      <>
+        By signing up, you agree to our{" "}
+        <a href="#" className="auth-link">
+          Terms of Service
+        </a>{" "}
+        |{" "}
+        <a href="#" className="auth-link">
+          Privacy Policy
+        </a>
+        .
+      </>
+    ),
   },
   forgot: {
     logo: "/images/LL-main-logo-light.svg",
     header: "Reset Your Password",
-    subheader: "LocalLedger Password Recovery",
-    description:
-      "Enter your email below to receive a password reset link.",
-    disclaimer: "If you don't have an account, you can sign up for a free account.",
+    subheader: "Effortless Project Tracking for Contractors™",
+    description: "Enter your email below to receive a password reset link.",
+    disclaimer:
+      "If you don't have an account, you can sign up for a free account.",
   },
 };
 
@@ -45,12 +67,22 @@ const AuthLayout = ({ page, children }) => {
             <h3>{copy.subheader}</h3>
             <hr />
             <p>{copy.description}</p>
-            <small>{copy.disclaimer}</small>
           </div>
         </div>
         {/* Right Side: Content (form, etc.) */}
         <div className="auth-right">
-          <div className="auth-card">{children}</div>
+          <div className="auth-card">
+            {/* Logo Stamp above the form */}
+            <div className="auth-stamp-container">
+              <img
+                src="/assets/svg/local-ledger-logo-stamp-outline.svg"
+                alt="LocalLedger Stamp"
+                className="auth-stamp"
+              />
+            </div>
+            {children}
+          </div>
+          <small className="auth-disclaimer">{copy.disclaimer}</small>
         </div>
       </div>
     </div>

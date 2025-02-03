@@ -1,207 +1,338 @@
 /* Base sidebar styles */
 .sidebar {
-    width: 220px;
-    background: linear-gradient(36deg, #64748B, #334154);
-    color: #fff;
-    min-height: 100vh;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    transition: width 0.3s, padding 0.3s;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+  width: 220px;
+  background: linear-gradient(36deg, #64748b, #334154);
+  color: #fff;
+  min-height: 100vh;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  transition:
+    width 0.3s,
+    padding 0.3s;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
 }
-  
+
 /* Collapsed sidebar: narrower with symmetric padding */
 .sidebar.collapsed {
-    width: 60px;
-    padding-left: 10px;
-    padding-right: 10px;
+  width: 60px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
-  
-/* Header styles */
+
+/* Sidebar Header – common to both mobile and desktop */
 .sidebar-header {
-    margin-bottom: 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* In mobile, title left; toggle right */
+  padding: 10px;
 }
-  
+
+/* Mobile header container: title left, toggle right */
+.header-mobile {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+/* Desktop header content (when expanded) */
+.header-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+/* Desktop header for collapsed state: center the toggle icon */
+.header-collapsed {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+/* Sidebar title styling */
 .sidebar-title {
-    font-size: 1.5rem;
-    margin: 0;
+  font-size: 1.5rem;
+  margin: 0;
 }
-  
+
+/* Desktop placeholder for when sidebar is collapsed */
+.sidebar-title-placeholder {
+  width: 150px; /* Adjust as needed to approximate title width */
+}
+
+/* Desktop-only header divider between title and toggle button */
+.header-divider {
+  display: none; /* Hidden by default */
+}
+
+@media (min-width: 769px) {
+  .header-divider {
+    display: block;
+    width: 1px;
+    height: 24px; /* Fixed height for visibility */
+    background-color: rgba(255, 255, 255, 0.3);
+    margin: 0 10px;
+  }
+}
+
+/* Toggle button styling (consistent across breakpoints) */
 .toggle-btn {
-    background: none;
-    border: none;
-    color: #fff;
+  background: none;
+  border: none;
+  color: #fff;
+  padding: 6px 10px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-  
-/* Custom list styles to override any global list styles */
+.toggle-btn i {
+  font-size: 1rem;
+  line-height: 1;
+  margin: 0;
+}
+
+/* Divider between header and content */
+.sidebar-divider {
+  border-color: rgb(255, 255, 255);
+  margin: 10px 0;
+}
+
+/* Vertical divider between navigation and quick actions in mobile accordion */
+.vertical-divider {
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.3);
+  align-self: stretch;
+  margin: 0 10px;
+}
+
+/* Custom list styles */
 .sidebar-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
-  
+
 /* Base list item styling */
 .sidebar-list-item {
-    margin: 0 !important;
-    display: flex;
-    align-items: center;
-    padding: 6px 10px; /* reduced padding */
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    background: none !important;
-    border: none !important;
+  margin: 0 !important;
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 0 !important;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  background: none !important;
+  border: none !important;
 }
-  
+
 /* Base text size for links and spans */
 .sidebar-link,
 .sidebar-list-item span {
-    font-size: 0.9rem;  /* decreased text size */
+  font-size: 0.9rem;
 }
-  
-/* Default hover (fallback) */
+
+/* Default hover effect */
 .sidebar-list-item:hover {
-    background-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.15);
 }
-  
-/* In collapsed mode, center the icons, remove extra spacing, and ensure full width */
+
+/* In collapsed mode: center icons and adjust spacing */
 .sidebar.collapsed .sidebar-list-item {
-    justify-content: center;
-    width: 100%;
+  justify-content: center;
+  width: 100%;
 }
 .sidebar.collapsed .sidebar-list-item i {
-    margin-right: 0;
+  margin-right: 0;
 }
-  
-/* Icon spacing for normal state */
+
+/* Icon spacing */
 .sidebar-list-item i {
-    font-size: 1rem; /* decreased icon size */
-    margin-right: 8px; /* reduced margin */
+  font-size: 1rem;
+  margin-right: 8px;
 }
-  
+
 /* Link styles */
 .sidebar-link {
-    color: #fff;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    width: 100%;
-    padding: 6px 10px; /* reduced padding */
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
-    box-sizing: border-box;
+  color: #fff;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  box-sizing: border-box;
 }
-  
-/* Divider style */
+
+/* Divider between sections */
 .sidebar-divider {
-    border-color: rgb(255, 255, 255);
-    margin: 20px 0;
+  border-color: rgb(255, 255, 255);
+  margin: 10px 0;
 }
-  
+
 /* -------------------------------------------------------
-   Color Coding – Quick Actions (Unique colors per item)
-   ------------------------------------------------------- */
+       Color Coding – Quick Actions
+------------------------------------------------------- */
 /* Add Project (Blueprint: HEX #6BA1DD) */
 .quick-actions li.add-project {
-    background-color: rgba(107,161,221, 0.1) !important;
-    border: 1px solid rgba(107,161,221, 0.2) !important;
+  background-color: rgba(107, 161, 221, 1) !important;
+  border-radius: 4px !important;
+  margin: 10px 0 10px !important;
+  transition:
+    background-color 0.5s ease,
+    color 0.5s ease;
 }
 .quick-actions li.add-project:hover {
-    background-color: rgba(107,161,221, 0.2) !important;
-    border: 1px solid rgba(107,161,221, 0.3) !important;
+  background-color: rgba(228, 230, 234, 1) !important;
+  color: rgba(51, 65, 84, 1) !important;
 }
 .quick-actions li.add-project:active {
-    background-color: rgba(107,161,221, 0.3) !important;
-    border: 1px solid rgba(107,161,221, 0.4) !important;
+  background-color: rgba(228, 230, 234, 1) !important;
+  color: rgba(51, 65, 84, 1) !important;
 }
-  
+
 /* Add Transaction (Cedar Orange: HEX #F99A3D) */
 .quick-actions li.add-transaction {
-    background-color: rgba(249,154,61, 0.1) !important;
-    border: 1px solid rgba(249,154,61, 0.2) !important;
+  background-color: rgba(249, 154, 61, 1) !important;
+  border-radius: 4px !important;
+  margin: 10px 0 10px !important;
+  transition:
+    background-color 0.5s ease,
+    color 0.5s ease;
 }
 .quick-actions li.add-transaction:hover {
-    background-color: rgba(249,154,61, 0.2) !important;
-    border: 1px solid rgba(249,154,61, 0.3) !important;
+  background-color: rgba(228, 230, 234, 1) !important;
+  color: rgba(51, 65, 84, 1) !important;
 }
 .quick-actions li.add-transaction:active {
-    background-color: rgba(249,154,61, 0.3) !important;
-    border: 1px solid rgba(249,154,61, 0.4) !important;
+  background-color: rgba(228, 230, 234, 1) !important;
+  color: rgba(51, 65, 84, 1) !important;
 }
-  
+
 /* Add Customer (Limestone: HEX #1BCEB4) */
 .quick-actions li.add-customer {
-    background-color: rgba(27,206,180, 0.1) !important;
-    border: 1px solid rgba(27,206,180, 0.2) !important;
+  background-color: rgba(27, 206, 180, 1) !important;
+  border-radius: 4px !important;
+  transition:
+    background-color 0.5s ease,
+    color 0.5s ease;
 }
 .quick-actions li.add-customer:hover {
-    background-color: rgba(27,206,180, 0.2) !important;
-    border: 1px solid rgba(27,206,180, 0.3) !important;
+  background-color: rgba(228, 230, 234, 1) !important;
+  color: rgba(51, 65, 84, 1) !important;
 }
 .quick-actions li.add-customer:active {
-    background-color: rgba(27,206,180, 0.3) !important;
-    border: 1px solid rgba(27,206,180, 0.4) !important;
+  background-color: rgba(228, 230, 234, 1) !important;
+  color: rgba(51, 65, 84, 1) !important;
 }
-  
+
 /* -------------------------------------------------------
-   Color Coding – Navigation Items (Unique colors per item)
-   ------------------------------------------------------- */
+       Color Coding – Navigation Items
+------------------------------------------------------- */
 /* Dashboard (Ledger: HEX #132342) */
 .navigation li.nav-item.dashboard .sidebar-link {
-    background-color: rgba(19,35,66, 0.1);
+  color: rgba(228, 230, 234, 1) !important;
+  transition: color 0.5s ease;
 }
 .navigation li.nav-item.dashboard:hover .sidebar-link {
-    background-color: rgba(19,35,66, 0.2);
+  color: rgba(242, 49, 140, 1) !important;
 }
 .navigation li.nav-item.dashboard .sidebar-link.active {
-    background-color: rgba(19,35,66, 0.4);
+  color: rgba(19, 35, 66, 0.4);
 }
-  
+
 /* Projects (Foundation: HEX #471843) */
 .navigation li.nav-item.projects .sidebar-link {
-    background-color: rgba(71,24,67, 0.1);
+  color: rgba(228, 230, 234, 1) !important;
+  transition: color 0.5s ease;
 }
 .navigation li.nav-item.projects:hover .sidebar-link {
-    background-color: rgba(71,24,67, 0.2);
+  color: rgba(242, 49, 140, 1) !important;
 }
 .navigation li.nav-item.projects .sidebar-link.active {
-    background-color: rgba(71,24,67, 0.4);
+  color: rgba(71, 24, 67, 0.4);
 }
-  
+
 /* Transactions (Skylite Blue: HEX #5B54E0) */
 .navigation li.nav-item.transactions .sidebar-link {
-    background-color: rgba(91,84,224, 0.1);
+  color: rgba(228, 230, 234, 1) !important;
+  transition: color 0.5s ease;
 }
 .navigation li.nav-item.transactions:hover .sidebar-link {
-    background-color: rgba(91,84,224, 0.2);
+  color: rgba(242, 49, 140, 1) !important;
 }
 .navigation li.nav-item.transactions .sidebar-link.active {
-    background-color: rgba(91,84,224, 0.4);
+  color: rgba(91, 84, 224, 0.4);
 }
-  
+
 /* Customers (Iron: HEX #64748B) */
 .navigation li.nav-item.customers .sidebar-link {
-    background-color: rgba(100,116,139, 0.1);
+  color: rgba(228, 230, 234, 1) !important;
+  transition: color 0.5s ease;
 }
 .navigation li.nav-item.customers:hover .sidebar-link {
-    background-color: rgba(100,116,139, 0.2);
+  color: rgba(242, 49, 140, 1) !important;
 }
 .navigation li.nav-item.customers .sidebar-link.active {
-    background-color: rgba(100,116,139, 0.4);
+  color: rgba(100, 116, 139, 0.4);
 }
 
 /* In collapsed mode, adjust navigation link styles */
 .sidebar .navigation .sidebar-list-item {
-    padding: 0 !important;
-  }
-  
+  padding: 0 !important;
+}
 .sidebar.collapsed .navigation .sidebar-link {
-    width: 100%;
-    padding: 6px 10px !important;
-    justify-content: center;
-    box-sizing: border-box;
+  width: 100%;
+  padding: 6px 10px !important;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100% !important;
+    padding: 10px !important;
+    min-height: auto;
+  }
+
+  /* Mobile-specific header spacing */
+  .sidebar-header {
+    margin-bottom: 0;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    /* Using .header-mobile for layout on mobile */
+  }
+
+  .mobile-accordion-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center; /* Vertically center both columns */
+    justify-content: space-between;
+  }
+
+  /* Each list takes equal space */
+  .mobile-accordion-container .sidebar-list {
+    flex: 1;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Ensure list items retain proper padding */
+  .mobile-accordion-container .sidebar-list li {
+    padding: 8px 10px;
+  }
+
+  /* Vertical divider styling for mobile accordion */
+  .vertical-divider {
+    width: 1px;
+    background-color: rgba(255, 255, 255, 0.3);
+    align-self: stretch;
+    margin: 0 10px;
+  }
 }
