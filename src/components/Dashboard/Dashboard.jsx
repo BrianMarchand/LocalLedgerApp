@@ -377,7 +377,7 @@ const Dashboard = () => {
               <div className="dashboard-grid">
                 <div className="dashboard-card">
                   <div className="card-header">
-                    <i className="bi bi-pie-chart"></i>
+                    <i className="bi bi-bar-chart-fill"></i>
                     <span>Expense Breakdown</span>
                   </div>
                   <div style={{ height: "300px" }}>
@@ -393,7 +393,7 @@ const Dashboard = () => {
                 </div>
                 <div className="dashboard-card">
                   <div className="card-header">
-                    <i className="bi bi-bar-chart-line"></i>
+                    <i className="bi bi-graph-up"></i>
                     <span>Monthly Expense Trend</span>
                   </div>
                   <Line data={monthlyExpenseData} />
@@ -408,7 +408,7 @@ const Dashboard = () => {
                 {/* New Data Card: Project Status Overview */}
                 <div className="dashboard-card">
                   <div className="card-header">
-                    <i className="bi bi-graph-up"></i>
+                    <i className="bi bi-bar-chart-steps"></i>
                     <span>Project Status Overview</span>
                   </div>
                   <div style={{ height: "300px" }}>

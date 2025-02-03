@@ -1,0 +1,29 @@
+/* Ensure the modal dialog fills 75% of the screen width */
+.global-modal .modal-dialog {
+  max-width: 75%;
+  margin: auto;
+  border: none !important;
+}
+.modal-dialog.global-modal {
+  width: 75% !important;
+  max-width: 75% !important;
+  margin: auto;
+}
+
+/* Dim the backdrop and apply a blur effect */
+.global-modal-backdrop {
+  background-color: rgba(71, 24, 67, 0.648) !important;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+/* (Optional) You can add additional responsive tweaks here if needed */
+@media (max-width: 768px) {
+  .global-modal .modal-dialog {
+    max-width: 90%;
+  }
+  .modal-dialog.global-modal {
+    width: 90% !important;
+    max-width: 90% !important;
+  }
+}
