@@ -1,4 +1,6 @@
-/* === Custom Font Definitions === */
+/* ==========================================================================
+   Custom Font Definitions
+   ========================================================================== */
 @font-face {
   font-family: "Noway";
   src: url("/fonts/noway-regular-webfont.ttf") format("truetype");
@@ -27,7 +29,9 @@
   font-style: normal;
 }
 
-/* === Global Link Styles === */
+/* ==========================================================================
+     Global Link Styles
+     ========================================================================== */
 a {
   color: #6ba1dd !important;
   text-decoration: none;
@@ -39,7 +43,9 @@ a:hover {
   text-decoration: none !important;
 }
 
-/* === Global Body Styles === */
+/* ==========================================================================
+     Global Body Styles
+     ========================================================================== */
 body {
   height: 100%;
   width: 100%;
@@ -65,25 +71,27 @@ body {
     color 0.3s ease;
 }
 
-/* --- Global Card Style --- */
+/* ==========================================================================
+     Global Card Styles (Glass Effect)
+     ========================================================================== */
 .global-card {
-  position: relative; /* Required for background layering */
-  width: 100%; /* Ensure full width */
-  padding: 1rem; /* Reduced padding for a more compact layout */
-  margin-bottom: 1rem; /* Match vertical spacing between cards */
-  border-radius: 12px; /* Rounded corners */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  position: relative; /* For background layering */
+  width: 100%; /* Full width */
+  padding: 1rem; /* Compact layout */
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow-x: auto; /* Prevent horizontal scroll issues */
-  transition: all 0.2s ease-in-out; /* Smooth transition */
+  transition: all 0.2s ease-in-out;
   background: rgba(255, 255, 255, 0.7); /* Transparent glass effect */
-  backdrop-filter: blur(8px); /* Frosted glass effect */
+  backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px); /* Safari support */
 }
 
-/* Hover Effect */
+/* Global Card Hover (applied on .disabled for example) */
 .disabled .global-card:hover {
-  transform: translateY(-5px); /* Lift effect */
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); /* Enhanced shadow */
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 /* Background Overlay (Frosted Glass Texture) */
@@ -92,291 +100,283 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%; /* Cover full card */
-  height: 100%; /* Match card size */
-  background: url("/src/assets/img/glass-noise.jpg") repeat; /* Background texture */
-  background-size: cover; /* Fill the card */
-  border-radius: inherit; /* Match parent radius */
-  pointer-events: none; /* Prevents interaction */
-  z-index: 0; /* Keep it behind content */
-  opacity: 0.2; /* Subtle effect */
+  width: 100%;
+  height: 100%;
+  background: url("/src/assets/img/glass-noise.jpg") repeat;
+  background-size: cover;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.2;
 }
 
-/* Ensure Content Stays Above Background */
+/* Ensure Card Content Stays Above Background */
 .global-card > * {
   position: relative;
   z-index: 1;
 }
 
-/* --- Header Style --- */
+/* ==========================================================================
+     Global Card Header & Body
+     ========================================================================== */
 .global-card .card-header {
-  padding: 12px 10px !important; /* Adjust padding */
-  margin: 0.75rem !important; /* Smaller margin */
-  font-weight: 700; /* Bold headings */
+  padding: 12px 10px !important;
+  margin: 0.75rem !important;
+  font-weight: 700;
   display: flex;
-  justify-content: space-between; /* Aligns title and badge */
-  align-items: center; /* Vertical alignment */
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* Separator line */
-  background: transparent; /* Keep glass effect visible */
+  justify-content: space-between; /* Title and badge */
+  align-items: center;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  background: transparent;
 }
 
-/* --- Card Body --- */
 .global-card .card-body {
-  padding: 0.75rem; /* Smaller padding for tighter content */
+  padding: 0.75rem;
   display: flex;
-  flex-direction: column; /* Stack content vertically */
-  gap: 0.4rem; /* Reduced spacing between items */
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
-/* List Style for Breakdown and Summary */
+/* List Style (for breakdowns and summaries) */
 .global-card .list-unstyled li {
-  display: flex; /* Use flexbox for alignment */
-  justify-content: space-between; /* Pushes title and value apart */
-  padding: 0.25rem 0; /* Vertical padding */
-  font-size: 0.95rem; /* Slightly smaller text */
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  font-size: 0.95rem;
 }
 
 .global-card .list-unstyled strong {
-  font-weight: 600; /* Emphasize labels */
+  font-weight: 600;
 }
 
-/* --- Progress Bar Container --- */
-/* --- Progress Bar Container (Glass Effect) --- */
+/* ==========================================================================
+     Progress Bar Styles (Glass Effect)
+     ========================================================================== */
 .progress-container {
   width: 100%;
-  height: 40px; /* Optimized height */
-  border-radius: 8px; /* Rounded corners */
-  overflow: hidden; /* Prevent overflow */
-  background: rgba(255, 255, 255, 0.1); /* Semi-transparent background */
-  backdrop-filter: blur(12px) saturate(150%); /* Glass effect */
-  -webkit-backdrop-filter: blur(12px) saturate(150%); /* Safari support */
-  border: 1px solid rgba(255, 255, 255, 0.3); /* Subtle border */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Softer shadow for depth */
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* --- Progress Bar --- */
 .progress-bar {
   height: 100%;
-  border-radius: 0px;
-  transition: width 0.4s ease-in-out; /* Smooth animation */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Light shadow for visibility */
-  font-weight: 500; /* Slightly bold */
-  font-size: 0.85rem; /* Optimized text size */
-  text-align: center; /* Center-align text */
+  border-radius: 0;
+  transition: width 0.4s ease-in-out;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
+  font-size: 0.85rem;
+  text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff; /* White text for readability */
+  color: #ffffff;
 }
 
-/* --- Progress States --- */
+/* Progress Bar States */
 .progress-bar-normal {
-  background: linear-gradient(90deg, #007bff, #00c6ff); /* Blue gradient */
+  background: linear-gradient(90deg, #007bff, #00c6ff);
 }
 
 .progress-bar-complete {
-  background: linear-gradient(90deg, #28a745, #34d058); /* Green gradient */
+  background: linear-gradient(90deg, #28a745, #34d058);
 }
 
 .progress-bar-over {
-  background: linear-gradient(90deg, #dc3545, #ff6b6b); /* Red gradient */
+  background: linear-gradient(90deg, #dc3545, #ff6b6b);
 }
 
-/* --- Optional Glow Enhancements --- */
+/* Optional Glow Enhancements for Progress Bars */
 .progress-bar-glow {
-  box-shadow: 0 0 10px rgba(0, 198, 255, 0.8); /* Blue glow */
+  box-shadow: 0 0 10px rgba(0, 198, 255, 0.8);
 }
 
 .progress-bar-glow-complete {
-  box-shadow: 0 0 10px rgba(52, 208, 88, 0.8); /* Green glow */
+  box-shadow: 0 0 10px rgba(52, 208, 88, 0.8);
 }
 
 .progress-bar-glow-over {
-  box-shadow: 0 0 10px rgba(255, 107, 107, 0.8); /* Red glow */
+  box-shadow: 0 0 10px rgba(255, 107, 107, 0.8);
 }
 
-/* --- Footer Style --- */
+/* ==========================================================================
+     Global Card Footer
+     ========================================================================== */
 .global-card .card-footer {
-  padding: 0.75rem 1rem; /* Compact padding */
-  background-color: rgba(245, 245, 245, 0.8); /* Softer footer background */
+  padding: 0.75rem 1rem;
+  background-color: rgba(245, 245, 245, 0.8);
   display: flex;
-  flex-wrap: wrap; /* Wrap buttons if needed */
-  gap: 0.5rem; /* Space between buttons */
-  justify-content: flex-start; /* Align buttons to the left */
-  border-top: 1px solid rgba(0, 0, 0, 0.1); /* Subtle separator */
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-start;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 /* Disabled Card State */
 .global-card.disabled {
-  pointer-events: none; /* Disable clicks */
-  opacity: 0.8; /* Dim effect */
-  filter: grayscale(60%); /* Grayscale for visual feedback */
+  pointer-events: none;
+  opacity: 0.8;
+  filter: grayscale(60%);
 }
 
-/* --- Tables --- */
+/* ==========================================================================
+     Table Styles
+     ========================================================================== */
 .table th,
 .table td {
-  vertical-align: middle; /* Align content vertically */
-  text-align: left; /* Align text to the left */
+  vertical-align: middle;
+  text-align: left;
   padding: 8px;
-  white-space: nowrap; /* Prevent text wrapping */
+  white-space: nowrap;
 }
 
-/* Force uniform widths for columns */
+/* Uniform Column Widths (by nth-child) */
 .table th:nth-child(1),
 .table td:nth-child(1) {
-  width: 15%; /* Date */
+  width: 15%;
 }
 .table th:nth-child(2),
 .table td:nth-child(2) {
-  width: 25%; /* Description */
+  width: 25%;
 }
 .table th:nth-child(3),
 .table td:nth-child(3) {
-  width: 15%; /* Amount */
+  width: 15%;
 }
 .table th:nth-child(4),
 .table td:nth-child(4) {
-  width: 20%; /* Category */
+  width: 20%;
 }
 .table th:nth-child(5),
 .table td:nth-child(5) {
-  width: 15%; /* Type */
+  width: 15%;
 }
 .table th:nth-child(6),
 .table td:nth-child(6) {
-  width: 10%; /* Actions */
+  width: 10%;
 }
 
-/* Highlight editing row */
+/* Editing Row Highlight */
 .table tr.editing,
 .editing-row {
-  background-color: #f1f1f1; /* Light gray background */
-  box-shadow: inset 4px 0 0 #007bff; /* Blue border effect */
+  background-color: #f1f1f1;
+  box-shadow: inset 4px 0 0 #007bff;
   transition: all 0.3s ease-in-out;
 }
 
-/* Highlight editing cells */
 .editing-cell {
-  background-color: #e9f7ff !important; /* Light blue background for edit mode */
+  background-color: #e9f7ff !important;
   transition: all 0.3s ease-in-out;
 }
 
-/* Full-Width Table Adjustments */
+/* Full-Width Table (Glass Style) */
 .table-glass {
-  width: 100%; /* Ensure full width */
+  width: 100%;
   border-collapse: collapse;
-  table-layout: fixed; /* Fixed layout for even columns */
+  table-layout: fixed;
   background: transparent;
 }
 
-/* Headers */
+/* Glass Table Headers */
 .table-glass th {
-  padding: 12px 10px; /* Adjust padding */
+  padding: 12px 10px;
   font-size: 14px;
   font-weight: 600;
   text-align: left;
-  background: rgba(255, 255, 255, 0.2); /* Semi-transparent header */
-  color: #333; /* Dark text */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Divider */
+  background: rgba(255, 255, 255, 0.2);
+  color: #333;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Rows */
+/* Glass Table Rows */
 .table-glass td {
-  padding: 12px 10px; /* Adjust padding */
+  padding: 12px 10px;
   font-size: 14px;
-  color: #333; /* Dark text */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Divider */
-  overflow-wrap: break-word; /* Prevent overflow */
+  color: #333;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  overflow-wrap: break-word;
 }
 
-/* Alternating Row Colors */
-.table-glass tr:nth-child(odd) {
-  background: rgba(255, 255, 255, 0.7); /* Transparent glass effect */
-  backdrop-filter: blur(8px); /* Frosted glass effect */
-  -webkit-backdrop-filter: blur(8px); /* Safari support */
-}
-
+/* Alternating Row Colors with Frosted Glass Effect */
+.table-glass tr:nth-child(odd),
 .table-glass tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.7); /* Transparent glass effect */
-  backdrop-filter: blur(8px); /* Frosted glass effect */
-  -webkit-backdrop-filter: blur(8px); /* Safari support */
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-/* Set Specific Column Widths */
+/* Specific Column Widths for Glass Table */
 .table-glass th:first-child,
 .table-glass td:first-child {
-  width: 15%; /* Date */
+  width: 15%;
 }
-
 .table-glass th:nth-child(2),
 .table-glass td:nth-child(2) {
-  width: 30%; /* Description */
+  width: 30%;
 }
-
 .table-glass th:nth-child(3),
 .table-glass td:nth-child(3) {
-  width: 15%; /* Amount */
+  width: 15%;
 }
-
 .table-glass th:nth-child(4),
 .table-glass td:nth-child(4) {
-  width: 20%; /* Category */
+  width: 20%;
 }
-
 .table-glass th:nth-child(5),
 .table-glass td:nth-child(5) {
-  width: 10%; /* Type */
+  width: 10%;
 }
-
 .table-glass th:last-child,
 .table-glass td:last-child {
-  width: 10%; /* Actions */
+  width: 10%;
   text-align: center;
 }
 
-/* Hover Effect */
+/* Table Row Hover Effect */
 .table-glass tr:hover {
-  background: rgba(255, 255, 255, 0.2); /* Highlight hover */
+  background: rgba(255, 255, 255, 0.2);
   cursor: pointer;
 }
 
-/* Remove Border for Last Row */
 .table-glass tr:last-child td {
   border-bottom: none;
 }
 
-/* Buttons Inside Table */
+/* Buttons Inside Glass Tables */
 .table-glass button {
-  padding: 6px 8px; /* Smaller padding */
+  padding: 6px 8px;
   font-size: 12px;
   border-radius: 8px;
   transition: all 0.2s ease;
 }
 
-/* Button Variants */
+/* Button Variants for Glass Tables */
 .table-glass .btn-warning {
   background: rgba(255, 193, 7, 0.8);
   color: #212529;
   border: none;
 }
-
 .table-glass .btn-danger {
   background: rgba(220, 53, 69, 0.8);
   color: #fff;
   border: none;
 }
 
-/* Hover for Buttons */
 .table-glass .btn-warning:hover {
   background: rgba(255, 193, 7, 1);
 }
-
 .table-glass .btn-danger:hover {
   background: rgba(220, 53, 69, 1);
 }
 
-/* --- Lists --- */
+/* ==========================================================================
+     List & Button Global Styles
+     ========================================================================== */
 ul {
   list-style: none;
   padding: 0;
@@ -394,77 +394,71 @@ li {
   text-align: left;
 }
 
-/* --- Buttons --- */
 .btn {
-  border-radius: 5px; /* Rounded buttons for consistency */
-  padding: 0.4rem 0.8rem; /* Smaller buttons for compact layout */
-  transition: all 0.2s ease-in-out; /* Smooth hover effect */
+  border-radius: 5px;
+  padding: 0.4rem 0.8rem;
+  transition: all 0.2s ease-in-out;
 }
 
-/* Button Hover Effect */
 .btn:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Shadow for hover */
-  backdrop-filter: blur(10px); /* Frosted glass effect */
-  -webkit-backdrop-filter: blur(px); /* Safari support */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-/* --- Primary Button --- */
+/* Primary Button */
 .btn-primary {
-  background: #9b51e0 !important; /* Bright purple */
+  background: #9b51e0 !important;
   border: none !important;
   color: #fff !important;
 }
-
 .btn-primary:hover {
-  background: #7b3ab5 !important; /* Darker purple */
+  background: #7b3ab5 !important;
 }
 
-/* --- Secondary Button --- */
+/* Secondary Button */
 .btn-secondary {
-  background: #17a2b8 !important; /* Teal */
+  background: #17a2b8 !important;
   border: none !important;
   color: #fff !important;
 }
-
 .btn-secondary:hover {
-  background: #138496 !important; /* Darker teal */
+  background: #138496 !important;
 }
 
-/* --- Success Button --- */
+/* Success Button */
 .btn-success {
-  background: #28e07b !important; /* Lime green */
+  background: #28e07b !important;
   border: none !important;
   color: #fff !important;
 }
-
 .btn-success:hover {
-  background: #1e9f5f !important; /* Darker green */
+  background: #1e9f5f !important;
 }
 
-/* --- Danger Button --- */
+/* Danger Button */
 .btn-danger {
-  background: #ff007f !important; /* Neon pink */
+  background: #ff007f !important;
   border: none !important;
   color: #fff !important;
 }
-
 .btn-danger:hover {
-  background: #cc0066 !important; /* Darker pink */
+  background: #cc0066 !important;
 }
 
-/* --- Warning Button --- */
+/* Warning Button */
 .btn-warning {
-  background: #ffa500 !important; /* Bright orange */
+  background: #ffa500 !important;
   border: none !important;
   color: #212529 !important;
 }
-
 .btn-warning:hover {
-  background: #cc8400 !important; /* Darker orange */
+  background: #cc8400 !important;
 }
 
-/* === Transaction Colors === */
-
+/* ==========================================================================
+     Transaction Colors & Enhancements
+     ========================================================================== */
 /* Categories */
 .transaction-income {
   color: green;
@@ -502,96 +496,95 @@ li {
   color: black;
 }
 
-/* --- Optional Enhancements --- */
-
-/* Highlight Income with a Green Border */
+/* Optional Enhancements: Borders for Transactions */
 .transaction-income-border {
   border-left: 4px solid green;
 }
 
-/* Highlight Expenses with a Red Border */
 .transaction-expense-border {
   border-left: 4px solid red;
 }
 
-/* Add Hover Effect */
+/* Mobile Card Hover Effect */
 .mobile-card:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
   transition: all 0.2s ease-in-out;
 }
 
-/* --- NAV - Custom Dropdown Menu --- */
-
+/* ==========================================================================
+     Custom Dropdowns & Filter Menus
+     ========================================================================== */
 .custom-dropdown {
-  display: flex; /* Flex for horizontal layout */
-  flex-wrap: wrap; /* Allow wrapping for overflow */
-  max-width: 500px; /* Adjust width for horizontal display */
-  padding: 0.5rem; /* Padding for spacing */
-  z-index: 1050; /* Ensure menu is above everything */
-  position: absolute; /* Prevent clipping */
-  overflow: visible; /* Allow menu to overflow container */
-  background-color: white; /* Ensure visibility over shadows */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
-  border: 1px solid #ddd; /* Light border */
+  display: flex;
+  flex-wrap: wrap;
+  max-width: 500px;
+  padding: 0.5rem;
+  z-index: 1050;
+  position: absolute;
+  overflow: visible;
+  background-color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
 }
 
+/* Dropdown items inside custom dropdown */
 .custom-dropdown .dropdown-item {
-  flex: 1 1 auto; /* Equal width for dropdown items */
-  min-width: 120px; /* Minimum width per item */
-  padding: 0.5rem; /* Padding inside each item */
-  white-space: nowrap; /* Prevents text wrapping */
-  text-align: center; /* Centers text inside item */
+  flex: 1 1 auto;
+  min-width: 120px;
+  padding: 0.5rem;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .custom-dropdown {
-  position: fixed !important; /* Force position outside parent */
-  top: auto !important; /* Control Y-axis position */
-  left: auto !important; /* Control X-axis position */
-  z-index: 1050; /* High z-index for visibility */
+  position: fixed !important;
+  top: auto !important;
+  left: auto !important;
+  z-index: 1050;
 }
 
-/* --- Transactions Filter Dropdown --- */
-
+/* Transactions Filter Dropdown */
 .transaction-filter-dropdown {
-  position: absolute !important; /* Force absolute positioning */
-  z-index: 1050 !important; /* High enough to stay above other elements */
-  display: none; /* Hidden by default */
-  width: auto; /* Auto width based on content */
-  white-space: nowrap; /* Prevent line breaks */
-  overflow: visible !important; /* Ensure no clipping */
+  position: absolute !important;
+  z-index: 1050 !important;
+  display: none;
+  width: auto;
+  white-space: nowrap;
+  overflow: visible !important;
 }
 
 .transaction-filter-dropdown.show {
-  display: flex !important; /* Flex for horizontal layout */
-  flex-direction: row; /* Horizontal alignment */
-  gap: 8px; /* Add spacing between items */
-  padding: 10px; /* Padding inside menu */
-  border-radius: 6px; /* Rounded corners */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Add shadow for visibility */
+  display: flex !important;
+  flex-direction: row;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
-/* Allow scrolling if dropdown exceeds width */
 .transaction-filter-dropdown.scrollable {
-  overflow-x: auto; /* Horizontal scroll for landscape layout */
+  overflow-x: auto;
   overflow-y: hidden;
-  max-width: 100%; /* Prevent breaking out of parent container */
+  max-width: 100%;
 }
 
-/* Dropdown Button Fix */
+/* Dropdown Toggle Fix */
 .dropdown-toggle::after {
-  margin-left: 8px; /* Space after text */
+  margin-left: 8px;
 }
 
-/* Prevent Parent Container from Clipping */
+/* Prevent Parent from Clipping Global Card Content */
 .global-card {
-  overflow: visible !important; /* Allow content to extend outside */
+  overflow: visible !important;
 }
 
-/* Badge Styles - Global */
+/* ==========================================================================
+     Badge Styles
+     ========================================================================== */
 .badge {
   display: inline-flex !important;
-  align-items: right !important;
+  align-items: center !important;
   justify-content: center !important;
   padding: 0.3rem 0.3rem !important;
   font-size: 0.875rem;
@@ -606,75 +599,71 @@ li {
   background-color: #007bff;
   color: white;
 }
-
 .badge-success {
   background-color: #28a745;
   color: white;
 }
-
 .badge-warning {
   background-color: #ffc107;
   color: #212529;
 }
-
 .badge-danger {
   background-color: #dc3545;
   color: white;
 }
-
 .badge-info {
   background-color: #17a2b8;
   color: white;
 }
-
 .badge-secondary {
   background-color: #6c757d;
   color: white;
 }
-
 .badge-dark {
   background-color: #343a40;
   color: white;
 }
 
-/* Add Hover Effects */
+/* Badge Hover Effects */
 .badge:hover {
   opacity: 0.9;
   transform: scale(1.05);
   transition: all 0.2s ease-in-out;
 }
 
-/* --- Fix for Bootstrap Icon Issues --- */
-
+/* ==========================================================================
+     Bootstrap Icons Fix (Merged Rules)
+     ========================================================================== */
 .bi {
   display: inline-block !important;
   font-style: normal !important;
-  vertical-align: 0em !important; /* Aligns with text */
-  text-rendering: auto !important; /* Ensures rendering */
+  vertical-align: 0em !important;
+  text-rendering: auto !important;
   -webkit-font-smoothing: antialiased !important;
   -moz-osx-font-smoothing: grayscale !important;
-}
-
-.bi {
   font-family: "Bootstrap Icons" !important;
 }
 
-/* Ensure the summary grid uses CSS Grid with 3 equal columns */
+/* ==========================================================================
+     Dashboard Summary Grid
+     ========================================================================== */
 .dashboard-summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* Three equal columns */
-  gap: 1rem; /* Adjust gap between cards as needed */
-  margin-bottom: 2rem; /* Optional: extra spacing below the grid */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
-/* Optional: If your .dashboard-card elements inside the summary grid need to fill the available space */
 .dashboard-summary-grid .dashboard-card {
-  padding: 1rem; /* Adjust padding as needed */
-  background-color: #fff; /* Example background, adjust as needed */
+  padding: 1rem;
+  background-color: #fff;
   border-radius: 4px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
+/* ==========================================================================
+     Error Messages
+     ========================================================================== */
 .error-message {
   color: red;
   font-size: 0.8rem;

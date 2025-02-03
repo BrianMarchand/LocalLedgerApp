@@ -1,16 +1,20 @@
-/* Overall layout container */
+/* ==========================================================================
+   Overall Layout
+   ========================================================================== */
+
+/* Main container that holds the sidebar and dashboard content */
 .dashboard-main-container {
   display: flex;
   width: 100%;
 }
 
-/* Dashboard content container: takes the remaining width */
+/* Content container (the main dashboard area) */
 .dashboard-content-container {
   flex: 1;
   padding: 20px;
 }
 
-/* Dashboard header within content */
+/* Header within the dashboard content */
 .dashboard-header {
   background: white;
   padding: 20px;
@@ -19,27 +23,31 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Dashboard content (columns for analytics and summary) */
+/* ==========================================================================
+   Dashboard Structure
+   ========================================================================== */
+
+/* Dashboard content: used for columns (e.g. analytics & summary) */
 .dashboard-content {
   display: flex;
   gap: 20px;
 }
 
-/* Left side (analytics/charts) */
+/* Left section (e.g., analytics/charts) */
 .dashboard-left {
   flex: 2;
 }
 
-/* Right side (summary and recent activity) */
+/* Right section (e.g., summary & recent activity) */
 .dashboard-right {
   flex: 1;
   padding-left: 15px;
   border-left: 1px solid #ddd;
 }
 
-/* =========================
+/* ==========================================================================
    Engaging Dashboard Card Styles
-   ========================= */
+   ========================================================================== */
 
 .dashboard-card {
   background: #fff;
@@ -89,7 +97,7 @@
   background-color: #f2318c;
 }
 
-/* --- New Card Header: Icon & Title --- */
+/* --- Card Header (Icon & Title) --- */
 .dashboard-card .card-header {
   display: flex;
   align-items: center;
@@ -126,7 +134,7 @@
   margin: 15px 0;
 }
 
-/* --- Link styling aligned bottom --- */
+/* --- Bottom Link Styling --- */
 .dashboard-card .card-link {
   text-decoration: none;
   color: #6ba1dd;
@@ -140,15 +148,15 @@
   color: #1a76fc;
 }
 
-/* Charts: ensure responsiveness */
+/* --- Chart Responsiveness --- */
 .dashboard-card canvas {
   max-width: 100% !important;
   height: auto !important;
 }
 
-/* =========================
-   Activity Timeline Styles (for card-activity)
-   ========================= */
+/* ==========================================================================
+   Activity Timeline (for card-activity)
+   ========================================================================== */
 
 .card-activity .activity-timeline ul {
   list-style: none;
@@ -185,9 +193,9 @@
   color: #6c757d;
 }
 
-/* =========================
-   Layout Containers
-   ========================= */
+/* ==========================================================================
+   Layout Containers for Cards
+   ========================================================================== */
 
 /* Summary Cards: Flex container for top summary cards */
 .dashboard-summary-cards {
@@ -203,10 +211,10 @@
   position: relative;
 }
 
-/* Dashboard Grid: Arrange charts and other cards in a responsive grid */
+/* Dashboard Grid: Arrange charts and other cards */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
 
@@ -227,14 +235,13 @@
   margin-top: 10px;
 }
 
-/* Styling for the list */
+/* List Styles */
 .recent-activity-list ul {
   list-style: none !important;
   padding: 0;
   margin: 0;
 }
 
-/* Each activity item styling (old style, if needed) */
 .recent-activity-list li {
   display: flex;
   align-items: center;
@@ -249,7 +256,7 @@
   border-bottom: none;
 }
 
-/* Styling for individual parts */
+/* Individual Activity Item Parts */
 .activity-date {
   font-weight: bold;
   flex-shrink: 0;
@@ -264,11 +271,11 @@
   opacity: 0.8;
 }
 
-/* =========================
+/* ==========================================================================
    Responsive Adjustments for Dashboard
-   ========================= */
+   ========================================================================== */
 
-/* Tablet and small screens */
+/* Tablet and small screens (max-width: 768px) */
 @media (max-width: 768px) {
   .dashboard-main-container {
     flex-direction: column;
@@ -284,116 +291,12 @@
     flex-direction: column;
     gap: 15px;
   }
-}
-
-/* =========================
-   Activity Ticker Card Styling (Updated for Roll-Up Animation)
-   ========================= */
-
-.activity-ticker-card {
-  width: 100%;
-  margin-bottom: 20px;
-  min-height: 40px; /* slim card height */
-  display: flex;
-  align-items: center;
-  padding: 8px 20px; /* horizontal padding; reduced vertical padding */
-  /* The left accent (if any) is inherited from .card-activity */
-}
-
-/* Wrapper that clips the animated content */
-.ticker-content-wrapper {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  overflow: hidden;
-}
-
-.ticker-header {
-  display: flex;
-  align-items: center;
-}
-
-.ticker-header i {
-  font-size: 1.5rem;
-  margin-right: 5px;
-}
-
-.ticker-title {
-  font-size: 1.2rem;
-  color: #334154;
-}
-
-.vertical-divider {
-  width: 1px;
-  height: 40px;
-  background: #000;
-  margin: 0 15px;
-}
-
-/* The ticker-content element now has a fixed height and block display */
-.ticker-content {
-  flex: 1;
-  font-size: 0.95rem;
-  color: #64748b;
-  position: relative;
-  /* Use flex to center the content vertically and horizontally */
-  display: flex;
-  align-items: left;
-  justify-content: left;
-  height: 40px;
-  overflow: hidden;
-}
-
-/* Roll-out animation: current content slides upward and out */
-.ticker-content.roll-out {
-  animation: rollOut 0.5s ease forwards;
-}
-
-/* Roll-in animation: new content starts below and slides up into view */
-.ticker-content.roll-in {
-  animation: rollIn 0.5s ease forwards;
-}
-
-/* Keyframes for roll-out (slide up and out) */
-@keyframes rollOut {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-100%);
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 
-/* Keyframes for roll-in (start from below and slide up) */
-@keyframes rollIn {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-.ticker-date {
-  font-weight: 400;
-  color: #7b8b9a;
-  margin-right: 8px;
-}
-
-.ticker-text {
-  color: #f2318c;
-}
-
-/* Ensure the link is clickable */
-.ticker-link {
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
-  color: inherit;
-  pointer-events: auto;
-}
-
-/* Very small mobile screens */
+/* Very small mobile screens (max-width: 480px) */
 @media (max-width: 480px) {
   .dashboard-content-container {
     padding: 10px;
@@ -409,6 +312,116 @@
     font-size: 1.5rem;
   }
   .dashboard-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
+}
+
+/* ==========================================================================
+   Activity Ticker Card Styling (Roll-Up Animation)
+   ========================================================================== */
+
+/* Activity Ticker Card Container */
+.activity-ticker-card {
+  width: 100%;
+  margin-bottom: 20px;
+  min-height: 40px; /* slim card height */
+  display: flex;
+  align-items: center;
+  padding: 8px 20px; /* reduced vertical padding */
+  /* Left accent inherited from .card-activity if applicable */
+}
+
+/* Wrapper for ticker content with clipping */
+.ticker-content-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Ticker Header (Icon & Title) */
+.ticker-header {
+  display: flex;
+  align-items: center;
+}
+
+.ticker-header i {
+  font-size: 1.5rem;
+  margin-right: 5px;
+}
+
+.ticker-title {
+  font-size: 1.2rem;
+  color: #334154;
+}
+
+/* Vertical divider between header and content */
+.vertical-divider {
+  width: 1px;
+  height: 40px;
+  background: #000;
+  margin: 0 15px;
+}
+
+/* Ticker Content: fixed height, centered via flexbox */
+.ticker-content {
+  flex: 1;
+  font-size: 0.95rem;
+  color: #64748b;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 40px;
+  overflow: hidden;
+}
+
+/* Roll-out animation: content slides upward out of view */
+.ticker-content.roll-out {
+  animation: rollOut 0.5s ease forwards;
+}
+
+/* Roll-in animation: new content slides up from below */
+.ticker-content.roll-in {
+  animation: rollIn 0.5s ease forwards;
+}
+
+/* Keyframes for roll-out */
+@keyframes rollOut {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+/* Keyframes for roll-in */
+@keyframes rollIn {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Ticker Text Styles */
+.ticker-date {
+  font-weight: 400;
+  color: #7b8b9a;
+  margin-right: 8px;
+}
+
+.ticker-text {
+  color: #f2318c;
+}
+
+/* Ensure links within ticker are clickable and centered */
+.ticker-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  pointer-events: auto;
 }

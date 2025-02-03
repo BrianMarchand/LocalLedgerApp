@@ -16,7 +16,7 @@ import { useNavigate, Link } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "../../styles/global.css";
 import "../../styles/components/Dashboard.css";
-import { Pie, Line, Bar } from "react-chartjs-2";
+import { Pie, Doughnut, Line, Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -106,6 +106,7 @@ const Dashboard = () => {
     setFilteredProjects(projects);
   }, [projects]);
 
+  // Expense Breakdown Chart Data
   const expenseChartData = useMemo(() => {
     if (!filteredProjects.length) return {};
     let categoryTotals = { Labour: 0, Materials: 0, Miscellaneous: 0 };
@@ -125,11 +126,41 @@ const Dashboard = () => {
         {
           label: "Expenses",
           data: Object.values(categoryTotals),
-          backgroundColor: ["#6BA1DD", "#471843", "#1BCEB4"],
+          backgroundColor: [
+            "rgba(107,161,221,0.5)", // transparent version of #6BA1DD
+            "rgba(71,24,67,0.5)", // transparent version of #471843
+            "rgba(27,206,180,0.5)", // transparent version of #1BCEB4
+          ],
         },
       ],
     };
   }, [filteredProjects]);
+
+  // New: Project Status Overview Data
+  const projectStatusData = useMemo(() => {
+    if (!projects.length) return {};
+    const statusCounts = {};
+    projects.forEach((project) => {
+      // Assume each project has a status property; default to "Not Specified" if missing.
+      const status = project.status || "Not Specified";
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+    });
+    return {
+      labels: Object.keys(statusCounts),
+      datasets: [
+        {
+          label: "Project Status",
+          data: Object.values(statusCounts),
+          backgroundColor: [
+            "rgba(107,161,221,0.5)", // transparent version of #6BA1DD
+            "rgba(71,24,67,0.5)", // transparent version of #471843
+            "rgba(27,206,180,0.5)", // transparent version of #1BCEB4
+            "rgba(242,49,140,0.5)", // transparent version of #f2318c
+          ],
+        },
+      ],
+    };
+  }, [projects]);
 
   const totalProjects = useMemo(
     () => (projects ? projects.length : 0),
@@ -140,6 +171,39 @@ const Dashboard = () => {
     () => (customers ? customers.length : 0),
     [customers]
   );
+
+  const projectStatusOptions = {
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        beginAtZero: true,
+      },
+    },
+    plugins: {
+      legend: {
+        labels: {
+          generateLabels: (chart) => {
+            const data = chart.data;
+            if (data.datasets.length) {
+              return data.labels.map((label, index) => ({
+                text: label,
+                fillStyle: data.datasets[0].backgroundColor[index],
+                // If you have border colors, include them:
+                strokeStyle: data.datasets[0].borderColor
+                  ? data.datasets[0].borderColor[index]
+                  : undefined,
+                hidden: false,
+                index: index,
+              }));
+            }
+            return [];
+          },
+        },
+      },
+    },
+  };
 
   const handleTransactionSave = async (newTransaction) => {
     if (!newTransaction.projectId) {
@@ -239,6 +303,25 @@ const Dashboard = () => {
     };
   }, [projects]);
 
+  const expenseBreakdownOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          // Optionally, format tick labels (e.g., add a dollar sign)
+          callback: (value) => "$" + value,
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        display: false, // Hide the legend if you only have one dataset
+      },
+    },
+  };
+
   return (
     <div>
       <Navbar page="dashboard" />
@@ -297,11 +380,16 @@ const Dashboard = () => {
                     <i className="bi bi-pie-chart"></i>
                     <span>Expense Breakdown</span>
                   </div>
-                  {expenseChartData.labels ? (
-                    <Pie data={expenseChartData} />
-                  ) : (
-                    <p>No data available</p>
-                  )}
+                  <div style={{ height: "300px" }}>
+                    {expenseChartData.labels ? (
+                      <Bar
+                        data={expenseChartData}
+                        options={expenseBreakdownOptions}
+                      />
+                    ) : (
+                      <p>No data available</p>
+                    )}
+                  </div>
                 </div>
                 <div className="dashboard-card">
                   <div className="card-header">
@@ -316,6 +404,23 @@ const Dashboard = () => {
                     <span>Budget vs. Actual Expenses</span>
                   </div>
                   <Bar data={budgetVsActualData} />
+                </div>
+                {/* New Data Card: Project Status Overview */}
+                <div className="dashboard-card">
+                  <div className="card-header">
+                    <i className="bi bi-graph-up"></i>
+                    <span>Project Status Overview</span>
+                  </div>
+                  <div style={{ height: "300px" }}>
+                    {projectStatusData.labels ? (
+                      <Bar
+                        data={projectStatusData}
+                        options={projectStatusOptions}
+                      />
+                    ) : (
+                      <p>No data available</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
