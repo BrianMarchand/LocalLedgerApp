@@ -8,6 +8,7 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  sendEmailVerification, // <-- Import sendEmailVerification
   GoogleAuthProvider,
   signInWithPopup,
 } from "firebase/auth";
@@ -23,10 +24,18 @@ export const AuthProvider = ({ children }) => {
   // --- Signup Function ---
   const signup = async (email, password) => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       const user = userCredential.user;
+
+      // Send verification email
+      await sendEmailVerification(user);
+      console.log("Signup successful. Verification email sent to:", user.email);
+
       setCurrentUser(user);
-      console.log("Signup successful. User ID:", user.uid);
       return user;
     } catch (error) {
       console.error("Signup Error:", error.message);
@@ -37,8 +46,20 @@ export const AuthProvider = ({ children }) => {
   // --- Login Function ---
   const login = async (email, password) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       const user = userCredential.user;
+
+      // Optionally, you can check if the email is verified before proceeding.
+      if (!user.emailVerified) {
+        throw new Error(
+          "Email Not Verified! Please verify your email before logging in."
+        );
+      }
+
       setCurrentUser(user);
       console.log("Login successful. User ID:", user.uid);
       return user;
@@ -105,7 +126,14 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ currentUser, signup, login, loginWithGoogle, logout, resetPassword }}
+      value={{
+        currentUser,
+        signup,
+        login,
+        loginWithGoogle,
+        logout,
+        resetPassword,
+      }}
     >
       {!loading && children}
     </AuthContext.Provider>
