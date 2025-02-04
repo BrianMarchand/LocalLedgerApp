@@ -32,10 +32,7 @@ const UserDropdown = ({ onManageProfile }) => {
       <Dropdown.Menu className="profile-dropdown-menu">
         {/* Trigger the modal via onManageProfile callback */}
         <Dropdown.Item onClick={onManageProfile}>
-          <i className="bi bi-person-fill me-2"></i>Profile
-        </Dropdown.Item>
-        <Dropdown.Item onClick={() => navigate("/settings")}>
-          <i className="bi bi-gear-fill me-2"></i>Settings
+          <i className="bi bi-person-fill me-2"></i>Update Profile
         </Dropdown.Item>
 
         <Dropdown.Divider />

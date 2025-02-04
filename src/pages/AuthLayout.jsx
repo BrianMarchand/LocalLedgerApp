@@ -1,8 +1,6 @@
-// File: src/components/AuthLayout.jsx
-
 import React from "react";
 import PropTypes from "prop-types";
-import { Link } from "react-router-dom"; // Import Link from react-router-dom
+import { Link } from "react-router-dom";
 import "../styles/pages/LoginStyles.css"; // Ensure your CSS applies
 
 // Define copy for each page type so you can change it in one place.
@@ -61,6 +59,22 @@ const authCopy = {
       </>
     ),
   },
+  verify: {
+    logo: "/images/LL-main-logo-light.svg",
+    header: "Verify Your Email",
+    subheader: "Activate Your LocalLedger Account",
+    description:
+      "A verification email has been sent to your email address. Please follow the instructions in your email to verify your account. Once verified, you can log in and start managing your projects.",
+    disclaimer: (
+      <>
+        Didn't receive an email? Check your spam folder or{" "}
+        <Link to="/support" className="auth-link">
+          contact support
+        </Link>
+        .
+      </>
+    ),
+  },
 };
 
 const AuthLayout = ({ page, children }) => {
@@ -99,7 +113,7 @@ const AuthLayout = ({ page, children }) => {
 };
 
 AuthLayout.propTypes = {
-  page: PropTypes.oneOf(["login", "signup", "forgot"]),
+  page: PropTypes.oneOf(["login", "signup", "forgot", "verify"]),
   children: PropTypes.node.isRequired,
 };
 

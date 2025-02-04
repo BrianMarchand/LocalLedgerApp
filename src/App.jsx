@@ -36,12 +36,13 @@ import { AuthProvider } from "./context/AuthContext";
 // ================================
 // 4. Pages and Components
 // ================================
-// Pages
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import PasswordReset from "./pages/PasswordReset";
 import Profile from "./pages/Profile";
+import VerifyEmail from "./pages/VerifyEmail"; // New VerifyEmail Page
+import EmailAction from "./pages/EmailAction"; // Import the new component
 
 // Components
 import ProjectList from "./components/ProjectList/ProjectList";
@@ -52,7 +53,7 @@ import TransactionSummary from "./components/Transactions/TransactionSummary";
 import Activity from "./components/Activity";
 
 // ================================
-// 5. Marchand Household Budget
+// 5. Other Pages
 // ================================
 import AppSelector from "./AppSelector";
 import MarchandDashboard from "./MarchandHousehold/pages/MarchandDashboard";
@@ -80,6 +81,8 @@ const App = () => {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/email-action" element={<EmailAction />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/password-reset" element={<PasswordReset />} />
             <Route path="/profile" element={<Profile />} />
@@ -91,8 +94,7 @@ const App = () => {
               path="/transaction-summary"
               element={<TransactionSummary />}
             />
-            <Route path="/activity" element={<Activity />} />{" "}
-            {/* New Activity Route */}
+            <Route path="/activity" element={<Activity />} />
             <Route path="/select-app" element={<AppSelector />} />
             <Route path="/marchand-household" element={<MarchandDashboard />} />
             {/* Fallback */}

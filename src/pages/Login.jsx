@@ -1,5 +1,3 @@
-// File: src/pages/Login.jsx
-
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { auth } from "@config";
@@ -41,14 +39,12 @@ const Login = () => {
     setLoading(true);
     try {
       await login(email.trim(), password);
-      if (!auth.currentUser?.emailVerified) {
-        throw new Error("Please verify your email before logging in.");
-      }
       navigate("/select-app");
     } catch (err) {
       console.error("Login Error:", err.message);
-      if (err.message.includes("verify your email")) {
-        setError("Email Not Verified! " + err.message);
+      // If error is about email verification, navigate to verify-email page.
+      if (err.message.includes("Email Not Verified")) {
+        navigate("/verify-email");
       } else {
         setError("Login Failed! Invalid email or password.");
       }

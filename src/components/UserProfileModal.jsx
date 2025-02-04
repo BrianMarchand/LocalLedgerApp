@@ -1,9 +1,12 @@
+// File: src/components/UserProfileModal.jsx
+
 import React, { useState, useEffect } from "react";
 import GlobalModal from "./GlobalModal";
-import { useAuth } from "../context/AuthContext"; // Assumes currentUser is provided here
+import { useAuth } from "../context/AuthContext";
+import ProfilePictureUploader from "./ProfilePictureUploader";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@config"; // Firestore instance from your config
-import "../styles/components/userProfileModal.css"; // Create or adjust this file as needed
+import "../styles/components/userProfileModal.css"; // Adjust as needed
 
 const UserProfileModal = ({ show, onClose }) => {
   const { currentUser } = useAuth();
@@ -11,7 +14,10 @@ const UserProfileModal = ({ show, onClose }) => {
   // State for active section of the modal
   const [activeSection, setActiveSection] = useState("profile");
 
-  // Profile data state; matches our nested schema in Firestore
+  // State to track if there are unsaved changes
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
+
+  // Initial profile data state using the nested schema
   const [profileData, setProfileData] = useState({
     personalInfo: {
       firstName: "",
@@ -28,8 +34,8 @@ const UserProfileModal = ({ show, onClose }) => {
     },
     accountInfo: {
       username: "",
-      email: "", // For updating email address (password updates require separate handling)
-      // password field is not stored directly here
+      email: "",
+      password: "", // Always defined to keep the input controlled
     },
     appearance: {
       theme: "light",
@@ -38,7 +44,6 @@ const UserProfileModal = ({ show, onClose }) => {
       emailNotifications: true,
       dashboardNotifications: true,
     },
-    // 'other' could include additional fields like displayName, role, etc.
     other: {
       displayName: "",
       role: "",
@@ -57,7 +62,59 @@ const UserProfileModal = ({ show, onClose }) => {
           const docRef = doc(db, "users", currentUser.uid);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-            setProfileData(docSnap.data());
+            const fetchedData = docSnap.data();
+            // Build nested data using fetched data.
+            const nestedData = {
+              personalInfo: fetchedData.personalInfo
+                ? fetchedData.personalInfo
+                : {
+                    firstName: fetchedData.firstName || "",
+                    lastName: fetchedData.lastName || "",
+                    nickname: fetchedData.nickname || "",
+                    shortBio: fetchedData.shortBio || "",
+                    profilePictureUrl: fetchedData.profilePictureUrl || "",
+                  },
+              companyInfo: fetchedData.companyInfo
+                ? fetchedData.companyInfo
+                : {
+                    companyName: fetchedData.company
+                      ? fetchedData.company.companyName || ""
+                      : "",
+                    businessAddress: fetchedData.company
+                      ? fetchedData.company.businessAddress || ""
+                      : "",
+                    businessPhone: fetchedData.company
+                      ? fetchedData.company.businessPhone || ""
+                      : "",
+                    businessEmail: fetchedData.company
+                      ? fetchedData.company.businessEmail || ""
+                      : "",
+                  },
+              accountInfo: fetchedData.accountInfo
+                ? { ...fetchedData.accountInfo, password: "" }
+                : {
+                    username: fetchedData.account
+                      ? fetchedData.account.username || ""
+                      : "",
+                    email: fetchedData.email || "",
+                    password: "",
+                  },
+              appearance: fetchedData.appearance || { theme: "light" },
+              notifications: fetchedData.notifications || {
+                emailNotifications: true,
+                dashboardNotifications: true,
+              },
+              other: fetchedData.other
+                ? fetchedData.other
+                : {
+                    displayName: fetchedData.displayName || "",
+                    role: fetchedData.role || "",
+                    email: fetchedData.email || "",
+                  },
+            };
+
+            setProfileData(nestedData);
+            setUnsavedChanges(false); // Reset unsaved flag after load
           }
         } catch (err) {
           console.error("Error fetching user data:", err);
@@ -76,6 +133,7 @@ const UserProfileModal = ({ show, onClose }) => {
         [field]: value,
       },
     }));
+    setUnsavedChanges(true);
   };
 
   // Save updated profile data to Firestore
@@ -84,14 +142,35 @@ const UserProfileModal = ({ show, onClose }) => {
     setError("");
     try {
       const docRef = doc(db, "users", currentUser.uid);
-      await updateDoc(docRef, profileData);
+      // When saving, omit the password field (updating password is handled separately)
+      const { password, ...accountInfoWithoutPassword } =
+        profileData.accountInfo;
+      await updateDoc(docRef, {
+        ...profileData,
+        accountInfo: accountInfoWithoutPassword,
+      });
       alert("Profile updated successfully!");
+      setUnsavedChanges(false);
       onClose();
     } catch (err) {
       console.error("Error updating profile:", err);
       setError("Failed to update profile. Please try again.");
     }
     setLoading(false);
+  };
+
+  // Custom modal close handler that warns if there are unsaved changes
+  const handleModalClose = () => {
+    if (unsavedChanges) {
+      const confirmClose = window.confirm(
+        "You have unsaved changes. Do you really want to close without saving?"
+      );
+      if (confirmClose) {
+        onClose();
+      }
+    } else {
+      onClose();
+    }
   };
 
   // Render the right-hand content based on the active section
@@ -101,12 +180,22 @@ const UserProfileModal = ({ show, onClose }) => {
         return (
           <div className="profile-section">
             <h4>Personal Information</h4>
+
+            {/* Profile Picture Uploader */}
+            <ProfilePictureUploader
+              currentUrl={profileData.personalInfo?.profilePictureUrl}
+              onUpload={(downloadURL) =>
+                handleChange("personalInfo", "profilePictureUrl", downloadURL)
+              }
+            />
+
+            {/* Optionally, show the URL field so the user can see/edit it */}
             <div className="form-group">
               <label>Profile Picture URL</label>
               <input
                 type="text"
                 className="form-control"
-                value={profileData.personalInfo.profilePictureUrl || ""}
+                value={profileData.personalInfo?.profilePictureUrl || ""}
                 onChange={(e) =>
                   handleChange(
                     "personalInfo",
@@ -116,12 +205,13 @@ const UserProfileModal = ({ show, onClose }) => {
                 }
               />
             </div>
+
             <div className="form-group">
               <label>First Name</label>
               <input
                 type="text"
                 className="form-control"
-                value={profileData.personalInfo.firstName || ""}
+                value={profileData.personalInfo?.firstName || ""}
                 onChange={(e) =>
                   handleChange("personalInfo", "firstName", e.target.value)
                 }
@@ -132,7 +222,7 @@ const UserProfileModal = ({ show, onClose }) => {
               <input
                 type="text"
                 className="form-control"
-                value={profileData.personalInfo.lastName || ""}
+                value={profileData.personalInfo?.lastName || ""}
                 onChange={(e) =>
                   handleChange("personalInfo", "lastName", e.target.value)
                 }
@@ -143,7 +233,7 @@ const UserProfileModal = ({ show, onClose }) => {
               <input
                 type="text"
                 className="form-control"
-                value={profileData.personalInfo.nickname || ""}
+                value={profileData.personalInfo?.nickname || ""}
                 onChange={(e) =>
                   handleChange("personalInfo", "nickname", e.target.value)
                 }
@@ -153,7 +243,7 @@ const UserProfileModal = ({ show, onClose }) => {
               <label>Short Bio</label>
               <textarea
                 className="form-control"
-                value={profileData.personalInfo.shortBio || ""}
+                value={profileData.personalInfo?.shortBio || ""}
                 onChange={(e) =>
                   handleChange("personalInfo", "shortBio", e.target.value)
                 }
@@ -170,7 +260,7 @@ const UserProfileModal = ({ show, onClose }) => {
               <input
                 type="text"
                 className="form-control"
-                value={profileData.companyInfo.companyName || ""}
+                value={profileData.companyInfo?.companyName || ""}
                 onChange={(e) =>
                   handleChange("companyInfo", "companyName", e.target.value)
                 }
@@ -181,7 +271,7 @@ const UserProfileModal = ({ show, onClose }) => {
               <input
                 type="text"
                 className="form-control"
-                value={profileData.companyInfo.businessAddress || ""}
+                value={profileData.companyInfo?.businessAddress || ""}
                 onChange={(e) =>
                   handleChange("companyInfo", "businessAddress", e.target.value)
                 }
@@ -192,7 +282,7 @@ const UserProfileModal = ({ show, onClose }) => {
               <input
                 type="text"
                 className="form-control"
-                value={profileData.companyInfo.businessPhone || ""}
+                value={profileData.companyInfo?.businessPhone || ""}
                 onChange={(e) =>
                   handleChange("companyInfo", "businessPhone", e.target.value)
                 }
@@ -203,7 +293,7 @@ const UserProfileModal = ({ show, onClose }) => {
               <input
                 type="email"
                 className="form-control"
-                value={profileData.companyInfo.businessEmail || ""}
+                value={profileData.companyInfo?.businessEmail || ""}
                 onChange={(e) =>
                   handleChange("companyInfo", "businessEmail", e.target.value)
                 }
@@ -220,7 +310,7 @@ const UserProfileModal = ({ show, onClose }) => {
               <input
                 type="text"
                 className="form-control"
-                value={profileData.accountInfo.username || ""}
+                value={profileData.accountInfo?.username || ""}
                 onChange={(e) =>
                   handleChange("accountInfo", "username", e.target.value)
                 }
@@ -232,7 +322,9 @@ const UserProfileModal = ({ show, onClose }) => {
                 type="email"
                 className="form-control"
                 value={
-                  profileData.accountInfo.email || profileData.other.email || ""
+                  profileData.accountInfo?.email ||
+                  profileData.other?.email ||
+                  ""
                 }
                 onChange={(e) =>
                   handleChange("accountInfo", "email", e.target.value)
@@ -245,6 +337,7 @@ const UserProfileModal = ({ show, onClose }) => {
                 type="password"
                 className="form-control"
                 placeholder="New password"
+                value={profileData.accountInfo?.password || ""}
                 onChange={(e) =>
                   handleChange("accountInfo", "password", e.target.value)
                 }
@@ -263,7 +356,7 @@ const UserProfileModal = ({ show, onClose }) => {
               <label>Theme</label>
               <select
                 className="form-control"
-                value={profileData.appearance.theme || "light"}
+                value={profileData.appearance?.theme || "light"}
                 onChange={(e) =>
                   handleChange("appearance", "theme", e.target.value)
                 }
@@ -283,7 +376,7 @@ const UserProfileModal = ({ show, onClose }) => {
                 type="checkbox"
                 className="form-check-input"
                 id="emailNotifications"
-                checked={profileData.notifications.emailNotifications || false}
+                checked={profileData.notifications?.emailNotifications || false}
                 onChange={(e) =>
                   handleChange(
                     "notifications",
@@ -302,7 +395,7 @@ const UserProfileModal = ({ show, onClose }) => {
                 className="form-check-input"
                 id="dashboardNotifications"
                 checked={
-                  profileData.notifications.dashboardNotifications || false
+                  profileData.notifications?.dashboardNotifications || false
                 }
                 onChange={(e) =>
                   handleChange(
@@ -327,7 +420,12 @@ const UserProfileModal = ({ show, onClose }) => {
   };
 
   return (
-    <GlobalModal show={show} onClose={onClose} title="User Profile">
+    <GlobalModal
+      show={show}
+      onClose={handleModalClose}
+      title="User Profile"
+      disableBackdropClick={true} // Prevent closing modal by clicking outside
+    >
       <div className="user-profile-modal-container">
         {/* Sidebar Navigation */}
         <div className="user-profile-sidebar">
@@ -389,7 +487,7 @@ const UserProfileModal = ({ show, onClose }) => {
           {error && <div className="alert alert-danger">{error}</div>}
           {renderSectionContent()}
           <div className="modal-footer">
-            <button className="btn btn-secondary" onClick={onClose}>
+            <button className="btn btn-secondary" onClick={handleModalClose}>
               Cancel
             </button>
             <button

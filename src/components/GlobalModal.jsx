@@ -4,11 +4,20 @@ import React from "react";
 import { Modal } from "react-bootstrap";
 import "../styles/components/globalModal.css";
 
-const GlobalModal = ({ show, onClose, title, children, ...props }) => {
+const GlobalModal = ({
+  show,
+  onClose,
+  title,
+  children,
+  disableBackdropClick,
+  ...props
+}) => {
   return (
     <Modal
       show={show}
       onHide={onClose}
+      // If disableBackdropClick is true, use "static" so that clicking outside won't close the modal.
+      backdrop={disableBackdropClick ? "static" : true}
       onExited={() => {
         if (document.activeElement) {
           document.activeElement.blur();
@@ -17,7 +26,7 @@ const GlobalModal = ({ show, onClose, title, children, ...props }) => {
       centered
       dialogClassName="global-modal"
       backdropClassName="global-modal-backdrop"
-      {...props}
+      {...props} // Spread the remaining props
     >
       {title && (
         <Modal.Header closeButton>

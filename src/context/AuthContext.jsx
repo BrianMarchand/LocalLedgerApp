@@ -1,5 +1,3 @@
-// File: src/context/AuthContext.jsx
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { auth } from "@config";
 import {
@@ -8,9 +6,7 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
-  sendEmailVerification, // <-- Import sendEmailVerification
-  GoogleAuthProvider,
-  signInWithPopup,
+  sendEmailVerification,
 } from "firebase/auth";
 
 const AuthContext = createContext();
@@ -53,33 +49,34 @@ export const AuthProvider = ({ children }) => {
       );
       const user = userCredential.user;
 
-      // Optionally, you can check if the email is verified before proceeding.
-      if (!user.emailVerified) {
+      // Refresh the user object to get updated emailVerified status
+      await user.reload();
+
+      // Optional: add a short delay to help ensure propagation
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Force refresh the token to update claims
+      await user.getIdToken(true);
+
+      // Get the updated user object from auth.currentUser
+      const updatedUser = auth.currentUser;
+
+      console.log(
+        "User emailVerified after reload:",
+        updatedUser.emailVerified
+      );
+
+      if (!updatedUser.emailVerified) {
         throw new Error(
           "Email Not Verified! Please verify your email before logging in."
         );
       }
 
-      setCurrentUser(user);
-      console.log("Login successful. User ID:", user.uid);
-      return user;
+      setCurrentUser(updatedUser);
+      console.log("Login successful. User ID:", updatedUser.uid);
+      return updatedUser;
     } catch (error) {
       console.error("Login Error:", error.message);
-      throw error;
-    }
-  };
-
-  // --- Google Login Function ---
-  const loginWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      const userCredential = await signInWithPopup(auth, provider);
-      const user = userCredential.user;
-      setCurrentUser(user);
-      console.log("Google login successful. User ID:", user.uid);
-      return user;
-    } catch (error) {
-      console.error("Google Login Error:", error.message);
       throw error;
     }
   };
@@ -114,6 +111,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // --- Resend Email Verification Function ---
+  const resendEmailVerification = async () => {
+    if (auth.currentUser && !auth.currentUser.emailVerified) {
+      await sendEmailVerification(auth.currentUser);
+      console.log("Verification email re-sent to:", auth.currentUser.email);
+    }
+  };
+
   // --- Listen for Authentication State ---
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -130,9 +135,9 @@ export const AuthProvider = ({ children }) => {
         currentUser,
         signup,
         login,
-        loginWithGoogle,
         logout,
         resetPassword,
+        resendEmailVerification,
       }}
     >
       {!loading && children}

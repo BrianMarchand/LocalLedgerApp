@@ -1,5 +1,3 @@
-// File: src/pages/Signup.jsx
-
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import AuthLayout from "../pages/AuthLayout"; // New layout component
@@ -72,10 +70,10 @@ const Signup = () => {
           businessEmail: "",
         },
         account: {
-          username: "", // To be updated by the user later
+          username: "",
         },
         appearance: {
-          theme: "light", // Default theme
+          theme: "light",
         },
         notifications: {
           emailNotifications: true,
@@ -89,28 +87,10 @@ const Signup = () => {
         displayName: `${firstName.trim()} ${lastName.trim()}`,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        nickname: "",
-        shortBio: "",
-        profilePictureUrl: "",
-        company: {
-          companyName: companyName.trim(),
-          businessAddress: "",
-          businessPhone: "",
-          businessEmail: "",
-        },
-        account: {
-          username: "",
-        },
-        appearance: {
-          theme: "light",
-        },
-        notifications: {
-          emailNotifications: true,
-          dashboardNotifications: true,
-        },
-        role: "user",
+        companyName: companyName.trim(),
       });
-      navigate("/dashboard");
+      // Redirect to Verify Email page instead of the dashboard
+      navigate("/verify-email");
     } catch (error) {
       console.error("Signup Error:", error.code, error.message);
       let errMsg = "Signup Failed! Please try again later.";
