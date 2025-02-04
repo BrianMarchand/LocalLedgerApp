@@ -16,16 +16,14 @@ const Signup = () => {
   // Existing state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const { signup, signupWithGoogle } = useAuth(); // Assume signupWithGoogle is defined in your context
   const navigate = useNavigate();
 
-  // Password toggle states
+  // Password toggle state
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Email validation function
   const validateEmail = (email) => {
@@ -41,7 +39,6 @@ const Signup = () => {
     if (
       !email.trim() ||
       !password ||
-      !confirmPassword ||
       !firstName.trim() ||
       !lastName.trim() ||
       !companyName.trim()
@@ -51,10 +48,6 @@ const Signup = () => {
     }
     if (!validateEmail(email)) {
       setError("Enter a valid email address.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("Passwords don't match! Please check your passwords.");
       return;
     }
 
@@ -69,9 +62,53 @@ const Signup = () => {
         displayName: `${firstName.trim()} ${lastName.trim()}`,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        companyName: companyName.trim(),
+        nickname: "",
+        shortBio: "",
+        profilePictureUrl: "",
+        company: {
+          companyName: companyName.trim(),
+          businessAddress: "",
+          businessPhone: "",
+          businessEmail: "",
+        },
+        account: {
+          username: "", // To be updated by the user later
+        },
+        appearance: {
+          theme: "light", // Default theme
+        },
+        notifications: {
+          emailNotifications: true,
+          dashboardNotifications: true,
+        },
         role: "user",
         createdAt: serverTimestamp(),
+      });
+      console.log("User document created with fields:", {
+        email: user.email,
+        displayName: `${firstName.trim()} ${lastName.trim()}`,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        nickname: "",
+        shortBio: "",
+        profilePictureUrl: "",
+        company: {
+          companyName: companyName.trim(),
+          businessAddress: "",
+          businessPhone: "",
+          businessEmail: "",
+        },
+        account: {
+          username: "",
+        },
+        appearance: {
+          theme: "light",
+        },
+        notifications: {
+          emailNotifications: true,
+          dashboardNotifications: true,
+        },
+        role: "user",
       });
       navigate("/dashboard");
     } catch (error) {
@@ -118,8 +155,7 @@ const Signup = () => {
       <form onSubmit={handleSubmit} noValidate>
         <h2 className="mb-2 text-center">Sign up with email</h2>
         <p className="mb-4 text-center small">
-          Start managing your entire project lifecycle all in one place,
-          effectively and completely free!
+          Manage your entire project lifecycle all in one place.
         </p>
         {error && (
           <div className="alert alert-danger" role="alert">
@@ -127,14 +163,8 @@ const Signup = () => {
           </div>
         )}
 
-        {/* Divider */}
-        <div className="divider my-3">
-          <span>Account Information</span>
-        </div>
-
         {/* Email Field */}
         <div className="auth-form-group">
-          <label htmlFor="email">Email Address</label>
           <div className="input-container">
             <span className="input-icon">
               {error && (!email.trim() || !validateEmail(email)) ? (
@@ -153,14 +183,13 @@ const Signup = () => {
               }`}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="yourname@email.com"
+              placeholder="Email Address"
             />
           </div>
         </div>
 
         {/* Password Field */}
         <div className="auth-form-group">
-          <label htmlFor="password">Password</label>
           <div className="input-container">
             <span className="input-icon">
               {error && !password ? (
@@ -175,7 +204,7 @@ const Signup = () => {
               className={`form-control ${error && !password ? "is-invalid" : ""}`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="•••••••••••••"
+              placeholder="Password"
             />
             <span
               className="password-toggle"
@@ -189,97 +218,51 @@ const Signup = () => {
           </div>
         </div>
 
-        {/* Confirm Password Field */}
-        <div className="auth-form-group">
-          <label htmlFor="confirmPassword">Confirm Password</label>
-          <div className="input-container">
-            <span className="input-icon">
-              {error && (!confirmPassword || password !== confirmPassword) ? (
-                <i className="bi bi-exclamation-triangle-fill"></i>
-              ) : (
-                <i className="bi bi-shield-lock"></i>
-              )}
-            </span>
-            <input
-              type={showConfirmPassword ? "text" : "password"}
-              id="confirmPassword"
-              className={`form-control ${
-                error && (!confirmPassword || password !== confirmPassword)
-                  ? "is-invalid"
-                  : ""
-              }`}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="•••••••••••••"
-            />
-            <span
-              className="password-toggle"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              style={{ cursor: "pointer" }}
-            >
-              <i
-                className={`bi ${showConfirmPassword ? "bi-eye-slash" : "bi-eye"}`}
-              ></i>
-            </span>
+        {/* First and Last Name Fields in a Row */}
+        <div className="row">
+          <div className="col-md-6 auth-form-group">
+            <div className="input-container">
+              <span className="input-icon">
+                {error && !firstName.trim() ? (
+                  <i className="bi bi-exclamation-triangle-fill"></i>
+                ) : (
+                  <i className="bi bi-person"></i>
+                )}
+              </span>
+              <input
+                type="text"
+                id="firstName"
+                className={`form-control ${error && !firstName.trim() ? "is-invalid" : ""}`}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="First Name"
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Divider */}
-        <div className="divider mb-3">
-          <span>Company Information</span>
-        </div>
-
-        {/* First Name Field */}
-        <div className="auth-form-group">
-          <label htmlFor="firstName">First Name</label>
-          <div className="input-container">
-            <span className="input-icon">
-              {error && !firstName.trim() ? (
-                <i className="bi bi-exclamation-triangle-fill"></i>
-              ) : (
-                <i className="bi bi-person"></i>
-              )}
-            </span>
-            <input
-              type="text"
-              id="firstName"
-              className={`form-control ${
-                error && !firstName.trim() ? "is-invalid" : ""
-              }`}
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="John"
-            />
-          </div>
-        </div>
-
-        {/* Last Name Field */}
-        <div className="auth-form-group">
-          <label htmlFor="lastName">Last Name</label>
-          <div className="input-container">
-            <span className="input-icon">
-              {error && !lastName.trim() ? (
-                <i className="bi bi-exclamation-triangle-fill"></i>
-              ) : (
-                <i className="bi bi-person"></i>
-              )}
-            </span>
-            <input
-              type="text"
-              id="lastName"
-              className={`form-control ${
-                error && !lastName.trim() ? "is-invalid" : ""
-              }`}
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder="Smith"
-            />
+          <div className="col-md-6 auth-form-group">
+            <div className="input-container">
+              <span className="input-icon">
+                {error && !lastName.trim() ? (
+                  <i className="bi bi-exclamation-triangle-fill"></i>
+                ) : (
+                  <i className="bi bi-person"></i>
+                )}
+              </span>
+              <input
+                type="text"
+                id="lastName"
+                className={`form-control ${error && !lastName.trim() ? "is-invalid" : ""}`}
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Last Name"
+              />
+            </div>
           </div>
         </div>
 
         {/* Company Name Field */}
         <div className="auth-form-group">
-          <label htmlFor="companyName">Company Name</label>
           <div className="input-container">
             <span className="input-icon">
               {error && !companyName.trim() ? (
@@ -291,22 +274,18 @@ const Signup = () => {
             <input
               type="text"
               id="companyName"
-              className={`form-control ${
-                error && !companyName.trim() ? "is-invalid" : ""
-              }`}
+              className={`form-control ${error && !companyName.trim() ? "is-invalid" : ""}`}
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="Company Name LLC"
+              placeholder="Company Name"
             />
           </div>
         </div>
 
-        {/* Submit Button */}
         <button type="submit" className="auth-btn" disabled={loading}>
           {loading ? "Creating account..." : "Create Your Account"}
         </button>
 
-        {/* Redirect to Login */}
         <p className="mt-3 text-center small">
           Already have a LocalLedger account?{" "}
           <Link to="/login" className="auth-link">

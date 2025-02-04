@@ -50,8 +50,8 @@ const ForgotPassword = () => {
       <form onSubmit={handleSubmit} noValidate>
         <h2 className="mb-2 text-center">Forgot Password?</h2>
         <p className="mb-4 text-center small">
-          To recover your password, please give us your email address and we
-          will send you a password reset link.
+          To recover your password, please enter your email address and we'll
+          send you a password reset link.
         </p>
         {error && (
           <div className="alert alert-danger" role="alert">
@@ -64,7 +64,6 @@ const ForgotPassword = () => {
           </div>
         )}
         <div className="auth-form-group">
-          <label htmlFor="reset-email">Email Address</label>
           <div className="input-container">
             <span className="input-icon">
               {error && (!email.trim() || !validateEmail(email)) ? (
@@ -83,15 +82,11 @@ const ForgotPassword = () => {
               }`}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder="Email Address"
             />
           </div>
         </div>
-        <button
-          type="submit"
-          className="btn btn-primary w-100"
-          disabled={loading}
-        >
+        <button type="submit" className="auth-btn" disabled={loading}>
           {loading ? "Sending..." : "Send Reset Link"}
         </button>
         <div className="text-center mt-3 small">

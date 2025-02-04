@@ -1,3 +1,5 @@
+// File: src/components/Navbar.jsx
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "@config";
@@ -15,30 +17,32 @@ import FAB from "./FAB";
 import AddProjectModal from "/src/components/AddProject/AddProjectModal";
 import TransactionModal from "/src/components/TransactionModal";
 import CustomerModal from "/src/components/CustomerModal";
+import UserProfileModal from "./UserProfileModal"; // Import the User Profile Modal
 import { useProjects } from "../context/ProjectsContext";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
 
-  // 🔄 State for Navbar Scroll Effect
+  // State for Navbar Scroll Effect
   const [scrolling, setScrolling] = useState(false);
 
-  // 🔄 State for Modals
+  // State for Modals
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [showCustomerModal, setShowCustomerModal] = useState(false); //
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false); // New state for Profile Modal
 
-  const { projects } = useProjects(); // ✅ Get projects from context
+  const { projects } = useProjects(); // Get projects from context
 
-  // 🔄 Scroll Effect
+  // Scroll Effect
   useEffect(() => {
     const handleScroll = () => setScrolling(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // 🔄 Logout Handler
+  // Logout Handler
   const handleLogout = async () => {
     try {
       await logout();
@@ -50,12 +54,11 @@ const Navbar = () => {
 
   const handleSaveCustomer = async (customer) => {
     console.log("Saving Customer:", customer);
-
     try {
-      const customersCollection = collection(db, "customers"); 
+      const customersCollection = collection(db, "customers");
       await addDoc(customersCollection, {
         ...customer,
-        createdAt: serverTimestamp(), // ✅ Timestamp for sorting
+        createdAt: serverTimestamp(), // Timestamp for sorting
       });
       console.log("✅ Customer saved successfully!");
     } catch (error) {
@@ -82,12 +85,15 @@ const Navbar = () => {
           <QuickActionsDropdown
             onAddProject={() => setShowProjectModal(true)}
             onAddTransaction={() => setShowTransactionModal(true)}
-            onAddCustomer={() => setShowCustomerModal(true)} // ✅ Pass prop
+            onAddCustomer={() => setShowCustomerModal(true)}
           />
 
           {/* Profile Dropdown */}
           {currentUser ? (
-            <UserDropdown />
+            <UserDropdown
+              onManageProfile={() => setShowProfileModal(true)} // Trigger the modal instead of navigating to /profile
+              onLogout={handleLogout}
+            />
           ) : (
             <div className="auth-buttons">
               <button
@@ -106,6 +112,7 @@ const Navbar = () => {
           )}
         </div>
       </nav>
+
       {/* 🔹 Floating Action Button (FAB) */}
       <div className="fab-wrapper">
         <FAB
@@ -123,7 +130,7 @@ const Navbar = () => {
               tooltip: "Add Transaction",
             },
             {
-              onClick: () => setShowCustomerModal(true), // ✅ FAB button for customers
+              onClick: () => setShowCustomerModal(true),
               icon: "bi-person-plus",
               variant: "info",
               tooltip: "Add Customer",
@@ -131,6 +138,7 @@ const Navbar = () => {
           ]}
         />
       </div>
+
       {/* 🔹 Modals */}
       <AddProjectModal
         show={showProjectModal}
@@ -139,13 +147,17 @@ const Navbar = () => {
       <TransactionModal
         show={showTransactionModal}
         handleClose={() => setShowTransactionModal(false)}
-        projects={projects} // ✅ Pass projects prop
+        projects={projects}
       />
       <CustomerModal
         show={showCustomerModal}
         handleClose={() => setShowCustomerModal(false)}
-        handleSave={handleSaveCustomer} // ✅ Pass function
+        handleSave={handleSaveCustomer}
         projects={projects}
+      />
+      <UserProfileModal
+        show={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
       />
     </>
   );

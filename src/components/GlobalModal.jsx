@@ -1,3 +1,5 @@
+// File: src/components/GlobalModal.jsx
+
 import React from "react";
 import { Modal } from "react-bootstrap";
 import "../styles/components/globalModal.css";

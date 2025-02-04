@@ -14,7 +14,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const { login, loginWithGoogle } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   // --- Email Validation Function ---
@@ -57,28 +57,12 @@ const Login = () => {
     }
   };
 
-  // --- Handle Google Login ---
-  const handleGoogleLogin = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      await loginWithGoogle();
-      navigate("/select-app");
-    } catch (err) {
-      console.error("Google Login Error:", err.message);
-      setError("Google Login Failed: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <AuthLayout page="login">
       <form onSubmit={handleSubmit} noValidate>
-        <h2 className="mb-2 text-center">Sign in with email</h2>
+        <h2 className="mb-2 text-center">Sign in to your account</h2>
         <p className="mb-4 text-center small">
-          Start managing your entire project lifecycle all in one place,
-          effectively and completely free!
+          Manage your entire project lifecycle all in one place.
         </p>
 
         {error && (
@@ -89,7 +73,6 @@ const Login = () => {
 
         {/* --- Email Field --- */}
         <div className="auth-form-group">
-          <label htmlFor="email">Email Address</label>
           <div className="input-container">
             <span className="input-icon">
               {error && (!email.trim() || !validateEmail(email)) ? (
@@ -108,21 +91,13 @@ const Login = () => {
               }`}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@email.com"
+              placeholder="Email Address"
             />
           </div>
         </div>
 
-        {/* --- Password Field with Inline Forgot Password Link --- */}
+        {/* --- Password Field --- */}
         <div className="auth-form-group">
-          <div className="password-label-wrapper">
-            <label htmlFor="password" className="password-label">
-              Password
-            </label>
-            <Link to="/forgot-password" className="forgot-password">
-              Forgot Password?
-            </Link>
-          </div>
           <div className="input-container">
             <span className="input-icon">
               {error && !password ? (
@@ -159,31 +134,21 @@ const Login = () => {
             "Get Started"
           )}
         </button>
-        {/* Divider */}
-        <div className="divider">
-          <span>or sign in with</span>
-        </div>
-        {/* --- Google Login Button --- */}
-        <button
-          type="button"
-          className="btn btn-outline-secondary w-100"
-          onClick={handleGoogleLogin}
-          disabled={loading}
-        >
-          {loading ? (
-            <span className="spinner-border spinner-border-sm"></span>
-          ) : (
-            "Sign in with Google"
-          )}
-        </button>
 
-        {/* --- Signup Redirect --- */}
-        <p className="mt-3 text-center small">
-          Don't have an account yet?{" "}
-          <Link to="/signup" className="auth-link">
-            Sign up for free!{" "}
-          </Link>
-        </p>
+        {/* --- Bottom Row: Sign Up and Forgot Password --- */}
+        <div className="d-flex justify-content-between mt-3 small">
+          <div>
+            Don't have an account yet?{" "}
+            <Link to="/signup" className="auth-link">
+              Sign up for free!
+            </Link>
+          </div>
+          <div>
+            <Link to="/forgot-password" className="auth-link">
+              Forgot Password?
+            </Link>
+          </div>
+        </div>
       </form>
     </AuthLayout>
   );

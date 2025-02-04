@@ -1,9 +1,11 @@
+// File: src/components/UserDropdown.jsx
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Dropdown } from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
 
-const UserDropdown = () => {
+const UserDropdown = ({ onManageProfile }) => {
   const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
 
@@ -11,7 +13,7 @@ const UserDropdown = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate("/login"); // Redirect to login
+      navigate("/login"); // Redirect to login after logout
     } catch (error) {
       console.error("Logout Error:", error.message);
     }
@@ -28,7 +30,8 @@ const UserDropdown = () => {
         <span className="toggle-text">Welcome, {currentUser.email}</span>
       </Dropdown.Toggle>
       <Dropdown.Menu className="profile-dropdown-menu">
-        <Dropdown.Item onClick={() => navigate("/profile")}>
+        {/* Trigger the modal via onManageProfile callback */}
+        <Dropdown.Item onClick={onManageProfile}>
           <i className="bi bi-person-fill me-2"></i>Profile
         </Dropdown.Item>
         <Dropdown.Item onClick={() => navigate("/settings")}>

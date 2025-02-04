@@ -12,7 +12,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #f7f7f7;
+  background: #471843;
   width: 100vw;
   height: 100vh;
   padding: 10px; /* Added padding so the inner card is visible */
@@ -21,12 +21,14 @@ body {
 /* Two‑column container styled as a card */
 .auth-container {
   display: flex;
-  width: 100%;
-  height: 100%;
+  width: 90%;
+  height: 90%;
   overflow: hidden;
-  background-image: url("/images/bg-pale-blue.jpg");
-  box-shadow: 0 0 10px rgba(57, 6, 118, 0.3); /* Slight box-shadow */
-  border-radius: 4px; /* Rounded corners */
+  background-image: url("../public/images/bg-pale-blue.jpg");
+  box-shadow:
+    0 5px 10px rgba(154, 160, 185, 0.05),
+    0 15px 40px rgba(166, 173, 201, 0.2);
+  border-radius: 10px; /* Rounded corners */
 }
 
 /* Left Side: Gradient Background */
@@ -61,7 +63,9 @@ body {
   background: #fff;
   padding: 2rem;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 5px 10px rgba(154, 160, 185, 0.05),
+    0 15px 40px rgba(166, 173, 201, 0.2);
   width: 100%;
   max-width: 500px;
 }
@@ -120,10 +124,11 @@ body {
   font-size: 0.85rem; /* Smaller text */
   color: #6c757d; /* Desaturated color (similar to Bootstrap's text-muted) */
   text-decoration: none;
+  align-content: right;
 }
 
 .forgot-password:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 /* Style for the left content container inside the gradient */
@@ -277,7 +282,7 @@ body {
 
 /* Placeholder and Invalid Input Styling */
 .form-control::placeholder {
-  opacity: 0.3;
+  opacity: 0.6;
   transition: opacity 0.2s ease;
 }
 .form-control:focus::placeholder {

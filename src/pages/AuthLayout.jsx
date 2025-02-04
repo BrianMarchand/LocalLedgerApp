@@ -1,5 +1,8 @@
+// File: src/components/AuthLayout.jsx
+
 import React from "react";
 import PropTypes from "prop-types";
+import { Link } from "react-router-dom"; // Import Link from react-router-dom
 import "../styles/pages/LoginStyles.css"; // Ensure your CSS applies
 
 // Define copy for each page type so you can change it in one place.
@@ -13,13 +16,13 @@ const authCopy = {
     disclaimer: (
       <>
         By creating your account, you agree to the{" "}
-        <a href="#" className="auth-link">
+        <Link to="/terms-of-service" className="auth-link">
           Terms of Service
-        </a>{" "}
+        </Link>{" "}
         |{" "}
-        <a href="#" className="auth-link">
+        <Link to="/privacy-notice" className="auth-link">
           Privacy Notice
-        </a>
+        </Link>
         .
       </>
     ),
@@ -33,13 +36,13 @@ const authCopy = {
     disclaimer: (
       <>
         By signing up, you agree to our{" "}
-        <a href="#" className="auth-link">
+        <Link to="/terms-of-service" className="auth-link">
           Terms of Service
-        </a>{" "}
+        </Link>{" "}
         |{" "}
-        <a href="#" className="auth-link">
+        <Link to="/privacy-policy" className="auth-link">
           Privacy Policy
-        </a>
+        </Link>
         .
       </>
     ),
@@ -49,8 +52,14 @@ const authCopy = {
     header: "Reset Your Password",
     subheader: "Effortless Project Tracking for Contractors™",
     description: "Enter your email below to receive a password reset link.",
-    disclaimer:
-      "If you don't have an account, you can sign up for a free account.",
+    disclaimer: (
+      <>
+        If you don't have an account, you can{" "}
+        <Link to="/signup" className="auth-link">
+          sign up for a free account.
+        </Link>
+      </>
+    ),
   },
 };
 

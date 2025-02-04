@@ -1,0 +1,29 @@
+/* File: src/styles/components/userProfileModal.css */
+.user-profile-modal-container {
+  display: flex;
+  min-height: 400px;
+}
+.user-profile-sidebar {
+  flex: 0 0 200px;
+  border-right: 1px solid #ddd;
+  padding: 1rem;
+}
+.user-profile-sidebar .nav-item {
+  margin-bottom: 0.5rem;
+}
+.user-profile-sidebar .nav-item.active button {
+  font-weight: bold;
+}
+.user-profile-content {
+  flex: 1;
+  padding: 1rem;
+}
+.user-profile-content .form-group {
+  margin-bottom: 1rem;
+}
+.modal-footer {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
