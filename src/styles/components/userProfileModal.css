@@ -1,10 +1,17 @@
-/* File: src/styles/components/userProfileModal.css */
+/* Base container for the modal content */
 .user-profile-modal-container {
-  display: flex;
-  min-height: 400px;
+  padding: 1rem;
 }
+
+/* Main flex container for desktop/tablet */
+.user-profile-main {
+  display: flex;
+  flex-direction: row;
+}
+
+/* Sidebar (desktop only) */
 .user-profile-sidebar {
-  flex: 0 0 200px;
+  width: 200px;
   border-right: 1px solid #ddd;
   padding: 1rem;
 }
@@ -14,16 +21,73 @@
 .user-profile-sidebar .nav-item.active button {
   font-weight: bold;
 }
+
+/* Content area: fill remaining space */
 .user-profile-content {
   flex: 1;
   padding: 1rem;
 }
-.user-profile-content .form-group {
-  margin-bottom: 1rem;
+
+/* Add extra vertical spacing between content sections */
+.user-profile-content > .profile-section-content,
+.user-profile-content > .company-section-content,
+.user-profile-content > .account-section-content,
+.user-profile-content > .appearance-section-content,
+.user-profile-content > .notifications-section-content {
+  margin-bottom: 1.5rem; /* Adjust this value as needed */
 }
+
+/* Add extra vertical spacing between all content blocks (except the footer) */
+.user-profile-content > div:not(.modal-footer) {
+  margin-bottom: 1.5rem !important;
+}
+
+/* Optionally, ensure each form-group inside the content also has extra bottom margin */
+.user-profile-content .form-group {
+  margin-bottom: 1.5rem !important;
+}
+
+/* Footer spacing */
 .modal-footer {
   margin-top: 1rem;
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+/* Ensure uploader fills its container */
+.profile-picture-uploader {
+  width: 100%;
+}
+
+/* Mobile navigation dropdown spans full width */
+.mobile-nav select {
+  width: 100%;
+}
+
+/* Mobile adjustments */
+@media (max-width: 576px) {
+  .user-profile-main {
+    flex-direction: column;
+  }
+  .user-profile-sidebar {
+    display: none;
+  }
+  .user-profile-content {
+    width: 100%;
+  }
+  .user-profile-modal-container {
+    width: 90%;
+    margin: 0 auto;
+    padding: 10px;
+  }
+}
+
+/* Tablet adjustments (577px to 768px) */
+@media (min-width: 577px) and (max-width: 768px) {
+  .user-profile-modal-container {
+    width: 95%;
+    margin: 0 auto;
+    padding: 10px;
+  }
 }

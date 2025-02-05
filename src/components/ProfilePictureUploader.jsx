@@ -1,66 +1,129 @@
 // File: src/components/ProfilePictureUploader.jsx
+import React, { useState, useRef } from "react";
+import Swal from "sweetalert2";
+import { storage } from "@config"; // Ensure your firebase storage is exported from your config
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
-import React, { useState, useEffect } from "react";
-import { storage } from "@config";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-
-const ProfilePictureUploader = ({ currentUrl, onUpload }) => {
-  // currentUrl: existing profile image URL (if any)
-  // onUpload: callback to update the parent's state with the new URL
-
-  const [preview, setPreview] = useState(
-    currentUrl || "/images/default-avatar.png"
-  );
-  const [file, setFile] = useState(null);
+const ProfilePictureUploader = ({
+  currentUrl,
+  onUpload,
+  hidePreview = false,
+}) => {
   const [uploading, setUploading] = useState(false);
-
-  // Update preview when currentUrl prop changes
-  useEffect(() => {
-    if (currentUrl) {
-      setPreview(currentUrl);
-    }
-  }, [currentUrl]);
+  const [progress, setProgress] = useState(0);
+  const [selectedFileName, setSelectedFileName] = useState("");
+  const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      // Create a local preview for the selected file
-      setPreview(URL.createObjectURL(selectedFile));
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      Swal.fire({
+        icon: "error",
+        title: "Invalid File",
+        text: "Please select a valid image file.",
+      });
+      return;
     }
+    setSelectedFileName(file.name);
+    handleUpload(file);
   };
 
-  const handleUpload = async () => {
-    if (!file) return;
-    setUploading(true);
-    // Create a unique storage reference using file name and timestamp
+  const handleUpload = (file) => {
     const storageRef = ref(
       storage,
-      `profilePictures/${file.name}-${Date.now()}`
+      `profilePictures/${Date.now()}-${file.name}`
     );
-    try {
-      const snapshot = await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      onUpload(downloadURL);
-    } catch (error) {
-      console.error("Upload error:", error);
-      alert("There was an error uploading the image. Please try again.");
-    }
-    setUploading(false);
+    setUploading(true);
+
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const percent = Math.round(
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+        );
+        setProgress(percent);
+      },
+      (error) => {
+        console.error("Upload error:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Upload Error",
+          text: "Failed to upload image. Please try again.",
+        });
+        setUploading(false);
+      },
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+          setUploading(false);
+          setProgress(0);
+          setSelectedFileName("");
+          onUpload(downloadURL);
+          Swal.fire({
+            icon: "success",
+            title: "Upload Successful",
+            text: "Your profile picture has been uploaded.",
+            timer: 1500,
+            showConfirmButton: false,
+          });
+        });
+      }
+    );
   };
 
   return (
     <div className="profile-picture-uploader">
-      <img
-        src={preview}
-        alt="Profile Preview"
-        style={{ width: 100, height: 100, borderRadius: "50%" }}
-      />
-      <input type="file" accept="image/*" onChange={handleFileChange} />
-      {file && (
-        <button onClick={handleUpload} disabled={uploading}>
-          {uploading ? "Uploading..." : "Upload Image"}
+      {!hidePreview && currentUrl && (
+        <div className="mb-3 text-center">
+          <small className="text-muted d-block">Current Image:</small>
+          <img
+            src={currentUrl}
+            alt="Current profile"
+            className="rounded-circle"
+            style={{
+              width: "75px",
+              height: "75px",
+              objectFit: "cover",
+              border: "2px solid #ddd",
+            }}
+          />
+        </div>
+      )}
+      <div className="text-center">
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          onChange={handleFileChange}
+        />
+        <button
+          type="button"
+          className="btn btn-outline-primary"
+          onClick={() => fileInputRef.current.click()}
+          disabled={uploading}
+        >
+          {uploading ? "Uploading..." : "Choose Image"}
         </button>
+      </div>
+      {selectedFileName && (
+        <div className="mt-2 text-center">
+          <small className="text-muted">{selectedFileName}</small>
+        </div>
+      )}
+      {uploading && (
+        <div className="progress mt-2" style={{ height: "5px" }}>
+          <div
+            className="progress-bar"
+            role="progressbar"
+            style={{ width: `${progress}%` }}
+            aria-valuenow={progress}
+            aria-valuemin="0"
+            aria-valuemax="100"
+          ></div>
+        </div>
       )}
     </div>
   );

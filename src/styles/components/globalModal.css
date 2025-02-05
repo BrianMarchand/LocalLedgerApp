@@ -1,4 +1,4 @@
-/* Ensure the modal dialog fills 75% of the screen width */
+/* Ensure the modal dialog fills 75% of the screen width on desktop */
 .global-modal .modal-dialog {
   max-width: 75%;
   margin: auto;
@@ -17,7 +17,7 @@
   backdrop-filter: blur(20px);
 }
 
-/* (Optional) You can add additional responsive tweaks here if needed */
+/* Tablet breakpoint (max-width: 768px) */
 @media (max-width: 768px) {
   .global-modal .modal-dialog {
     max-width: 90%;
@@ -25,5 +25,16 @@
   .modal-dialog.global-modal {
     width: 90% !important;
     max-width: 90% !important;
+  }
+}
+
+/* Mobile breakpoint (max-width: 576px) */
+@media (max-width: 576px) {
+  .global-modal .modal-dialog {
+    max-width: 95%;
+  }
+  .modal-dialog.global-modal {
+    width: 95% !important;
+    max-width: 95% !important;
   }
 }
