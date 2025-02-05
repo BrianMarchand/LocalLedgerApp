@@ -1,5 +1,3 @@
-// File: src/components/UserDropdown.jsx
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Dropdown } from "react-bootstrap";
@@ -26,7 +24,21 @@ const UserDropdown = ({ onManageProfile }) => {
         id="dropdown-profile"
         className="profile-btn dropdown-toggle"
       >
-        <i className="bi bi-person-circle"></i>{" "}
+        {currentUser?.photoURL ? (
+          <img
+            src={currentUser.photoURL}
+            alt="Profile"
+            className="profile-picture"
+            style={{
+              width: "20px",
+              height: "20px",
+              borderRadius: "50%",
+              marginRight: "8px",
+            }}
+          />
+        ) : (
+          <i className="bi bi-person-circle"></i>
+        )}
         <span className="toggle-text">Welcome, {currentUser.email}</span>
       </Dropdown.Toggle>
       <Dropdown.Menu className="profile-dropdown-menu">

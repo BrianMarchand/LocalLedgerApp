@@ -1,5 +1,3 @@
-// File: src/components/UserProfileModal.jsx
-
 import React, { useState, useEffect } from "react";
 import GlobalModal from "./GlobalModal";
 import { useAuth } from "../context/AuthContext";
@@ -7,9 +5,10 @@ import ProfilePictureUploader from "./ProfilePictureUploader";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@config"; // Firestore instance from your config
 import "../styles/components/userProfileModal.css"; // Adjust as needed
+import { updateProfile as firebaseUpdateProfile } from "firebase/auth";
 
 const UserProfileModal = ({ show, onClose }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, refreshUser } = useAuth();
 
   // State for active section of the modal
   const [activeSection, setActiveSection] = useState("profile");
@@ -136,7 +135,7 @@ const UserProfileModal = ({ show, onClose }) => {
     setUnsavedChanges(true);
   };
 
-  // Save updated profile data to Firestore
+  // Save updated profile data to Firestore and update Auth profile photoURL
   const handleSave = async () => {
     setLoading(true);
     setError("");
@@ -149,6 +148,16 @@ const UserProfileModal = ({ show, onClose }) => {
         ...profileData,
         accountInfo: accountInfoWithoutPassword,
       });
+
+      // Update Firebase Auth user's profile photoURL if available
+      if (profileData.personalInfo?.profilePictureUrl) {
+        await firebaseUpdateProfile(currentUser, {
+          photoURL: profileData.personalInfo.profilePictureUrl,
+        });
+        // Refresh the AuthContext user object so changes propagate (e.g., to the Navbar)
+        await refreshUser();
+      }
+
       alert("Profile updated successfully!");
       setUnsavedChanges(false);
       onClose();
@@ -189,22 +198,21 @@ const UserProfileModal = ({ show, onClose }) => {
               }
             />
 
-            {/* Optionally, show the URL field so the user can see/edit it */}
-            <div className="form-group">
-              <label>Profile Picture URL</label>
-              <input
-                type="text"
-                className="form-control"
-                value={profileData.personalInfo?.profilePictureUrl || ""}
-                onChange={(e) =>
-                  handleChange(
-                    "personalInfo",
-                    "profilePictureUrl",
-                    e.target.value
-                  )
-                }
-              />
-            </div>
+            {/* Instead of an editable URL, display a clickable link if available */}
+            {profileData.personalInfo?.profilePictureUrl && (
+              <div className="form-group">
+                <label>Profile Picture</label>
+                <div>
+                  <a
+                    href={profileData.personalInfo.profilePictureUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    View Uploaded Picture
+                  </a>
+                </div>
+              </div>
+            )}
 
             <div className="form-group">
               <label>First Name</label>
@@ -431,7 +439,9 @@ const UserProfileModal = ({ show, onClose }) => {
         <div className="user-profile-sidebar">
           <ul className="nav flex-column">
             <li
-              className={`nav-item ${activeSection === "profile" ? "active" : ""}`}
+              className={`nav-item ${
+                activeSection === "profile" ? "active" : ""
+              }`}
             >
               <button
                 className="btn btn-link"
@@ -441,7 +451,9 @@ const UserProfileModal = ({ show, onClose }) => {
               </button>
             </li>
             <li
-              className={`nav-item ${activeSection === "company" ? "active" : ""}`}
+              className={`nav-item ${
+                activeSection === "company" ? "active" : ""
+              }`}
             >
               <button
                 className="btn btn-link"
@@ -451,7 +463,9 @@ const UserProfileModal = ({ show, onClose }) => {
               </button>
             </li>
             <li
-              className={`nav-item ${activeSection === "account" ? "active" : ""}`}
+              className={`nav-item ${
+                activeSection === "account" ? "active" : ""
+              }`}
             >
               <button
                 className="btn btn-link"
@@ -461,7 +475,9 @@ const UserProfileModal = ({ show, onClose }) => {
               </button>
             </li>
             <li
-              className={`nav-item ${activeSection === "appearance" ? "active" : ""}`}
+              className={`nav-item ${
+                activeSection === "appearance" ? "active" : ""
+              }`}
             >
               <button
                 className="btn btn-link"
@@ -471,7 +487,9 @@ const UserProfileModal = ({ show, onClose }) => {
               </button>
             </li>
             <li
-              className={`nav-item ${activeSection === "notifications" ? "active" : ""}`}
+              className={`nav-item ${
+                activeSection === "notifications" ? "active" : ""
+              }`}
             >
               <button
                 className="btn btn-link"

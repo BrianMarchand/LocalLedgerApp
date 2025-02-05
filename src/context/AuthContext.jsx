@@ -119,6 +119,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // --- Refresh User Function ---
+  const refreshUser = async () => {
+    if (auth.currentUser) {
+      await auth.currentUser.reload();
+      // Update the state with the reloaded user object.
+      setCurrentUser(auth.currentUser);
+    }
+  };
+
   // --- Listen for Authentication State ---
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -138,6 +147,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         resetPassword,
         resendEmailVerification,
+        refreshUser, // expose refreshUser to your app
       }}
     >
       {!loading && children}
