@@ -1,3 +1,4 @@
+// File: src/components/UserDropdown.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Dropdown } from "react-bootstrap";
@@ -29,12 +30,6 @@ const UserDropdown = ({ onManageProfile }) => {
             src={currentUser.photoURL}
             alt="Profile"
             className="profile-picture"
-            style={{
-              width: "20px",
-              height: "20px",
-              borderRadius: "50%",
-              marginRight: "8px",
-            }}
           />
         ) : (
           <i className="bi bi-person-circle"></i>

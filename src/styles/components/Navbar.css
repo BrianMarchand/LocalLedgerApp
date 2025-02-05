@@ -159,10 +159,20 @@
   box-sizing: border-box;
 }
 
+/* Default desktop profile picture size */
+.profile-picture {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin-right: 8px;
+  object-fit: cover;
+}
+
 /* ================================
    Mobile Dropdown Adjustments
 ================================ */
 
+/* For mobile screens (max-width: 768px), increase the size */
 @media (max-width: 768px) {
   .dropdown-menu {
     width: 100%; /* Full width dropdowns on small screens */
@@ -170,18 +180,28 @@
     left: 0;
     right: 0;
   }
-
   .dropdown-item {
     padding: 0.75rem; /* Larger tap area for mobile */
     white-space: normal; /* Allow text wrapping on small screens */
     word-break: break-word; /* Prevent text overflow */
   }
+  .profile-picture {
+    width: 35px;
+    height: 35px;
+  }
+
+  /* Ensure disabled cursor for dropdown items */
+  .dropdown-item.disabled {
+    cursor: not-allowed !important; /* Force 'not-allowed' cursor */
+    opacity: 0.65; /* Match Bootstrap's default opacity */
+  }
 }
 
-/* Ensure disabled cursor for dropdown items */
-.dropdown-item.disabled {
-  cursor: not-allowed !important; /* Force 'not-allowed' cursor */
-  opacity: 0.65; /* Match Bootstrap's default opacity */
+/* (Optional) Adjust the dropdown toggle button padding on mobile */
+@media (max-width: 768px) {
+  .profile-btn {
+    padding: 0.75rem 1rem;
+  }
 }
 
 /* ================================
