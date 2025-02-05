@@ -77,7 +77,7 @@
     width: 100%;
   }
   .user-profile-modal-container {
-    width: 90%;
+    width: 100%;
     margin: 0 auto;
     padding: 10px;
   }
@@ -86,7 +86,7 @@
 /* Tablet adjustments (577px to 768px) */
 @media (min-width: 577px) and (max-width: 768px) {
   .user-profile-modal-container {
-    width: 95%;
+    width: 100%;
     margin: 0 auto;
     padding: 10px;
   }
