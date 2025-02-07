@@ -30,12 +30,19 @@ import {
 } from "chart.js";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
-import AddProjectModal from "../../components/AddProject/AddProjectModal";
+import AddProjectModal from "../../components/AddProjectModal";
 import TransactionModal from "../../components/TransactionModal";
 import CustomerModal from "../../components/CustomerModal";
 import ActivityTicker from "../../components/ActivityTicker";
 import { useProjects } from "../../context/ProjectsContext";
 import useTotalTransactions from "../../hooks/useTotalTransactions";
+import { logActivity } from "../../utils/activityLogger";
+
+// Import centralized customer API functions
+import {
+  saveNewCustomer,
+  updateExistingCustomer,
+} from "../../../firebase/customerAPI";
 
 // Register Chart.js components
 ChartJS.register(
@@ -127,21 +134,66 @@ const Dashboard = () => {
           label: "Expenses",
           data: Object.values(categoryTotals),
           backgroundColor: [
-            "rgba(107,161,221,0.5)", // transparent version of #6BA1DD
-            "rgba(71,24,67,0.5)", // transparent version of #471843
-            "rgba(27,206,180,0.5)", // transparent version of #1BCEB4
+            "rgba(107,161,221,0.5)",
+            "rgba(71,24,67,0.5)",
+            "rgba(27,206,180,0.5)",
           ],
         },
       ],
     };
   }, [filteredProjects]);
 
-  // New: Project Status Overview Data
+  // Define monthlyExpenseData (example data)
+  const monthlyExpenseData = useMemo(() => {
+    return {
+      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      datasets: [
+        {
+          label: "Monthly Expenses",
+          data: [1200, 1900, 1700, 2200, 2100, 2500],
+          fill: false,
+          backgroundColor: "#007bff",
+          borderColor: "#007bff",
+        },
+      ],
+    };
+  }, []);
+
+  // Define budgetVsActualData based on projects
+  const budgetVsActualData = useMemo(() => {
+    const labels = projects.map((p) => p.name);
+    const budgets = projects.map((p) => p.budget || 0);
+    const actuals = projects.map((p) => {
+      if (p.transactions && Array.isArray(p.transactions)) {
+        return p.transactions.reduce(
+          (sum, txn) => sum + parseFloat(txn.amount || 0),
+          0
+        );
+      }
+      return 0;
+    });
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Budget",
+          data: budgets,
+          backgroundColor: "rgba(75,192,192,0.5)",
+        },
+        {
+          label: "Actual Expenses",
+          data: actuals,
+          backgroundColor: "rgba(255,99,132,0.5)",
+        },
+      ],
+    };
+  }, [projects]);
+
+  // Project Status Overview Data
   const projectStatusData = useMemo(() => {
     if (!projects.length) return {};
     const statusCounts = {};
     projects.forEach((project) => {
-      // Assume each project has a status property; default to "Not Specified" if missing.
       const status = project.status || "Not Specified";
       statusCounts[status] = (statusCounts[status] || 0) + 1;
     });
@@ -152,10 +204,10 @@ const Dashboard = () => {
           label: "Project Status",
           data: Object.values(statusCounts),
           backgroundColor: [
-            "rgba(107,161,221,0.5)", // transparent version of #6BA1DD
-            "rgba(71,24,67,0.5)", // transparent version of #471843
-            "rgba(27,206,180,0.5)", // transparent version of #1BCEB4
-            "rgba(242,49,140,0.5)", // transparent version of #f2318c
+            "rgba(107,161,221,0.5)",
+            "rgba(71,24,67,0.5)",
+            "rgba(27,206,180,0.5)",
+            "rgba(242,49,140,0.5)",
           ],
         },
       ],
@@ -190,7 +242,6 @@ const Dashboard = () => {
               return data.labels.map((label, index) => ({
                 text: label,
                 fillStyle: data.datasets[0].backgroundColor[index],
-                // If you have border colors, include them:
                 strokeStyle: data.datasets[0].borderColor
                   ? data.datasets[0].borderColor[index]
                   : undefined,
@@ -211,36 +262,30 @@ const Dashboard = () => {
       return;
     }
     try {
+      // Log the new transaction data for debugging (optional)
+      console.log("Saving new transaction:", newTransaction);
+
       const transactionsRef = collection(
         db,
         `projects/${newTransaction.projectId}/transactions`
       );
-      await addDoc(transactionsRef, {
+      const docRef = await addDoc(transactionsRef, {
         ...newTransaction,
         date: new Date(newTransaction.date),
         createdAt: serverTimestamp(),
       });
       toastSuccess("Transaction added successfully!");
+
+      // Log the new transaction in the activity log
+      await logActivity("New Transaction", "A new transaction was added.", {
+        projectId: newTransaction.projectId,
+        transactionId: docRef.id,
+      });
     } catch (error) {
       console.error("Error adding transaction:", error.message);
       toastError("Failed to add transaction.");
     }
   };
-
-  const monthlyExpenseData = useMemo(() => {
-    return {
-      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-      datasets: [
-        {
-          label: "Monthly Expenses",
-          data: [1200, 1900, 1700, 2200, 2100, 2500],
-          fill: false,
-          backgroundColor: "#007bff",
-          borderColor: "#007bff",
-        },
-      ],
-    };
-  }, []);
 
   const formatActivity = (activity) => {
     const dateStr = activity.timestamp
@@ -274,54 +319,6 @@ const Dashboard = () => {
     return { dateStr, eventType, message };
   };
 
-  const budgetVsActualData = useMemo(() => {
-    const labels = projects.map((p) => p.name);
-    const budgets = projects.map((p) => p.budget || 0);
-    const actuals = projects.map((p) => {
-      if (p.transactions && Array.isArray(p.transactions)) {
-        return p.transactions.reduce(
-          (sum, txn) => sum + parseFloat(txn.amount || 0),
-          0
-        );
-      }
-      return 0;
-    });
-    return {
-      labels,
-      datasets: [
-        {
-          label: "Budget",
-          data: budgets,
-          backgroundColor: "rgba(75,192,192,0.5)",
-        },
-        {
-          label: "Actual Expenses",
-          data: actuals,
-          backgroundColor: "rgba(255,99,132,0.5)",
-        },
-      ],
-    };
-  }, [projects]);
-
-  const expenseBreakdownOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          // Optionally, format tick labels (e.g., add a dollar sign)
-          callback: (value) => "$" + value,
-        },
-      },
-    },
-    plugins: {
-      legend: {
-        display: false, // Hide the legend if you only have one dataset
-      },
-    },
-  };
-
   return (
     <div>
       <Navbar page="dashboard" />
@@ -332,7 +329,6 @@ const Dashboard = () => {
           onAddCustomer={() => setShowCustomerModal(true)}
         />
         <div className="dashboard-content-container">
-          {/* Activity ticker card sits at the top */}
           <ActivityTicker
             activities={recentActivities}
             formatActivity={formatActivity}
@@ -384,7 +380,23 @@ const Dashboard = () => {
                     {expenseChartData.labels ? (
                       <Bar
                         data={expenseChartData}
-                        options={expenseBreakdownOptions}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          scales: {
+                            y: {
+                              beginAtZero: true,
+                              ticks: {
+                                callback: (value) => "$" + value,
+                              },
+                            },
+                          },
+                          plugins: {
+                            legend: {
+                              display: false,
+                            },
+                          },
+                        }}
                       />
                     ) : (
                       <p>No data available</p>
@@ -405,7 +417,6 @@ const Dashboard = () => {
                   </div>
                   <Bar data={budgetVsActualData} />
                 </div>
-                {/* New Data Card: Project Status Overview */}
                 <div className="dashboard-card">
                   <div className="card-header">
                     <i className="bi bi-bar-chart-steps"></i>
@@ -434,17 +445,14 @@ const Dashboard = () => {
       <TransactionModal
         show={showTransactionModal}
         handleClose={() => setShowTransactionModal(false)}
+        handleSave={handleTransactionSave}
         projects={projects}
       />
       <CustomerModal
         show={showCustomerModal}
         handleClose={() => setShowCustomerModal(false)}
-        handleSave={(customerData) => {
-          console.log("Save new customer:", customerData);
-        }}
-        handleEditCustomer={(customerData) => {
-          console.log("Edit customer:", customerData);
-        }}
+        handleSave={saveNewCustomer}
+        handleEditCustomer={updateExistingCustomer}
       />
     </div>
   );

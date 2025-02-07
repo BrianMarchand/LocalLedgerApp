@@ -14,7 +14,7 @@ import Sidebar from "./Sidebar";
 import { Link } from "react-router-dom";
 import "../styles/global.css";
 import "../styles/components/Dashboard.css";
-import AddProjectModal from "../components/AddProject/AddProjectModal";
+import AddProjectModal from "../components/AddProjectModal";
 import TransactionModal from "../components/TransactionModal";
 import CustomerModal from "../components/CustomerModal";
 

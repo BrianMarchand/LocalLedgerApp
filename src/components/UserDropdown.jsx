@@ -42,8 +42,6 @@ const UserDropdown = ({ onManageProfile }) => {
           <i className="bi bi-person-fill me-2"></i>Update Profile
         </Dropdown.Item>
 
-        <Dropdown.Divider />
-
         {/* NEW: Switch App Option */}
         <Dropdown.Item onClick={() => navigate("/select-app")}>
           <i className="bi bi-arrow-left-right me-2"></i>Switch App

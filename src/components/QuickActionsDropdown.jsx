@@ -39,10 +39,16 @@ const QuickActionsDropdown = ({
             <i className="bi bi-list-ul me-2"></i>View All Projects
           </Dropdown.Item>
         )}
+        <Dropdown.Divider />
 
         {/* Add New Project */}
         <Dropdown.Item onClick={onAddProject}>
           <i className="bi bi-folder-plus me-2"></i>Add New Project
+        </Dropdown.Item>
+
+        {/* Add Transaction */}
+        <Dropdown.Item onClick={onAddTransaction}>
+          <i className="bi bi-cash-stack me-2"></i>Add Transaction
         </Dropdown.Item>
 
         {/* Add Customer */}
@@ -50,10 +56,7 @@ const QuickActionsDropdown = ({
           <i className="bi bi-person-plus me-2"></i>Add Customer
         </Dropdown.Item>
 
-        {/* Add Transaction */}
-        <Dropdown.Item onClick={onAddTransaction}>
-          <i className="bi bi-cash-stack me-2"></i>Add Transaction
-        </Dropdown.Item>
+        <Dropdown.Divider />
 
         {/* Dark Mode Toggle */}
         <Dropdown.Item

@@ -16,7 +16,16 @@
   padding: 1rem;
 }
 .user-profile-sidebar .nav-item {
-  margin-bottom: 0.5rem;
+  margin: 0 !important;
+  border: none !important;
+  padding: 0 !important;
+}
+.user-profile-sidebar button {
+  box-shadow: none !important;
+  text-decoration: none !important;
+}
+.user-profile-sidebar button:hover {
+  box-shadow: none !important;
 }
 .user-profile-sidebar .nav-item.active button {
   font-weight: bold;

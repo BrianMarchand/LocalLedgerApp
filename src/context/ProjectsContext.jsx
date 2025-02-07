@@ -1,4 +1,4 @@
-// --- Page: ProjectsContext.jsx --- 
+// --- Page: ProjectsContext.jsx ---
 
 import React, {
   createContext,
@@ -60,7 +60,7 @@ export const ProjectsProvider = ({ children }) => {
         query(
           collection(db, "projects"),
           where("ownerId", "==", user.uid),
-          orderBy("order", "asc"),
+          orderBy("order", "asc")
         ),
         (snapshot) => {
           const updatedProjects = snapshot.docs.map((doc) => ({
@@ -83,7 +83,7 @@ export const ProjectsProvider = ({ children }) => {
         },
         (error) => {
           console.error("🔥 Firestore listener error:", error.message);
-        },
+        }
       );
     };
 
@@ -106,7 +106,7 @@ export const ProjectsProvider = ({ children }) => {
     setLoading(true);
     try {
       const snapshot = await getDocs(
-        query(collection(db, "projects"), orderBy("order", "asc")),
+        query(collection(db, "projects"), orderBy("order", "asc"))
       );
 
       const projects = await Promise.all(
@@ -116,22 +116,22 @@ export const ProjectsProvider = ({ children }) => {
           if (includeTransactions) {
             try {
               const transactionsSnap = await getDocs(
-                collection(db, `projects/${project.id}/transactions`),
+                collection(db, `projects/${project.id}/transactions`)
               );
               project.transactions = transactionsSnap.docs.map((txSnap) =>
-                txSnap.data(),
+                txSnap.data()
               );
             } catch (err) {
               console.warn(
                 `Failed to fetch transactions for project: ${project.id}`,
-                err.message,
+                err.message
               );
               project.transactions = [];
             }
           }
 
           return project;
-        }),
+        })
       );
 
       setProjects(projects);
@@ -150,7 +150,7 @@ export const ProjectsProvider = ({ children }) => {
       budget: 0,
       location: "Unknown",
       estimatedCompletionDate: null,
-    },
+    }
   ) => {
     if (!isAuthenticated()) return;
 
@@ -186,14 +186,14 @@ export const ProjectsProvider = ({ children }) => {
         prevProjects.map((project) =>
           project.id === updatedProject.id
             ? { ...project, ...updatedProject }
-            : project,
-        ),
+            : project
+        )
       );
       toastSuccess("Project updated successfully!");
     } catch (error) {
       console.error(
         `Error updating project "${updatedProject.name}":`,
-        error.message,
+        error.message
       );
       toastError("Failed to update project.");
     }

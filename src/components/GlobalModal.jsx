@@ -1,5 +1,3 @@
-// File: src/components/GlobalModal.jsx
-
 import React from "react";
 import { Modal } from "react-bootstrap";
 import "../styles/components/globalModal.css";
@@ -8,15 +6,18 @@ const GlobalModal = ({
   show,
   onClose,
   title,
-  children,
   disableBackdropClick,
+  // New props for split layout:
+  split = true,
+  leftContent,
+  rightContent,
+  children,
   ...props
 }) => {
   return (
     <Modal
       show={show}
       onHide={onClose}
-      // If disableBackdropClick is true, use "static" so that clicking outside won't close the modal.
       backdrop={disableBackdropClick ? "static" : true}
       onExited={() => {
         if (document.activeElement) {
@@ -26,14 +27,23 @@ const GlobalModal = ({
       centered
       dialogClassName="global-modal"
       backdropClassName="global-modal-backdrop"
-      {...props} // Spread the remaining props
+      {...props}
     >
       {title && (
         <Modal.Header closeButton>
           <Modal.Title>{title}</Modal.Title>
         </Modal.Header>
       )}
-      {children}
+      <Modal.Body>
+        {split ? (
+          <div className="global-modal-container">
+            <div className="global-modal-info">{leftContent}</div>
+            <div className="global-modal-form">{rightContent}</div>
+          </div>
+        ) : (
+          children
+        )}
+      </Modal.Body>
     </Modal>
   );
 };

@@ -75,6 +75,7 @@ const useTransactions = (transactions, projectId, fetchTransactions) => {
     return new Date(Number(year), Number(month) - 1, Number(day));
   };
 
+  // Save a new transaction to Firestore and log activity
   const handleSave = async () => {
     if (
       !addTransactionForm.description ||
@@ -92,9 +93,23 @@ const useTransactions = (transactions, projectId, fetchTransactions) => {
 
     try {
       const localDate = parseLocalDateString(addTransactionForm.date);
-      await addDoc(collection(db, `projects/${projectId}/transactions`), {
+      // Prepare the transaction data, ensuring the amount is stored as a number.
+      const transactionData = {
         ...addTransactionForm,
+        amount: parseFloat(addTransactionForm.amount),
         date: Timestamp.fromDate(localDate),
+      };
+
+      // Save the transaction to Firestore
+      await addDoc(
+        collection(db, `projects/${projectId}/transactions`),
+        transactionData
+      );
+
+      // Log the activity using your activity logger
+      await logActivity("New Transaction", "A new transaction was added.", {
+        projectId,
+        transaction: transactionData,
       });
 
       await Swal.fire({
@@ -128,7 +143,9 @@ const useTransactions = (transactions, projectId, fetchTransactions) => {
     if (!confirmResult.isConfirmed) return;
 
     try {
-      await deleteDoc(doc(db, `projects/${projectId}/transactions`, transaction.id));
+      await deleteDoc(
+        doc(db, `projects/${projectId}/transactions`, transaction.id)
+      );
 
       if (
         transaction.category.toLowerCase() === "client payment" &&
@@ -173,7 +190,7 @@ const useTransactions = (transactions, projectId, fetchTransactions) => {
     editingTransaction,
     setEditingTransaction,
     addTransactionForm,
-    handleAddTransactionChange, 
+    handleAddTransactionChange,
     editTransactionForm,
   };
 };

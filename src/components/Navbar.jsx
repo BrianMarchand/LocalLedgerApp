@@ -1,7 +1,6 @@
 // File: src/components/Navbar.jsx
-
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { db } from "@config";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
@@ -14,11 +13,13 @@ import { ReactSVG } from "react-svg";
 import QuickActionsDropdown from "./QuickActionsDropdown";
 import UserDropdown from "./UserDropdown";
 import FAB from "./FAB";
-import AddProjectModal from "/src/components/AddProject/AddProjectModal";
+import AddProjectModal from "/src/components/AddProjectModal";
 import TransactionModal from "/src/components/TransactionModal";
 import CustomerModal from "/src/components/CustomerModal";
 import UserProfileModal from "./UserProfileModal"; // Import the User Profile Modal
 import { useProjects } from "../context/ProjectsContext";
+import { toastSuccess, toastError } from "../utils/toastNotifications";
+import { logActivity } from "../utils/activityLogger"; // Import the activity logger
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -52,6 +53,7 @@ const Navbar = () => {
     }
   };
 
+  // Existing customer save handler
   const handleSaveCustomer = async (customer) => {
     console.log("Saving Customer:", customer);
     try {
@@ -66,6 +68,45 @@ const Navbar = () => {
     }
   };
 
+  // NEW: Define handleSaveTransaction to save a transaction and log activity
+  const handleSaveTransaction = async (newTransaction) => {
+    if (!newTransaction.projectId) {
+      toastError("Please select a project first.");
+      return;
+    }
+    try {
+      console.log("Saving new transaction:", newTransaction);
+      const transactionsRef = collection(
+        db,
+        `projects/${newTransaction.projectId}/transactions`
+      );
+      const docRef = await addDoc(transactionsRef, {
+        ...newTransaction,
+        date: new Date(newTransaction.date),
+        createdAt: serverTimestamp(),
+      });
+      toastSuccess("Transaction added successfully!");
+
+      // Lookup the project name using the projects array from context
+      const project = projects.find((p) => p.id === newTransaction.projectId);
+      const projectName = project ? project.name : "Unknown Project";
+
+      // Log the activity with title containing project name and amount.
+      await logActivity(
+        `Transaction Added - ${projectName} / $${newTransaction.amount}`,
+        "A new transaction was added.",
+        {
+          projectId: newTransaction.projectId,
+          transactionId: docRef.id,
+          amount: newTransaction.amount,
+        }
+      );
+    } catch (error) {
+      console.error("Error adding transaction:", error.message);
+      toastError("Failed to add transaction.");
+    }
+  };
+
   return (
     <>
       {/* 🔹 Navbar */}
@@ -74,7 +115,7 @@ const Navbar = () => {
         <div className="navbar-left">
           <a href="/Dashboard" className="logo">
             <ReactSVG
-              src="/assets/svg/local-ledger-logo-rect-outline.svg"
+              src="/assets/svg/local-ledger-logo-simple.svg"
               className="logo-svg"
             />
           </a>
@@ -147,6 +188,7 @@ const Navbar = () => {
       <TransactionModal
         show={showTransactionModal}
         handleClose={() => setShowTransactionModal(false)}
+        handleSave={handleSaveTransaction} // Pass our transaction-saving function
         projects={projects}
       />
       <CustomerModal

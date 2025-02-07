@@ -1,11 +1,40 @@
 // File: src/components/CustomerModal.jsx
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Button } from "react-bootstrap";
 import GlobalModal from "./GlobalModal";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@config";
 import "../styles/components/customerModal.css";
-import { logActivity } from "../utils/activityLogger";
+import useCustomerForm from "../hooks/useCustomerForm";
+
+const provinces = [
+  "Alberta",
+  "British Columbia",
+  "Manitoba",
+  "New Brunswick",
+  "Newfoundland and Labrador",
+  "Nova Scotia",
+  "Ontario",
+  "Prince Edward Island",
+  "Quebec",
+  "Saskatchewan",
+];
+
+const countries = [
+  "Canada",
+  "United States",
+  "Mexico",
+  "United Kingdom",
+  "France",
+  "Germany",
+  "Spain",
+  "Italy",
+  "Japan",
+  "China",
+  "India",
+  "Australia",
+  "Brazil",
+  "Argentina",
+  "South Africa",
+];
 
 const CustomerModal = ({
   show,
@@ -14,303 +43,74 @@ const CustomerModal = ({
   customer,
   handleEditCustomer,
 }) => {
-  // Local error state (for inline validation errors)
-  const [error, setError] = useState("");
-
-  // Local customer data state with all fields
-  const [customerData, setCustomerData] = useState({
-    projectId: "", // Step 1
-    firstName: "", // Step 2
-    lastName: "",
-    email: "",
-    phone: "",
-    streetName: "", // Step 3
-    city: "",
-    state: "Ontario",
-    postalCode: "",
-    country: "",
-    // Step 4: General Info fields (optional)
-    anyPets: false,
-    anyKids: false,
-    parkingAvailable: false,
-    referredBy: "",
-    specialConsiderations: "",
-    customerNotes: "",
+  const {
+    customerData,
+    setCustomerData,
+    error,
+    projects,
+    projectTouched,
+    setProjectTouched,
+    currentStep,
+    totalSteps,
+    handleChange,
+    formatPhoneNumber,
+    handleNext,
+    handleBack,
+    handleFinalSubmit,
+    isSaving,
+    addPet,
+    updatePet,
+    removePet,
+    addKid,
+    updateKid,
+    removeKid,
+  } = useCustomerForm({
+    customer,
+    handleSave,
+    handleEditCustomer,
+    handleClose,
   });
 
-  const [projects, setProjects] = useState([]);
-
-  const provinces = [
-    "Alberta",
-    "British Columbia",
-    "Manitoba",
-    "New Brunswick",
-    "Newfoundland and Labrador",
-    "Nova Scotia",
-    "Ontario",
-    "Prince Edward Island",
-    "Quebec",
-    "Saskatchewan",
-  ];
-
-  const countries = [
-    "Canada",
-    "United States",
-    "Mexico",
-    "United Kingdom",
-    "France",
-    "Germany",
-    "Spain",
-    "Italy",
-    "Japan",
-    "China",
-    "India",
-    "Australia",
-    "Brazil",
-    "Argentina",
-    "South Africa",
-  ];
-
-  // Multi-step state: 1 = Project, 2 = Contact, 3 = Address, 4 = General Info
-  const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 4;
-
-  // Fetch projects when the modal mounts
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const projectsCollection = collection(db, "projects");
-        const projectSnapshot = await getDocs(projectsCollection);
-        const projectList = projectSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setProjects(projectList);
-      } catch (err) {
-        console.error("Error fetching projects:", err);
-      }
-    };
-
-    fetchProjects();
-  }, []);
-
-  // Pre-fill customer data if editing; reset error and step to 1
-  useEffect(() => {
-    if (customer) {
-      setCustomerData({
-        id: customer.id,
-        projectId: customer.projectId || "",
-        firstName: customer.firstName || "",
-        lastName: customer.lastName || "",
-        email: customer.email || "",
-        phone: formatPhoneNumber(customer.phone || ""),
-        streetName: customer.streetName || "",
-        city: customer.city || "",
-        state: customer.state || "Ontario",
-        postalCode: customer.postalCode || "",
-        country: customer.country || "",
-        anyPets: customer.anyPets ?? false,
-        anyKids: customer.anyKids ?? false,
-        parkingAvailable: customer.parkingAvailable ?? false,
-        referredBy: customer.referredBy || "",
-        specialConsiderations: customer.specialConsiderations || "",
-        customerNotes: customer.customerNotes || "",
-      });
-    } else {
-      setCustomerData({
-        projectId: "",
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        streetName: "",
-        city: "",
-        state: "Ontario",
-        postalCode: "",
-        country: "",
-        anyPets: false,
-        anyKids: false,
-        parkingAvailable: false,
-        referredBy: "",
-        specialConsiderations: "",
-        customerNotes: "",
-      });
-    }
-    setError("");
-    setCurrentStep(1);
-  }, [customer]);
-
-  // Live phone number formatting function
-  const formatPhoneNumber = (value) => {
-    if (!value) return "";
-    const cleaned = value.replace(/\D/g, "");
-    if (cleaned.length <= 3) return `(${cleaned}`;
-    if (cleaned.length <= 6)
-      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
-    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(
-      6,
-      10
-    )}`;
-  };
-
-  // Update state on input change
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  // Toggle handlers for checkboxes
+  const toggleAnyPets = (e) => {
     setCustomerData((prev) => ({
       ...prev,
-      [name]: value,
+      anyPets: e.target.checked,
     }));
   };
 
-  // Validate required fields for the current step
-  const validateCurrentStep = () => {
-    if (currentStep === 1) {
-      // Step 1: Validate that a project is selected
-      if (!customerData.projectId) {
-        setError("Please select an associated project.");
-        return false;
-      }
-    } else if (currentStep === 2) {
-      // Step 2: Validate required contact info fields
-      if (
-        !customerData.firstName.trim() ||
-        !customerData.lastName.trim() ||
-        !customerData.email.trim() ||
-        !customerData.phone.trim()
-      ) {
-        setError("Please fill in all required contact info fields.");
-        return false;
-      }
-    } else if (currentStep === 3) {
-      // Step 3: Validate required address fields
-      if (
-        !customerData.streetName.trim() ||
-        !customerData.city.trim() ||
-        !customerData.state.trim() ||
-        !customerData.postalCode.trim() ||
-        !customerData.country.trim()
-      ) {
-        setError("Please fill in all required address fields.");
-        return false;
-      }
-    }
-    // No required validation for Step 4 (General Info)
-    setError("");
-    return true;
+  const toggleAnyKids = (e) => {
+    setCustomerData((prev) => ({
+      ...prev,
+      anyKids: e.target.checked,
+    }));
   };
 
-  // Handler for the Next button
-  const handleNext = () => {
-    if (validateCurrentStep()) {
-      setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
-    }
+  const toggleParkingAvailable = (e) => {
+    setCustomerData((prev) => ({
+      ...prev,
+      parkingAvailable: e.target.checked,
+    }));
   };
 
-  // Handler for the Back button
-  const handleBack = () => {
-    setError("");
-    setCurrentStep((prev) => Math.max(prev - 1, 1));
-  };
-
-  // Final submission handler (when on Step 4)
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    // Final check for required fields in steps 1-3
-    if (
-      !customerData.projectId ||
-      !customerData.firstName.trim() ||
-      !customerData.lastName.trim() ||
-      !customerData.email.trim() ||
-      !customerData.phone.trim() ||
-      !customerData.streetName.trim() ||
-      !customerData.city.trim() ||
-      !customerData.state.trim() ||
-      !customerData.postalCode.trim() ||
-      !customerData.country.trim()
-    ) {
-      setError("Please fill in all required fields.");
-      return;
-    }
-    try {
-      if (customer && customer.id) {
-        await handleEditCustomer(customerData);
-        await logActivity(
-          "Customer Updated",
-          `Customer ${customerData.firstName} ${customerData.lastName} was updated.`
-        );
-      } else {
-        await handleSave(customerData);
-        await logActivity(
-          "New Customer",
-          `${customerData.firstName} ${customerData.lastName} was added.`
-        );
-      }
-      handleClose();
-    } catch (err) {
-      console.error("Error saving customer:", err);
-      setError("There was an error. Please try again.");
-    }
-  };
-
-  // Helper function to get copy text based on the current step
   const getStepCopy = (step) => {
     switch (step) {
       case 1:
-        return "Select an associated project.";
-      case 2:
         return "Enter your contact information.";
-      case 3:
+      case 2:
         return "Enter your address details.";
-      case 4:
-        return "Provide any additional general info.";
+      case 3:
+        return "Select an associated project and provide additional details.";
       default:
         return "";
     }
   };
 
-  // Render form fields based on the current step
   const renderStep = () => {
     if (currentStep === 1) {
-      // Step 1: Associated Project selection
+      // Step 1: Contact Information
       return (
         <>
-          <div className="auth-form-group">
-            <label htmlFor="projectId">Associate with a Project</label>
-            <div className="input-container">
-              <span className="input-icon">
-                {error && !customerData.projectId ? (
-                  <i className="bi bi-exclamation-triangle-fill"></i>
-                ) : (
-                  <i className="bi bi-folder"></i>
-                )}
-              </span>
-              <select
-                id="projectId"
-                name="projectId"
-                className={`form-control ${
-                  error && !customerData.projectId ? "is-invalid" : ""
-                }`}
-                value={customerData.projectId}
-                onChange={handleChange}
-              >
-                <option value="" hidden></option>
-                {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </>
-      );
-    } else if (currentStep === 2) {
-      // Step 2: Contact Information
-      return (
-        <>
-          <div className="divider my-3">
-            <span>Contact Information</span>
-          </div>
           <div className="auth-form-group">
             <label htmlFor="firstName">First Name</label>
             <div className="input-container">
@@ -405,15 +205,15 @@ const CustomerModal = ({
           </div>
         </>
       );
-    } else if (currentStep === 3) {
-      // Step 3: Address Information
+    } else if (currentStep === 2) {
+      // Step 2: Address Information
       return (
         <>
           <div className="divider my-3">
             <span>Address Information</span>
           </div>
           <div className="auth-form-group">
-            <label htmlFor="streetName">Street Name</label>
+            <label htmlFor="streetName">Address</label>
             <div className="input-container">
               <span className="input-icon">
                 {error && !customerData.streetName.trim() ? (
@@ -537,78 +337,269 @@ const CustomerModal = ({
           </div>
         </>
       );
-    } else if (currentStep === 4) {
-      // Step 4: General Info (optional fields)
+    } else if (currentStep === 3) {
+      // Step 3: General Info with Pets, Kids, and Parking sections
       return (
         <>
+          {/* Project Selection */}
+          <div className="auth-form-group">
+            <label htmlFor="projectId">Associate with a Project</label>
+            <div className="input-container">
+              <span className="input-icon">
+                <i className="bi bi-folder"></i>
+              </span>
+              <select
+                id="projectId"
+                name="projectId"
+                className="form-control"
+                value={customerData.projectId}
+                onChange={(e) => {
+                  setProjectTouched(true);
+                  handleChange(e);
+                }}
+              >
+                <option value="">Please Select a project</option>
+                {projects
+                  .filter(
+                    (project) =>
+                      project.name &&
+                      project.name.toLowerCase() !== "placeholder"
+                  )
+                  .map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+
           <div className="divider my-3">
             <span>General Info</span>
           </div>
-          <div className="form-check form-switch mb-3">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="anyPets"
-              name="anyPets"
-              checked={customerData.anyPets}
-              onChange={(e) =>
-                setCustomerData((prev) => ({
-                  ...prev,
-                  anyPets: e.target.checked,
-                }))
-              }
-            />
-            <label className="form-check-label" htmlFor="anyPets">
-              Any Pets?
-            </label>
+
+          {/* Pets Section */}
+          <div className="accordion-section">
+            <div className="section-header d-flex align-items-center">
+              <div className="form-check form-switch me-2">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="anyPets"
+                  name="anyPets"
+                  checked={customerData.anyPets}
+                  onChange={toggleAnyPets}
+                />
+              </div>
+              <h5 className="mb-0">Pets</h5>
+            </div>
+            {customerData.anyPets && (
+              <div className="section-content">
+                {customerData.pets.map((pet, index) => (
+                  <div
+                    key={index}
+                    className="entry-row d-flex align-items-center gap-2 mb-2"
+                  >
+                    <select
+                      id={`petType_${index}`}
+                      name="type"
+                      className="form-control"
+                      value={pet.type}
+                      onChange={(e) => updatePet(index, "type", e.target.value)}
+                    >
+                      <option value="">Type</option>
+                      <option value="dog">Dog</option>
+                      <option value="cat">Cat</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <input
+                      type="text"
+                      id={`petName_${index}`}
+                      name="name"
+                      className="form-control"
+                      value={pet.name}
+                      onChange={(e) => updatePet(index, "name", e.target.value)}
+                      placeholder="Name"
+                    />
+                    <select
+                      id={`petFriendly_${index}`}
+                      name="friendly"
+                      className="form-control"
+                      value={pet.friendly ? "yes" : "no"}
+                      onChange={(e) =>
+                        updatePet(index, "friendly", e.target.value === "yes")
+                      }
+                    >
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                    <Button variant="link" onClick={addPet} className="p-0">
+                      <i className="bi bi-plus-circle"></i>
+                    </Button>
+                    <Button
+                      variant="link"
+                      onClick={() => removePet(index)}
+                      className="p-0"
+                    >
+                      <i className="bi bi-trash"></i>
+                    </Button>
+                  </div>
+                ))}
+                {customerData.pets.length === 0 && (
+                  <div className="d-flex align-items-center">
+                    <Button variant="link" onClick={addPet} className="p-0">
+                      <i className="bi bi-plus-circle"></i> Add a pet
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          <div className="form-check form-switch mb-3">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="anyKids"
-              name="anyKids"
-              checked={customerData.anyKids}
-              onChange={(e) =>
-                setCustomerData((prev) => ({
-                  ...prev,
-                  anyKids: e.target.checked,
-                }))
-              }
-            />
-            <label className="form-check-label" htmlFor="anyKids">
-              Any Kids?
-            </label>
+
+          {/* Kids Section */}
+          <div className="accordion-section">
+            <div className="section-header d-flex align-items-center">
+              <div className="form-check form-switch me-2">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="anyKids"
+                  name="anyKids"
+                  checked={customerData.anyKids}
+                  onChange={toggleAnyKids}
+                />
+              </div>
+              <h5 className="mb-0">Kids</h5>
+            </div>
+            {customerData.anyKids && (
+              <div className="section-content">
+                {customerData.kids.map((kid, index) => (
+                  <div
+                    key={index}
+                    className="entry-row d-flex align-items-center gap-2 mb-2"
+                  >
+                    <select
+                      id={`kidGender_${index}`}
+                      name="gender"
+                      className="form-control"
+                      value={kid.gender}
+                      onChange={(e) =>
+                        updateKid(index, "gender", e.target.value)
+                      }
+                    >
+                      <option value="">Gender</option>
+                      <option value="boy">Boy</option>
+                      <option value="girl">Girl</option>
+                    </select>
+                    <input
+                      type="text"
+                      id={`kidName_${index}`}
+                      name="name"
+                      className="form-control"
+                      value={kid.name}
+                      onChange={(e) => updateKid(index, "name", e.target.value)}
+                      placeholder="Name"
+                    />
+                    <input
+                      type="number"
+                      id={`kidAge_${index}`}
+                      name="age"
+                      className="form-control"
+                      value={kid.age}
+                      onChange={(e) => updateKid(index, "age", e.target.value)}
+                      placeholder="Age"
+                    />
+                    <Button variant="link" onClick={addKid} className="p-0">
+                      <i className="bi bi-plus-circle"></i>
+                    </Button>
+                    <Button
+                      variant="link"
+                      onClick={() => removeKid(index)}
+                      className="p-0"
+                    >
+                      <i className="bi bi-trash"></i>
+                    </Button>
+                  </div>
+                ))}
+                {customerData.kids.length === 0 && (
+                  <div className="d-flex align-items-center">
+                    <Button variant="link" onClick={addKid} className="p-0">
+                      <i className="bi bi-plus-circle"></i> Add a kid
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          <div className="form-check form-switch mb-3">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="parkingAvailable"
-              name="parkingAvailable"
-              checked={customerData.parkingAvailable}
-              onChange={(e) =>
-                setCustomerData((prev) => ({
-                  ...prev,
-                  parkingAvailable: e.target.checked,
-                }))
-              }
-            />
-            <label className="form-check-label" htmlFor="parkingAvailable">
-              Is there parking available?
-            </label>
+
+          {/* Parking Section */}
+          <div className="accordion-section">
+            <div className="section-header d-flex align-items-center">
+              <div className="form-check form-switch me-2">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="parkingAvailable"
+                  name="parkingAvailable"
+                  checked={customerData.parkingAvailable}
+                  onChange={toggleParkingAvailable}
+                />
+              </div>
+              <h5 className="mb-0">Parking</h5>
+            </div>
+            {customerData.parkingAvailable && (
+              <div className="section-content d-flex align-items-center gap-2">
+                <select
+                  id="parkingLocation"
+                  name="parkingLocation"
+                  className="form-control"
+                  value={customerData.parkingLocation}
+                  onChange={handleChange}
+                >
+                  <option value="">Location</option>
+                  <option value="street">Street</option>
+                  <option value="driveway">Driveway</option>
+                  <option value="underground">Underground</option>
+                  <option value="lot">Lot</option>
+                </select>
+                <select
+                  id="parkingIsPaid"
+                  name="parkingIsPaid"
+                  className="form-control"
+                  value={customerData.parkingIsPaid ? "yes" : "no"}
+                  onChange={(e) =>
+                    handleChange({
+                      target: {
+                        name: "parkingIsPaid",
+                        value: e.target.value === "yes",
+                      },
+                    })
+                  }
+                >
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </div>
+            )}
           </div>
+
+          {/* Additional Info */}
           <div className="auth-form-group">
             <label htmlFor="referredBy">Referred by?</label>
-            <input
-              type="text"
-              id="referredBy"
-              name="referredBy"
-              className="form-control"
-              value={customerData.referredBy}
-              onChange={handleChange}
-              placeholder="Enter referral source"
-            />
+            <div className="input-container">
+              <span className="input-icon">
+                <i className="bi bi-person-plus"></i>
+              </span>
+              <input
+                type="text"
+                id="referredBy"
+                name="referredBy"
+                className="form-control"
+                value={customerData.referredBy}
+                onChange={handleChange}
+                placeholder="Enter referral source"
+              />
+            </div>
           </div>
           <div className="auth-form-group">
             <label htmlFor="specialConsiderations">
@@ -644,55 +635,59 @@ const CustomerModal = ({
       show={show}
       onClose={handleClose}
       title={customer ? "Edit Customer" : "Add New Customer"}
-    >
-      <div className="customer-modal-container">
-        {/* Left Side: Info & Progress */}
-        <div className="customer-modal-info">
-          <div className="info-content">
-            <h2>
-              Step {currentStep} of {totalSteps}
-            </h2>
-            <p>{getStepCopy(currentStep)}</p>
-            <div className="progress-indicator">
-              <div
-                className="progress-bar"
-                style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-              ></div>
-            </div>
+      leftContent={
+        <div className="info-content">
+          <h2>
+            Step {currentStep} of {totalSteps}
+          </h2>
+          <p>{getStepCopy(currentStep)}</p>
+          <div className="progress-indicator">
+            <div
+              className="progress-bar"
+              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+            ></div>
           </div>
         </div>
-        {/* Right Side: Form */}
-        <div className="customer-modal-form">
-          <form onSubmit={handleSubmit} noValidate>
-            {error && (
-              <div className="alert alert-danger" role="alert">
-                {error}
-              </div>
-            )}
-            {renderStep()}
-            <div className="modal-footer">
-              <Button variant="secondary" onClick={handleClose}>
-                Cancel
-              </Button>
-              {currentStep > 1 && (
-                <Button variant="secondary" onClick={handleBack}>
-                  Back
-                </Button>
-              )}
-              {currentStep < totalSteps ? (
-                <Button variant="primary" type="button" onClick={handleNext}>
-                  Next
-                </Button>
-              ) : (
-                <Button variant="primary" type="submit">
-                  {customer ? "Save Changes" : "Add Customer"}
-                </Button>
-              )}
+      }
+      rightContent={
+        <>
+          {error && (
+            <div className="alert alert-danger" role="alert">
+              {error}
             </div>
-          </form>
-        </div>
-      </div>
-    </GlobalModal>
+          )}
+          {renderStep()}
+          <div className="modal-footer">
+            <Button variant="secondary" type="button" onClick={handleClose}>
+              Cancel
+            </Button>
+            {currentStep > 1 && (
+              <Button variant="secondary" type="button" onClick={handleBack}>
+                Back
+              </Button>
+            )}
+            {currentStep < totalSteps ? (
+              <Button variant="primary" type="button" onClick={handleNext}>
+                Next
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                type="button"
+                onClick={handleFinalSubmit}
+                disabled={isSaving}
+              >
+                {isSaving
+                  ? "Saving..."
+                  : customer
+                    ? "Save Changes"
+                    : "Add Customer"}
+              </Button>
+            )}
+          </div>
+        </>
+      }
+    />
   );
 };
 

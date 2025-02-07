@@ -10,7 +10,7 @@ const authCopy = {
     header: "Welcome To LocalLedger",
     subheader: "Effortless Project Tracking for Contractors™",
     description:
-      "To begin, you can login to your account or sign up for a free account if you just found us!",
+      "To begin, login to your account or sign up for a free account!",
     disclaimer: (
       <>
         By creating your account, you agree to the{" "}
@@ -49,7 +49,8 @@ const authCopy = {
     logo: "/images/LL-main-logo-light.svg",
     header: "Reset Your Password",
     subheader: "Effortless Project Tracking for Contractors™",
-    description: "Enter your email below to receive a password reset link.",
+    description:
+      "Provide your email address and we will send you a password reset link.",
     disclaimer: (
       <>
         If you don't have an account, you can{" "}
@@ -86,9 +87,9 @@ const AuthLayout = ({ page, children }) => {
         <div className="auth-gradient">
           <div className="left-content">
             <img src={copy.logo} alt="LocalLedger Logo" className="logo" />
-            <h1>{copy.header}</h1>
             <h3>{copy.subheader}</h3>
             <hr />
+            <h1>{copy.header}</h1>
             <p>{copy.description}</p>
           </div>
         </div>

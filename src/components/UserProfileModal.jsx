@@ -133,6 +133,26 @@ const UserProfileModal = ({ show, onClose }) => {
     setUnsavedChanges(true);
   };
 
+  // Wrap the close handler to check for unsaved changes.
+  // Moved before rightContent so it's available when used.
+  const handleModalClose = async () => {
+    if (unsavedChanges) {
+      const result = await Swal.fire({
+        title: "Unsaved Changes",
+        text: "You have unsaved changes. Do you really want to close without saving?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Yes, close it!",
+        cancelButtonText: "No, keep editing",
+      });
+      if (result.isConfirmed) {
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  };
+
   // Save profile changes
   const handleSave = async () => {
     setLoading(true);
@@ -175,25 +195,6 @@ const UserProfileModal = ({ show, onClose }) => {
       setError("Failed to update profile. Please try again.");
     }
     setLoading(false);
-  };
-
-  // Warn about unsaved changes on modal close
-  const handleModalClose = async () => {
-    if (unsavedChanges) {
-      const result = await Swal.fire({
-        title: "Unsaved Changes",
-        text: "You have unsaved changes. Do you really want to close without saving?",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Yes, close it!",
-        cancelButtonText: "No, keep editing",
-      });
-      if (result.isConfirmed) {
-        onClose();
-      }
-    } else {
-      onClose();
-    }
   };
 
   // Render section content based on activeSection
@@ -445,104 +446,108 @@ const UserProfileModal = ({ show, onClose }) => {
     }
   };
 
+  // Define left panel content (navigation sidebar and mobile nav)
+  const leftContent = (
+    <div className="user-profile-left">
+      <div className="mobile-nav d-block d-md-none mb-3">
+        <select
+          className="form-select"
+          value={activeSection}
+          onChange={(e) => setActiveSection(e.target.value)}
+        >
+          <option value="profile">Profile</option>
+          <option value="company">Company</option>
+          <option value="account">Account</option>
+          <option value="appearance">Appearance</option>
+          <option value="notifications">Notifications</option>
+        </select>
+      </div>
+      <div className="user-profile-sidebar d-none d-md-block">
+        <ul className="nav flex-column">
+          <li
+            className={`nav-item ${activeSection === "profile" ? "active" : ""}`}
+          >
+            <button
+              className="btn btn-link"
+              onClick={() => setActiveSection("profile")}
+            >
+              Profile
+            </button>
+          </li>
+          <li
+            className={`nav-item ${activeSection === "company" ? "active" : ""}`}
+          >
+            <button
+              className="btn btn-link"
+              onClick={() => setActiveSection("company")}
+            >
+              Company
+            </button>
+          </li>
+          <li
+            className={`nav-item ${activeSection === "account" ? "active" : ""}`}
+          >
+            <button
+              className="btn btn-link"
+              onClick={() => setActiveSection("account")}
+            >
+              Account
+            </button>
+          </li>
+          <li
+            className={`nav-item ${activeSection === "appearance" ? "active" : ""}`}
+          >
+            <button
+              className="btn btn-link"
+              onClick={() => setActiveSection("appearance")}
+            >
+              Appearance
+            </button>
+          </li>
+          <li
+            className={`nav-item ${activeSection === "notifications" ? "active" : ""}`}
+          >
+            <button
+              className="btn btn-link"
+              onClick={() => setActiveSection("notifications")}
+            >
+              Notifications
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+
+  // Define right panel content (main content area)
+  const rightContent = (
+    <div className="user-profile-content">
+      {error && <div className="alert alert-danger">{error}</div>}
+      {renderSectionContent()}
+      <div className="modal-footer">
+        <button className="btn btn-secondary" onClick={handleModalClose}>
+          Cancel
+        </button>
+        <button
+          className="btn btn-primary"
+          onClick={handleSave}
+          disabled={loading}
+        >
+          {loading ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <GlobalModal
       show={show}
       onClose={handleModalClose}
       title="User Profile"
       disableBackdropClick={true}
-    >
-      <div className="user-profile-modal-container">
-        {/* Mobile Navigation: visible only on small screens */}
-        <div className="mobile-nav d-block d-md-none mb-3">
-          <select
-            className="form-select"
-            value={activeSection}
-            onChange={(e) => setActiveSection(e.target.value)}
-          >
-            <option value="profile">Profile</option>
-            <option value="company">Company</option>
-            <option value="account">Account</option>
-            <option value="appearance">Appearance</option>
-            <option value="notifications">Notifications</option>
-          </select>
-        </div>
-        <div className="user-profile-main">
-          {/* Desktop Sidebar Navigation */}
-          <div className="user-profile-sidebar d-none d-md-block">
-            <ul className="nav flex-column">
-              <li
-                className={`nav-item ${activeSection === "profile" ? "active" : ""}`}
-              >
-                <button
-                  className="btn btn-link"
-                  onClick={() => setActiveSection("profile")}
-                >
-                  Profile
-                </button>
-              </li>
-              <li
-                className={`nav-item ${activeSection === "company" ? "active" : ""}`}
-              >
-                <button
-                  className="btn btn-link"
-                  onClick={() => setActiveSection("company")}
-                >
-                  Company
-                </button>
-              </li>
-              <li
-                className={`nav-item ${activeSection === "account" ? "active" : ""}`}
-              >
-                <button
-                  className="btn btn-link"
-                  onClick={() => setActiveSection("account")}
-                >
-                  Account
-                </button>
-              </li>
-              <li
-                className={`nav-item ${activeSection === "appearance" ? "active" : ""}`}
-              >
-                <button
-                  className="btn btn-link"
-                  onClick={() => setActiveSection("appearance")}
-                >
-                  Appearance
-                </button>
-              </li>
-              <li
-                className={`nav-item ${activeSection === "notifications" ? "active" : ""}`}
-              >
-                <button
-                  className="btn btn-link"
-                  onClick={() => setActiveSection("notifications")}
-                >
-                  Notifications
-                </button>
-              </li>
-            </ul>
-          </div>
-          {/* Content Area */}
-          <div className="user-profile-content">
-            {error && <div className="alert alert-danger">{error}</div>}
-            {renderSectionContent()}
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={handleModalClose}>
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleSave}
-                disabled={loading}
-              >
-                {loading ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </GlobalModal>
+      leftContent={leftContent}
+      rightContent={rightContent}
+    />
   );
 };
 

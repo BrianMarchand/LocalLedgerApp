@@ -1,13 +1,13 @@
-// File: src/pages/ProjectList.jsx 
+// File: src/pages/ProjectList.jsx
 
-import React, { useState, useEffect } from "react"; 
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProjects } from "../../context/ProjectsContext";
 import Navbar from "../Navbar";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "./ProjectList.css";
-import AddProjectModal from "../AddProject/AddProjectModal";
+import AddProjectModal from "../../components/AddProjectModal";
 import { Spinner } from "react-bootstrap";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 import ProjectCard from "./ProjectCard";
@@ -74,7 +74,7 @@ function ProjectList() {
                   fetchProjects,
                   () => {
                     setTimeout(() => setIsUpdating(false), 500); // Delay UI flicker
-                  },
+                  }
                 );
               }}
             >
@@ -102,8 +102,8 @@ function ProjectList() {
                         project={project}
                         index={index}
                         fetchProjects={fetchProjects}
-                        setEditingProject={setEditingProject}  // Pass the edit handler
-                        setShowModal={setShowModal}            // Pass the modal handler
+                        setEditingProject={setEditingProject} // Pass the edit handler
+                        setShowModal={setShowModal} // Pass the modal handler
                       />
                     ))}
                     {provided.placeholder}

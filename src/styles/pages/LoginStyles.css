@@ -12,7 +12,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #471843;
+  background: #15171a;
   width: 100vw;
   height: 100vh;
   padding: 10px; /* Added padding so the inner card is visible */
@@ -24,29 +24,35 @@ body {
   width: 90%;
   height: 90%;
   overflow: hidden;
-  background-image: url("../public/images/bg-pale-blue.jpg");
+  /* background-image: url("../public/images/bg-pale-blue.jpg");*/
   box-shadow:
-    0 5px 10px rgba(154, 160, 185, 0.05),
-    0 15px 40px rgba(166, 173, 201, 0.2);
+    0 5px 10px rgba(0, 0, 0, 0.08),
+    0 15px 40px rgba(0, 0, 0, 0.3);
   border-radius: 10px; /* Rounded corners */
 }
 
 /* Left Side: Gradient Background */
 .auth-gradient {
-  width: 50%;
-  background: linear-gradient(135deg, #f52f94, #8b43fa);
+  width: 40%;
+  background: linear-gradient(35deg, #141e30, #243b55);
+  /*background: #471843;*/
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: left;
+  justify-content: left;
 }
 
 /* Right Side: Login Card Container */
 .auth-right {
-  width: 50%;
+  width: 60%;
   display: flex;
   flex-direction: column; /* Stack children vertically */
   align-items: center;
   justify-content: center;
+  background-image: radial-gradient(
+    circle 827px at 47.3% 48%,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(138, 192, 216, 1) 90%
+  );
 }
 
 /* Styles for the disclaimer placed below the form card */
@@ -141,36 +147,43 @@ body {
 }
 
 .left-content .logo {
-  width: 250px; /* Adjust the logo size as needed */
-  margin-bottom: 20px;
+  width: 300px; /* Adjust the logo size as needed */
+  margin-bottom: 10px;
 }
 
 .left-content h1 {
-  font-size: 2rem;
-  margin: 10px 0;
+  font-size: 2.5rem;
+  margin: 0;
+  margin-bottom: 0;
+  font-weight: 200;
 }
 
 .left-content h3 {
   font-size: 1.25rem;
-  margin: 10px 0;
-  font-weight: 400;
+  margin: 0;
+  font-weight: 100;
+  font-style: italic;
+
+  letter-spacing: 1px;
 }
 
 .left-content hr {
   border: 1px solid rgba(255, 255, 255, 0.5);
-  width: 80%;
-  margin: 0;
+  width: 100%;
+  margin: 20px 0;
 }
 
 .left-content p {
   font-size: 1rem;
-  margin: 10px 0;
+  margin: 0 !important;
+  padding: 0;
+  font-weight: 100;
 }
 
 .left-content small {
   font-size: 0.8rem;
   display: block;
-  margin-top: 10px;
+  margin-top: 0;
   opacity: 0.8;
 }
 

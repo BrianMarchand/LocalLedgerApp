@@ -1,23 +1,24 @@
-/* Ensure the modal dialog fills 75% of the screen width on desktop */
+/* Global modal sizing and rounded corners */
 .global-modal .modal-dialog {
-  max-width: 75%;
+  max-width: 70%;
   margin: auto;
-  border: none !important;
+  border-radius: 50px !important;
 }
 .modal-dialog.global-modal {
-  width: 75% !important;
-  max-width: 75% !important;
+  width: 70% !important;
+  max-width: 70% !important;
   margin: auto;
+  border-radius: 50px !important;
 }
 
-/* Dim the backdrop and apply a blur effect */
+/* Backdrop with dimming and blur */
 .global-modal-backdrop {
   background-color: rgba(71, 24, 67, 0.648) !important;
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
 }
 
-/* Tablet breakpoint (max-width: 768px) */
+/* Responsive breakpoints */
 @media (max-width: 768px) {
   .global-modal .modal-dialog {
     max-width: 90%;
@@ -27,8 +28,6 @@
     max-width: 90% !important;
   }
 }
-
-/* Mobile breakpoint (max-width: 576px) */
 @media (max-width: 576px) {
   .global-modal .modal-dialog {
     max-width: 95%;
@@ -37,4 +36,70 @@
     width: 95% !important;
     max-width: 95% !important;
   }
+}
+
+/* --- 50/50 Layout Styles --- */
+
+/* Container for the two-column layout */
+.global-modal-container {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+}
+
+/* Left panel: gradient background with centered info */
+.global-modal-info {
+  width: 50%;
+  background: linear-gradient(to bottom, rgb(115, 208, 255), rgb(26, 118, 252));
+  color: white;
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.global-modal-info .info-content {
+  text-align: center;
+}
+.global-modal-info h2 {
+  margin-bottom: 1rem;
+}
+.global-modal-info p {
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+}
+
+/* Right panel: form container with white background and padding */
+.global-modal-form {
+  width: 50%;
+  padding: 2rem;
+  background: #fff;
+  overflow-y: auto;
+}
+
+/* --- Global Input Styles --- */
+.input-container {
+  position: relative;
+}
+.input-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+}
+.form-control {
+  padding-left: 2.5rem;
+}
+
+/* Modal footer styling */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Alert styling (if used in modals) */
+.alert {
+  margin-bottom: 1rem;
 }
