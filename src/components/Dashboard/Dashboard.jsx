@@ -12,7 +12,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@config";
 import { toastSuccess, toastError } from "../../utils/toastNotifications";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "../../styles/global.css";
 import "../../styles/components/Dashboard.css";
@@ -28,12 +28,9 @@ import {
   LineElement,
   BarElement,
 } from "chart.js";
-import Navbar from "../../components/Navbar";
-import Sidebar from "../../components/Sidebar";
 import AddProjectModal from "../../components/AddProjectModal";
 import TransactionModal from "../../components/TransactionModal";
 import CustomerModal from "../../components/CustomerModal";
-import ActivityTicker from "../../components/ActivityTicker";
 import { useProjects } from "../../context/ProjectsContext";
 import useTotalTransactions from "../../hooks/useTotalTransactions";
 import { logActivity } from "../../utils/activityLogger";
@@ -44,7 +41,9 @@ import {
   updateExistingCustomer,
 } from "../../../firebase/customerAPI";
 
-// Register Chart.js components
+// Import the shared Layout component
+import Layout from "../../components/Layout";
+
 ChartJS.register(
   ArcElement,
   Tooltip,
@@ -57,7 +56,6 @@ ChartJS.register(
 );
 
 const Dashboard = () => {
-  const navigate = useNavigate();
   const { projects } = useProjects();
 
   // State for modals
@@ -262,9 +260,6 @@ const Dashboard = () => {
       return;
     }
     try {
-      // Log the new transaction data for debugging (optional)
-      console.log("Saving new transaction:", newTransaction);
-
       const transactionsRef = collection(
         db,
         `projects/${newTransaction.projectId}/transactions`
@@ -275,8 +270,6 @@ const Dashboard = () => {
         createdAt: serverTimestamp(),
       });
       toastSuccess("Transaction added successfully!");
-
-      // Log the new transaction in the activity log
       await logActivity("New Transaction", "A new transaction was added.", {
         projectId: newTransaction.projectId,
         transactionId: docRef.id,
@@ -320,120 +313,108 @@ const Dashboard = () => {
   };
 
   return (
-    <div>
-      <Navbar page="dashboard" />
-      <div className="dashboard-main-container">
-        <Sidebar
-          onAddProject={() => setShowModal(true)}
-          onAddTransaction={() => setShowTransactionModal(true)}
-          onAddCustomer={() => setShowCustomerModal(true)}
-        />
-        <div className="dashboard-content-container">
-          <ActivityTicker
-            activities={recentActivities}
-            formatActivity={formatActivity}
-          />
-          <div className="dashboard-content">
-            <div className="dashboard-left">
-              <div className="dashboard-summary-cards">
-                <div className="dashboard-card card-projects">
-                  <div className="card-header">
-                    <i className="bi bi-folder2-open"></i>
-                    <span>Total Projects</span>
-                  </div>
-                  <div className="dashboard-count">{totalProjects}</div>
-                  <hr className="card-divider" />
-                  <Link to="/projects" className="card-link">
-                    View All Projects
-                  </Link>
-                </div>
-                <div className="dashboard-card card-transactions">
-                  <div className="card-header">
-                    <i className="bi bi-receipt"></i>
-                    <span>Total Transactions</span>
-                  </div>
-                  <div className="dashboard-count">{totalTransactions}</div>
-                  <hr className="card-divider" />
-                  <Link to="/transaction-summary" className="card-link">
-                    View All Transactions
-                  </Link>
-                </div>
-                <div className="dashboard-card card-customers">
-                  <div className="card-header">
-                    <i className="bi bi-people"></i>
-                    <span>Total Customers</span>
-                  </div>
-                  <div className="dashboard-count">{totalCustomers}</div>
-                  <hr className="card-divider" />
-                  <Link to="/customers" className="card-link">
-                    Manage Customers
-                  </Link>
-                </div>
-              </div>
-              <div className="dashboard-grid">
-                <div className="dashboard-card">
-                  <div className="card-header">
-                    <i className="bi bi-bar-chart-fill"></i>
-                    <span>Expense Breakdown</span>
-                  </div>
-                  <div style={{ height: "300px" }}>
-                    {expenseChartData.labels ? (
-                      <Bar
-                        data={expenseChartData}
-                        options={{
-                          responsive: true,
-                          maintainAspectRatio: false,
-                          scales: {
-                            y: {
-                              beginAtZero: true,
-                              ticks: {
-                                callback: (value) => "$" + value,
-                              },
-                            },
-                          },
-                          plugins: {
-                            legend: {
-                              display: false,
-                            },
-                          },
-                        }}
-                      />
-                    ) : (
-                      <p>No data available</p>
-                    )}
-                  </div>
-                </div>
-                <div className="dashboard-card">
-                  <div className="card-header">
-                    <i className="bi bi-graph-up"></i>
-                    <span>Monthly Expense Trend</span>
-                  </div>
-                  <Line data={monthlyExpenseData} />
-                </div>
-                <div className="dashboard-card">
-                  <div className="card-header">
-                    <i className="bi bi-bar-chart"></i>
-                    <span>Budget vs. Actual Expenses</span>
-                  </div>
-                  <Bar data={budgetVsActualData} />
-                </div>
-                <div className="dashboard-card">
-                  <div className="card-header">
-                    <i className="bi bi-bar-chart-steps"></i>
-                    <span>Project Status Overview</span>
-                  </div>
-                  <div style={{ height: "300px" }}>
-                    {projectStatusData.labels ? (
-                      <Bar
-                        data={projectStatusData}
-                        options={projectStatusOptions}
-                      />
-                    ) : (
-                      <p>No data available</p>
-                    )}
-                  </div>
-                </div>
-              </div>
+    <Layout
+      pageTitle="dashboard"
+      activities={recentActivities}
+      formatActivity={formatActivity}
+      onAddProject={() => setShowModal(true)}
+      onAddTransaction={() => setShowTransactionModal(true)}
+      onAddCustomer={() => setShowCustomerModal(true)}
+    >
+      <div className="container-fluid">
+        <div className="dashboard-summary-cards">
+          <div className="dashboard-card card-projects">
+            <div className="card-header">
+              <i className="bi bi-folder2-open"></i>
+              <span>Total Projects</span>
+            </div>
+            <div className="dashboard-count">{totalProjects}</div>
+            <hr className="card-divider" />
+            <Link to="/projects" className="card-link">
+              View All Projects
+            </Link>
+          </div>
+          <div className="dashboard-card card-transactions">
+            <div className="card-header">
+              <i className="bi bi-receipt"></i>
+              <span>Total Transactions</span>
+            </div>
+            <div className="dashboard-count">{totalTransactions}</div>
+            <hr className="card-divider" />
+            <Link to="/transaction-summary" className="card-link">
+              View All Transactions
+            </Link>
+          </div>
+          <div className="dashboard-card card-customers">
+            <div className="card-header">
+              <i className="bi bi-people"></i>
+              <span>Total Customers</span>
+            </div>
+            <div className="dashboard-count">{totalCustomers}</div>
+            <hr className="card-divider" />
+            <Link to="/customers" className="card-link">
+              Manage Customers
+            </Link>
+          </div>
+        </div>
+        <div className="dashboard-grid">
+          <div className="dashboard-card">
+            <div className="card-header">
+              <i className="bi bi-bar-chart-fill"></i>
+              <span>Expense Breakdown</span>
+            </div>
+            <div style={{ height: "300px" }}>
+              {expenseChartData.labels ? (
+                <Bar
+                  data={expenseChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        ticks: {
+                          callback: (value) => "$" + value,
+                        },
+                      },
+                    },
+                    plugins: {
+                      legend: {
+                        display: false,
+                      },
+                    },
+                  }}
+                />
+              ) : (
+                <p>No data available</p>
+              )}
+            </div>
+          </div>
+          <div className="dashboard-card">
+            <div className="card-header">
+              <i className="bi bi-graph-up"></i>
+              <span>Monthly Expense Trend</span>
+            </div>
+            <Line data={monthlyExpenseData} />
+          </div>
+          <div className="dashboard-card">
+            <div className="card-header">
+              <i className="bi bi-bar-chart"></i>
+              <span>Budget vs. Actual Expenses</span>
+            </div>
+            <Bar data={budgetVsActualData} />
+          </div>
+          <div className="dashboard-card">
+            <div className="card-header">
+              <i className="bi bi-bar-chart-steps"></i>
+              <span>Project Status Overview</span>
+            </div>
+            <div style={{ height: "300px" }}>
+              {projectStatusData.labels ? (
+                <Bar data={projectStatusData} options={projectStatusOptions} />
+              ) : (
+                <p>No data available</p>
+              )}
             </div>
           </div>
         </div>
@@ -454,7 +435,7 @@ const Dashboard = () => {
         handleSave={saveNewCustomer}
         handleEditCustomer={updateExistingCustomer}
       />
-    </div>
+    </Layout>
   );
 };
 

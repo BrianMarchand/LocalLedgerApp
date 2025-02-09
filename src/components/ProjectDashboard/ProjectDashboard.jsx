@@ -1,8 +1,15 @@
 // File: src/pages/ProjectDashboard.jsx
-
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import Navbar from "../Navbar";
+import { useParams } from "react-router-dom";
+import {
+  collection,
+  onSnapshot,
+  query,
+  orderBy,
+  limit,
+  addDoc,
+} from "firebase/firestore";
+import { db } from "@config";
 import TransactionsTable from "./TransactionsTable";
 import FinancialSummary from "./FinancialSummary";
 import PaymentBreakdown from "./PaymentBreakdown";
@@ -17,19 +24,66 @@ import { formatCurrency } from "../../utils/formatUtils";
 import QuickActions from "../../components/QuickActions";
 import { useProjects } from "../../context/ProjectsContext";
 import Swal from "sweetalert2";
+import AddProjectModal from "../../components/AddProjectModal";
+import TransactionModal from "../../components/TransactionModal";
+import CustomerModal from "../../components/CustomerModal";
+import {
+  saveNewCustomer,
+  updateExistingCustomer,
+} from "../../../firebase/customerAPI";
+import { toastError, toastSuccess } from "../../utils/toastNotifications";
+import Layout from "../../components/Layout";
 
 const DEBUG = false;
 
 function ProjectDashboard() {
   const { id: projectId } = useParams();
-  const navigate = useNavigate();
-  const { project, transactions, loading, error, refetch } = useFetchData(projectId);
-  const { updateProject } = useProjects();
+  const { project, transactions, loading, error, refetch } =
+    useFetchData(projectId);
+  const { updateProject, addProject } = useProjects();
 
   const [metrics, setMetrics] = useState(null);
   const [showNotes, setShowNotes] = useState(false);
   const [reversionHandled, setReversionHandled] = useState(false);
   const prevTransactionsRef = useRef(transactions);
+
+  const [recentActivities, setRecentActivities] = useState([]);
+
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+
+  useEffect(() => {
+    const activitiesQuery = query(
+      collection(db, "activity"),
+      orderBy("timestamp", "desc"),
+      limit(3)
+    );
+    const unsubscribe = onSnapshot(activitiesQuery, (snapshot) => {
+      const activitiesList = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setRecentActivities(activitiesList);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const formatActivity = (activity) => {
+    const dateStr = activity.timestamp
+      ? new Date(activity.timestamp.seconds * 1000).toLocaleDateString(
+          "en-US",
+          {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          }
+        )
+      : "";
+    const eventType = activity.title || "Event";
+    const message = activity.description || "";
+    return { dateStr, eventType, message };
+  };
 
   const parseAmount = (amount) => {
     const parsed = parseFloat(amount);
@@ -76,12 +130,28 @@ function ProjectDashboard() {
   const calculateBudgetMetrics = (project, incomeMetrics, expenseMetrics) => {
     const budget = project?.budget || 0;
     const remainingBudget = Math.max(0, budget - expenseMetrics.totalExpenses);
-    const remainingClientPayment = Math.max(0, budget - incomeMetrics.totalIncome);
+    const remainingClientPayment = Math.max(
+      0,
+      budget - incomeMetrics.totalIncome
+    );
     const profit = incomeMetrics.totalIncome - expenseMetrics.totalExpenses;
-    const budgetSpentPercent = ((expenseMetrics.totalExpenses / (budget || 1)) * 100).toFixed(2);
-    const paidPercentage = ((incomeMetrics.totalIncome / (budget || 1)) * 100).toFixed(2);
+    const budgetSpentPercent = (
+      (expenseMetrics.totalExpenses / (budget || 1)) *
+      100
+    ).toFixed(2);
+    const paidPercentage = (
+      (incomeMetrics.totalIncome / (budget || 1)) *
+      100
+    ).toFixed(2);
     const availableFunds = profit;
-    return { remainingBudget, remainingClientPayment, profit, budgetSpentPercent, paidPercentage, availableFunds };
+    return {
+      remainingBudget,
+      remainingClientPayment,
+      profit,
+      budgetSpentPercent,
+      paidPercentage,
+      availableFunds,
+    };
   };
 
   const calculateMetrics = () => {
@@ -89,7 +159,11 @@ function ProjectDashboard() {
 
     const incomeMetrics = calculateIncomeMetrics(transactions);
     const expenseMetrics = calculateExpenseMetrics(transactions);
-    const budgetMetrics = calculateBudgetMetrics(project, incomeMetrics, expenseMetrics);
+    const budgetMetrics = calculateBudgetMetrics(
+      project,
+      incomeMetrics,
+      expenseMetrics
+    );
     const largestPayment = transactions.reduce(
       (max, t) => Math.max(max, parseAmount(t.amount)),
       0
@@ -130,7 +204,28 @@ function ProjectDashboard() {
     refetch();
   };
 
-  // Manual status change handler (used if needed in a project card)
+  const handleTransactionSave = async (newTransaction) => {
+    if (!newTransaction.projectId) {
+      newTransaction.projectId = project.id;
+    }
+    try {
+      const transactionsRef = collection(
+        db,
+        `projects/${project.id}/transactions`
+      );
+      await addDoc(transactionsRef, {
+        ...newTransaction,
+        date: new Date(newTransaction.date),
+        createdAt: new Date(),
+      });
+      toastSuccess("Transaction added successfully!");
+      refetch();
+    } catch (error) {
+      console.error("Error adding transaction:", error.message);
+      toastError("Failed to add transaction.");
+    }
+  };
+
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
     if (newStatus === project.status) return;
@@ -216,7 +311,6 @@ function ProjectDashboard() {
     }
   };
 
-  // Auto-update: When project is "new" and a deposit is added, update to "in-progress".
   useEffect(() => {
     const hasDeposit = transactions.some(
       (t) =>
@@ -240,7 +334,6 @@ function ProjectDashboard() {
     }
   }, [transactions, project, updateProject, refetch]);
 
-  // Auto-revert: When project is "in-progress" and a deposit is removed.
   useEffect(() => {
     const hasDepositNow = transactions.some(
       (t) =>
@@ -254,7 +347,13 @@ function ProjectDashboard() {
           t.category.toLowerCase() === "client payment" &&
           t.description?.toLowerCase().includes("deposit")
       );
-    if (project && project.status === "in-progress" && hadDepositBefore && !hasDepositNow && !reversionHandled) {
+    if (
+      project &&
+      project.status === "in-progress" &&
+      hadDepositBefore &&
+      !hasDepositNow &&
+      !reversionHandled
+    ) {
       Swal.fire({
         title: "Deposit Deleted",
         text: "The deposit transaction was deleted. The project status will now revert to New.",
@@ -273,24 +372,25 @@ function ProjectDashboard() {
     prevTransactionsRef.current = transactions;
   }, [transactions, project, updateProject, reversionHandled, refetch]);
 
-  // Reset the reversion flag when project status is "in-progress"
   useEffect(() => {
     if (project && project.status === "in-progress") {
       setReversionHandled(false);
     }
   }, [project?.status]);
 
-  if (loading) return <LoadingSpinner text="Loading project details..." />;
-  if (error) return <ErrorState onRetry={refetch} />;
-
-  return (
-    <div>
-      <Navbar page="Project Dashboard" />
-      <div className="container mt-5">
-        {/* Dashboard Header with Refresh Button */}
+  let content;
+  if (loading) {
+    content = <LoadingSpinner text="Loading project details..." />;
+  } else if (error) {
+    content = <ErrorState onRetry={refetch} />;
+  } else {
+    content = (
+      <div className="container-fluid">
         <div className="dashboard-header mb-4 d-flex justify-content-between align-items-center">
           <div>
-            <h1 className="dashboard-title">{project?.name || "Project Details"}</h1>
+            <h1 className="dashboard-title">
+              {project?.name || "Project Details"}
+            </h1>
             <button className="btn btn-link" onClick={handleRefresh}>
               <i className="bi bi-arrow-clockwise"></i> Refresh
             </button>
@@ -308,7 +408,6 @@ function ProjectDashboard() {
         </div>
 
         <div className="row">
-          {/* Project Details Card */}
           <div className="col-md-6 mb-4">
             <ProjectDetailsCard
               project={project}
@@ -316,13 +415,11 @@ function ProjectDashboard() {
               metrics={metrics}
             />
           </div>
-          {/* Calendar Widget */}
           <div className="col-md-6 mb-4">
             <ProjectCalendar projectId={projectId} />
           </div>
         </div>
 
-        {/* Transactions Table */}
         <div className="row mb-4">
           <div className="col-12">
             <ErrorBoundary>
@@ -336,12 +433,14 @@ function ProjectDashboard() {
           </div>
         </div>
 
-        {/* Financial Summary and Payment Breakdown */}
         <div className="row">
           <div className="col-md-6 mb-4">
             <ErrorBoundary>
               {transactions.length > 0 ? (
-                <FinancialSummary {...metrics} formatCurrency={formatCurrency} />
+                <FinancialSummary
+                  {...metrics}
+                  formatCurrency={formatCurrency}
+                />
               ) : (
                 <FinancialSummary
                   formatCurrency={formatCurrency}
@@ -361,7 +460,10 @@ function ProjectDashboard() {
           <div className="col-md-6 mb-4">
             <ErrorBoundary>
               {transactions.length > 0 ? (
-                <PaymentBreakdown {...metrics} formatCurrency={formatCurrency} />
+                <PaymentBreakdown
+                  {...metrics}
+                  formatCurrency={formatCurrency}
+                />
               ) : (
                 <PaymentBreakdown
                   formatCurrency={formatCurrency}
@@ -380,10 +482,43 @@ function ProjectDashboard() {
           </div>
         </div>
       </div>
+    );
+  }
 
-      {/* Notes Modal */}
-      <NotesModal showNotes={showNotes} setShowNotes={setShowNotes} projectId={projectId} />
-    </div>
+  return (
+    <Layout
+      pageTitle="Project Dashboard"
+      activities={recentActivities}
+      formatActivity={formatActivity}
+      onAddProject={() => setShowProjectModal(true)}
+      onAddTransaction={() => setShowTransactionModal(true)}
+      onAddCustomer={() => setShowCustomerModal(true)}
+    >
+      {content}
+      <NotesModal
+        showNotes={showNotes}
+        setShowNotes={setShowNotes}
+        projectId={projectId}
+      />
+      <AddProjectModal
+        show={showProjectModal}
+        handleClose={() => setShowProjectModal(false)}
+        saveProject={addProject}
+        editingProject={null}
+      />
+      <TransactionModal
+        show={showTransactionModal}
+        handleClose={() => setShowTransactionModal(false)}
+        handleSave={handleTransactionSave}
+        projects={project ? [project] : []}
+      />
+      <CustomerModal
+        show={showCustomerModal}
+        handleClose={() => setShowCustomerModal(false)}
+        handleSave={saveNewCustomer}
+        handleEditCustomer={updateExistingCustomer}
+      />
+    </Layout>
   );
 }
 

@@ -1,0 +1,6 @@
+/* File: src/styles/components/Dashboard.css (or your preferred CSS file) */
+.dashboard-content {
+  width: 100%;
+  padding: 50px; /* Adjust the padding as needed */
+  box-sizing: border-box; /* Ensures padding is included in the width */
+}

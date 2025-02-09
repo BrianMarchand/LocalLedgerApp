@@ -1,0 +1,78 @@
+.profile-picture-uploader {
+  position: relative;
+  display: inline-block; /* restrict container to its content */
+  width: 200px;
+  height: 200px;
+  margin: 0 auto; /* center horizontally */
+}
+
+.image-container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  overflow: hidden;
+}
+
+.profile-image {
+  display: block;
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  position: relative;
+  z-index: 1;
+  border-radius: 50%; /* ensure the image is circular */
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200px;
+  height: 200px;
+  background: rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  transition: opacity 0.3s ease;
+  pointer-events: none; /* disable pointer events until hover */
+  border-radius: 50%; /* clip the overlay to a circle */
+}
+
+.image-container:hover .overlay {
+  opacity: 1 !important;
+  pointer-events: auto; /* enable button clicks when visible */
+}
+
+.overlay-btn {
+  background: #fff;
+  border: none;
+  padding: 4px 6px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background-color 0.3s ease;
+}
+
+.overlay-btn:hover {
+  background: #eee;
+}
+
+.progress-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 200px;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 11;
+}
+
+.progress-bar {
+  height: 100%;
+  background: #4caf50;
+  width: 0%;
+  transition: width 0.3s ease;
+}

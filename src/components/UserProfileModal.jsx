@@ -1,11 +1,10 @@
-// File: src/components/UserProfileModal.jsx
 import React, { useState, useEffect } from "react";
 import GlobalModal from "./GlobalModal";
 import { useAuth } from "../context/AuthContext";
 import ProfilePictureUploader from "./ProfilePictureUploader";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "@config"; // Firestore instance from your config
-import "../styles/components/userProfileModal.css"; // See updated CSS below
+import "../styles/components/userProfileModal.css"; // Updated CSS is included below
 import { updateProfile as firebaseUpdateProfile } from "firebase/auth";
 import Swal from "sweetalert2";
 
@@ -134,7 +133,6 @@ const UserProfileModal = ({ show, onClose }) => {
   };
 
   // Wrap the close handler to check for unsaved changes.
-  // Moved before rightContent so it's available when used.
   const handleModalClose = async () => {
     if (unsavedChanges) {
       const result = await Swal.fire({
@@ -169,13 +167,17 @@ const UserProfileModal = ({ show, onClose }) => {
         },
         { merge: true }
       );
-      // Update Auth photoURL if available
-      if (profileData.personalInfo?.profilePictureUrl) {
-        await firebaseUpdateProfile(currentUser, {
-          photoURL: profileData.personalInfo.profilePictureUrl,
-        });
-        await refreshUser();
+      // Always update Auth photoURL: if no image exists, pass null.
+      await firebaseUpdateProfile(currentUser, {
+        photoURL: profileData.personalInfo.profilePictureUrl
+          ? profileData.personalInfo.profilePictureUrl
+          : null,
+      });
+      // If available, force a reload of the currentUser before refreshing context.
+      if (currentUser.reload) {
+        await currentUser.reload();
       }
+      await refreshUser();
       await Swal.fire({
         icon: "success",
         title: "Profile Updated",
@@ -200,29 +202,16 @@ const UserProfileModal = ({ show, onClose }) => {
   // Render section content based on activeSection
   const renderSectionContent = () => {
     switch (activeSection) {
+      // Inside renderSectionContent() switch-case for "profile"
       case "profile":
         return (
           <div className="profile-section-content">
-            <div className="row mb-4 align-items-center">
-              {/* Image preview */}
-              <div className="col-md-4 col-12 p-0 text-center mb-3 mb-md-0">
-                <img
-                  src={
-                    profileData.personalInfo?.profilePictureUrl ||
-                    "https://dummyimage.com/150x150/ddd/000&text=No+Image"
-                  }
-                  alt="Profile"
-                  className="img-fluid rounded-circle"
-                  style={{
-                    maxWidth: "150px",
-                    maxHeight: "150px",
-                    objectFit: "cover",
-                    border: "2px solid #ddd",
-                  }}
-                />
-              </div>
-              {/* Uploader */}
-              <div className="col-md-8 col-12">
+            <div className="row mb-3">
+              {/* Left Column: Profile image uploader, centered both vertically and horizontally */}
+              <div
+                className="col-md-3 col-12 d-flex align-items-center justify-content-center mb-3 mb-md-0"
+                style={{ minHeight: "150px" }}
+              >
                 <ProfilePictureUploader
                   currentUrl={profileData.personalInfo?.profilePictureUrl}
                   onUpload={(downloadURL) =>
@@ -232,53 +221,72 @@ const UserProfileModal = ({ show, onClose }) => {
                       downloadURL
                     )
                   }
-                  hidePreview={true}
+                  hidePreview={false} // Show the preview with overlay
                 />
               </div>
+              {/* Right Column: First Name, Last Name, Nickname */}
+              <div className="col-md-9 col-12">
+                <div className="form-group">
+                  <label>First Name</label>
+                  <div className="input-container">
+                    <i className="bi bi-person input-icon"></i>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={profileData.personalInfo?.firstName || ""}
+                      onChange={(e) =>
+                        handleChange(
+                          "personalInfo",
+                          "firstName",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Last Name</label>
+                  <div className="input-container">
+                    <i className="bi bi-person input-icon"></i>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={profileData.personalInfo?.lastName || ""}
+                      onChange={(e) =>
+                        handleChange("personalInfo", "lastName", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Nickname</label>
+                  <div className="input-container">
+                    <i className="bi bi-person-badge input-icon"></i>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={profileData.personalInfo?.nickname || ""}
+                      onChange={(e) =>
+                        handleChange("personalInfo", "nickname", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            {/* Personal info form fields */}
-            <div className="form-group">
-              <label>First Name</label>
-              <input
-                type="text"
-                className="form-control"
-                value={profileData.personalInfo?.firstName || ""}
-                onChange={(e) =>
-                  handleChange("personalInfo", "firstName", e.target.value)
-                }
-              />
-            </div>
-            <div className="form-group">
-              <label>Last Name</label>
-              <input
-                type="text"
-                className="form-control"
-                value={profileData.personalInfo?.lastName || ""}
-                onChange={(e) =>
-                  handleChange("personalInfo", "lastName", e.target.value)
-                }
-              />
-            </div>
-            <div className="form-group">
-              <label>Nickname</label>
-              <input
-                type="text"
-                className="form-control"
-                value={profileData.personalInfo?.nickname || ""}
-                onChange={(e) =>
-                  handleChange("personalInfo", "nickname", e.target.value)
-                }
-              />
-            </div>
+            {/* Full width: Short Bio */}
             <div className="form-group">
               <label>Short Bio</label>
-              <textarea
-                className="form-control"
-                value={profileData.personalInfo?.shortBio || ""}
-                onChange={(e) =>
-                  handleChange("personalInfo", "shortBio", e.target.value)
-                }
-              />
+              <div className="input-container textarea-container">
+                <i className="bi bi-chat-left-text input-icon"></i>
+                <textarea
+                  className="form-control"
+                  value={profileData.personalInfo?.shortBio || ""}
+                  onChange={(e) =>
+                    handleChange("personalInfo", "shortBio", e.target.value)
+                  }
+                />
+              </div>
             </div>
           </div>
         );
@@ -287,47 +295,63 @@ const UserProfileModal = ({ show, onClose }) => {
           <div className="company-section-content">
             <div className="form-group">
               <label>Company Name</label>
-              <input
-                type="text"
-                className="form-control"
-                value={profileData.companyInfo?.companyName || ""}
-                onChange={(e) =>
-                  handleChange("companyInfo", "companyName", e.target.value)
-                }
-              />
+              <div className="input-container">
+                <i className="bi bi-building input-icon"></i>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={profileData.companyInfo?.companyName || ""}
+                  onChange={(e) =>
+                    handleChange("companyInfo", "companyName", e.target.value)
+                  }
+                />
+              </div>
             </div>
             <div className="form-group">
               <label>Business Address</label>
-              <input
-                type="text"
-                className="form-control"
-                value={profileData.companyInfo?.businessAddress || ""}
-                onChange={(e) =>
-                  handleChange("companyInfo", "businessAddress", e.target.value)
-                }
-              />
+              <div className="input-container">
+                <i className="bi bi-geo-alt input-icon"></i>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={profileData.companyInfo?.businessAddress || ""}
+                  onChange={(e) =>
+                    handleChange(
+                      "companyInfo",
+                      "businessAddress",
+                      e.target.value
+                    )
+                  }
+                />
+              </div>
             </div>
             <div className="form-group">
               <label>Business Phone</label>
-              <input
-                type="text"
-                className="form-control"
-                value={profileData.companyInfo?.businessPhone || ""}
-                onChange={(e) =>
-                  handleChange("companyInfo", "businessPhone", e.target.value)
-                }
-              />
+              <div className="input-container">
+                <i className="bi bi-telephone input-icon"></i>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={profileData.companyInfo?.businessPhone || ""}
+                  onChange={(e) =>
+                    handleChange("companyInfo", "businessPhone", e.target.value)
+                  }
+                />
+              </div>
             </div>
             <div className="form-group">
               <label>Business Email</label>
-              <input
-                type="email"
-                className="form-control"
-                value={profileData.companyInfo?.businessEmail || ""}
-                onChange={(e) =>
-                  handleChange("companyInfo", "businessEmail", e.target.value)
-                }
-              />
+              <div className="input-container">
+                <i className="bi bi-envelope input-icon"></i>
+                <input
+                  type="email"
+                  className="form-control"
+                  value={profileData.companyInfo?.businessEmail || ""}
+                  onChange={(e) =>
+                    handleChange("companyInfo", "businessEmail", e.target.value)
+                  }
+                />
+              </div>
             </div>
           </div>
         );
@@ -336,41 +360,50 @@ const UserProfileModal = ({ show, onClose }) => {
           <div className="account-section-content">
             <div className="form-group">
               <label>Username</label>
-              <input
-                type="text"
-                className="form-control"
-                value={profileData.accountInfo?.username || ""}
-                onChange={(e) =>
-                  handleChange("accountInfo", "username", e.target.value)
-                }
-              />
+              <div className="input-container">
+                <i className="bi bi-person-check input-icon"></i>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={profileData.accountInfo?.username || ""}
+                  onChange={(e) =>
+                    handleChange("accountInfo", "username", e.target.value)
+                  }
+                />
+              </div>
             </div>
             <div className="form-group">
               <label>Email Address</label>
-              <input
-                type="email"
-                className="form-control"
-                value={
-                  profileData.accountInfo?.email ||
-                  profileData.other?.email ||
-                  ""
-                }
-                onChange={(e) =>
-                  handleChange("accountInfo", "email", e.target.value)
-                }
-              />
+              <div className="input-container">
+                <i className="bi bi-envelope input-icon"></i>
+                <input
+                  type="email"
+                  className="form-control"
+                  value={
+                    profileData.accountInfo?.email ||
+                    profileData.other?.email ||
+                    ""
+                  }
+                  onChange={(e) =>
+                    handleChange("accountInfo", "email", e.target.value)
+                  }
+                />
+              </div>
             </div>
             <div className="form-group">
               <label>Password</label>
-              <input
-                type="password"
-                className="form-control"
-                placeholder="New password"
-                value={profileData.accountInfo?.password || ""}
-                onChange={(e) =>
-                  handleChange("accountInfo", "password", e.target.value)
-                }
-              />
+              <div className="input-container">
+                <i className="bi bi-lock input-icon"></i>
+                <input
+                  type="password"
+                  className="form-control"
+                  placeholder="New password"
+                  value={profileData.accountInfo?.password || ""}
+                  onChange={(e) =>
+                    handleChange("accountInfo", "password", e.target.value)
+                  }
+                />
+              </div>
               <small className="form-text text-muted">
                 Note: Updating your password requires a separate process.
               </small>
@@ -382,16 +415,19 @@ const UserProfileModal = ({ show, onClose }) => {
           <div className="appearance-section-content">
             <div className="form-group">
               <label>Theme</label>
-              <select
-                className="form-control"
-                value={profileData.appearance?.theme || "light"}
-                onChange={(e) =>
-                  handleChange("appearance", "theme", e.target.value)
-                }
-              >
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-              </select>
+              <div className="input-container">
+                <i className="bi bi-palette input-icon"></i>
+                <select
+                  className="form-control"
+                  value={profileData.appearance?.theme || "light"}
+                  onChange={(e) =>
+                    handleChange("appearance", "theme", e.target.value)
+                  }
+                >
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </div>
             </div>
           </div>
         );
@@ -463,55 +499,70 @@ const UserProfileModal = ({ show, onClose }) => {
         </select>
       </div>
       <div className="user-profile-sidebar d-none d-md-block">
-        <ul className="nav flex-column">
+        <ul className="sidebar-list navigation">
           <li
-            className={`nav-item ${activeSection === "profile" ? "active" : ""}`}
+            className={`sidebar-list-item nav-item profile ${
+              activeSection === "profile" ? "active" : ""
+            }`}
           >
             <button
-              className="btn btn-link"
+              className="sidebar-link"
               onClick={() => setActiveSection("profile")}
             >
-              Profile
+              <i className="bi bi-person"></i>
+              <span>Profile</span>
             </button>
           </li>
           <li
-            className={`nav-item ${activeSection === "company" ? "active" : ""}`}
+            className={`sidebar-list-item nav-item company ${
+              activeSection === "company" ? "active" : ""
+            }`}
           >
             <button
-              className="btn btn-link"
+              className="sidebar-link"
               onClick={() => setActiveSection("company")}
             >
-              Company
+              <i className="bi bi-building"></i>
+              <span>Company</span>
             </button>
           </li>
           <li
-            className={`nav-item ${activeSection === "account" ? "active" : ""}`}
+            className={`sidebar-list-item nav-item account ${
+              activeSection === "account" ? "active" : ""
+            }`}
           >
             <button
-              className="btn btn-link"
+              className="sidebar-link"
               onClick={() => setActiveSection("account")}
             >
-              Account
+              <i className="bi bi-person-check"></i>
+              <span>Account</span>
             </button>
           </li>
           <li
-            className={`nav-item ${activeSection === "appearance" ? "active" : ""}`}
+            className={`sidebar-list-item nav-item appearance ${
+              activeSection === "appearance" ? "active" : ""
+            }`}
           >
             <button
-              className="btn btn-link"
+              className="sidebar-link"
               onClick={() => setActiveSection("appearance")}
             >
-              Appearance
+              <i className="bi bi-palette"></i>
+              <span>Appearance</span>
             </button>
           </li>
           <li
-            className={`nav-item ${activeSection === "notifications" ? "active" : ""}`}
+            className={`sidebar-list-item nav-item notifications ${
+              activeSection === "notifications" ? "active" : ""
+            }`}
           >
             <button
-              className="btn btn-link"
+              className="sidebar-link"
               onClick={() => setActiveSection("notifications")}
             >
-              Notifications
+              <i className="bi bi-bell"></i>
+              <span>Notifications</span>
             </button>
           </li>
         </ul>
@@ -547,6 +598,10 @@ const UserProfileModal = ({ show, onClose }) => {
       disableBackdropClick={true}
       leftContent={leftContent}
       rightContent={rightContent}
+      leftWidth="20%"
+      rightWidth="80%"
+      leftContainerPadding="0"
+      leftPanelClass="user-profile-left-panel"
     />
   );
 };

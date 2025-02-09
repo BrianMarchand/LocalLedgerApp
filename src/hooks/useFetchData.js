@@ -43,7 +43,10 @@ const useFetchData = (projectId) => {
 
   const fetchTransactions = async () => {
     try {
-      const transactionsRef = collection(db, `projects/${projectId}/transactions`);
+      const transactionsRef = collection(
+        db,
+        `projects/${projectId}/transactions`
+      );
       const transactionsSnap = await getDocs(transactionsRef);
 
       const transactionsData = transactionsSnap.docs.map((doc) => {

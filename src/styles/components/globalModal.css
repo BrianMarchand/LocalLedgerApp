@@ -11,6 +11,13 @@
   border-radius: 50px !important;
 }
 
+/* Override the default flex centering for the left panel when using the user profile modal */
+.global-modal-info.user-profile-left-panel {
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  padding: 0 !important;
+}
+
 /* Backdrop with dimming and blur */
 .global-modal-backdrop {
   background-color: rgba(71, 24, 67, 0.648) !important;

@@ -1,17 +1,20 @@
-// src/components/Sidebar.jsx
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import "../styles/components/Sidebar.css";
 import useMediaQuery from "../hooks/useMediaQuery";
 
-const Sidebar = ({ onAddProject, onAddTransaction, onAddCustomer }) => {
+const Sidebar = ({
+  onAddProject,
+  onAddTransaction,
+  onAddCustomer,
+  onAddNote, // New prop for triggering the global notes modal
+}) => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const location = useLocation();
 
-  // On mobile, default to collapsed; on desktop, default to expanded.
+  // Set collapsed state based on device
   const [collapsed, setCollapsed] = useState(isMobile ? true : false);
 
-  // When switching between mobile and desktop, update collapsed state.
   useEffect(() => {
     setCollapsed(isMobile ? true : false);
   }, [isMobile]);
@@ -29,6 +32,18 @@ const Sidebar = ({ onAddProject, onAddTransaction, onAddCustomer }) => {
       ? "bi-arrow-right-square" // Desktop: arrow icon when collapsed.
       : "bi-arrow-left-square"; // Desktop: arrow icon when expanded.
 
+  // Dynamically set the title based on the current location.
+  const getSidebarTitle = () => {
+    const path = location.pathname.toLowerCase();
+    if (path.includes("projects")) return "Projects";
+    if (path.includes("transaction")) return "Transactions";
+    if (path.includes("customers")) return "Customers";
+    // Default/fallback
+    return "Dashboard";
+  };
+
+  const sidebarTitle = getSidebarTitle();
+
   return (
     <div
       className={`sidebar ${collapsed ? "collapsed" : ""} ${
@@ -40,7 +55,7 @@ const Sidebar = ({ onAddProject, onAddTransaction, onAddCustomer }) => {
         {isMobile ? (
           // Mobile header: title on the left and toggle button on the right.
           <div className="header-mobile">
-            <h1 className="sidebar-title">Dashboard</h1>
+            <h1 className="sidebar-title">{sidebarTitle}</h1>
             <button
               className="toggle-btn btn btn-sm btn-outline-light"
               onClick={toggleSidebar}
@@ -48,9 +63,8 @@ const Sidebar = ({ onAddProject, onAddTransaction, onAddCustomer }) => {
               <i className={`bi ${iconClass}`}></i>
             </button>
           </div>
-        ) : // Desktop header:
-        collapsed ? (
-          // When collapsed, show only the toggle button centered.
+        ) : collapsed ? (
+          // When collapsed (desktop): show only the toggle button centered.
           <div className="header-collapsed">
             <button
               className="toggle-btn btn btn-sm btn-outline-light"
@@ -60,9 +74,9 @@ const Sidebar = ({ onAddProject, onAddTransaction, onAddCustomer }) => {
             </button>
           </div>
         ) : (
-          // When expanded, show title (left), a divider, and toggle button (right).
+          // When expanded (desktop): show title, a divider, and toggle button.
           <div className="header-content">
-            <h1 className="sidebar-title">Dashboard</h1>
+            <h1 className="sidebar-title">{sidebarTitle}</h1>
             <div className="header-divider" />
             <button
               className="toggle-btn btn btn-sm btn-outline-light"
@@ -133,11 +147,15 @@ const Sidebar = ({ onAddProject, onAddTransaction, onAddCustomer }) => {
                 <i className="bi bi-person-plus"></i>
                 <span>Add Customer</span>
               </li>
+              <li className="sidebar-list-item add-note" onClick={onAddNote}>
+                <i className="bi bi-sticky"></i>
+                <span>Add Note</span>
+              </li>
             </ul>
           </div>
         )
       ) : (
-        // Desktop: Always render full sidebar content (with text hidden when collapsed).
+        // Desktop: Always render full sidebar content.
         <>
           {/* Divider between header and content */}
           <hr className="sidebar-divider" />
@@ -196,6 +214,10 @@ const Sidebar = ({ onAddProject, onAddTransaction, onAddCustomer }) => {
             >
               <i className="bi bi-person-plus"></i>
               {!collapsed && <span>Add Customer</span>}
+            </li>
+            <li className="sidebar-list-item add-note" onClick={onAddNote}>
+              <i className="bi bi-sticky"></i>
+              {!collapsed && <span>Add Note</span>}
             </li>
           </ul>
         </>

@@ -1,3 +1,7 @@
+/* ============================= */
+/*      Modal Layout Styles      */
+/* ============================= */
+
 /* Base container for the modal content */
 .user-profile-modal-container {
   padding: 1rem;
@@ -9,49 +13,20 @@
   flex-direction: row;
 }
 
-/* Sidebar (desktop only) */
-.user-profile-sidebar {
-  width: 200px;
-  border-right: 1px solid #ddd;
-  padding: 1rem;
-}
-.user-profile-sidebar .nav-item {
-  margin: 0 !important;
-  border: none !important;
-  padding: 0 !important;
-}
-.user-profile-sidebar button {
-  box-shadow: none !important;
-  text-decoration: none !important;
-}
-.user-profile-sidebar button:hover {
-  box-shadow: none !important;
-}
-.user-profile-sidebar .nav-item.active button {
-  font-weight: bold;
-}
-
 /* Content area: fill remaining space */
 .user-profile-content {
   flex: 1;
   padding: 1rem;
+  min-height: 500px; /* adjust based on your design */
 }
 
-/* Add extra vertical spacing between content sections */
+/* Vertical spacing for content sections and form groups */
 .user-profile-content > .profile-section-content,
 .user-profile-content > .company-section-content,
 .user-profile-content > .account-section-content,
 .user-profile-content > .appearance-section-content,
-.user-profile-content > .notifications-section-content {
-  margin-bottom: 1.5rem; /* Adjust this value as needed */
-}
-
-/* Add extra vertical spacing between all content blocks (except the footer) */
-.user-profile-content > div:not(.modal-footer) {
-  margin-bottom: 1.5rem !important;
-}
-
-/* Optionally, ensure each form-group inside the content also has extra bottom margin */
+.user-profile-content > .notifications-section-content,
+.user-profile-content > div:not(.modal-footer),
 .user-profile-content .form-group {
   margin-bottom: 1.5rem !important;
 }
@@ -73,6 +48,51 @@
 .mobile-nav select {
   width: 100%;
 }
+
+/* Override icon alignment for textarea containers */
+.textarea-container .input-icon {
+  top: 0.5rem; /* Adjust this value as needed */
+  transform: none; /* Remove vertical centering transform */
+}
+
+/* ============================= */
+/*       Sidebar Container       */
+/* ============================= */
+
+/* Make sure the left panel container is flush */
+.user-profile-left {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Sidebar (desktop only) */
+.user-profile-sidebar {
+  width: 100%; /* fill parent's width */
+  margin: 0;
+  padding: 0;
+}
+
+/* Reset styles for nav items and buttons within the sidebar */
+.user-profile-sidebar .nav-item {
+  margin: 0 !important;
+  border: none !important;
+  padding: 0 !important;
+}
+.user-profile-sidebar button {
+  box-shadow: none !important;
+  text-decoration: none !important;
+}
+.user-profile-sidebar button:hover {
+  box-shadow: none !important;
+}
+.user-profile-sidebar .nav-item.active button {
+  font-weight: bold;
+}
+
+/* ============================= */
+/*       Media Queries           */
+/* ============================= */
 
 /* Mobile adjustments */
 @media (max-width: 576px) {
@@ -99,4 +119,106 @@
     margin: 0 auto;
     padding: 10px;
   }
+}
+
+/* ============================= */
+/*       Left Panel Gradient     */
+/* ============================= */
+
+.user-profile-left-panel {
+  background: linear-gradient(36deg, #64748b, #334154) !important;
+}
+
+/* ============================= */
+/*      Sidebar List Styles      */
+/* ============================= */
+
+/* Remove default list styling and force full width */
+.user-profile-sidebar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+/* Sidebar list items spacing and full width */
+.sidebar-list,
+.sidebar-list-item {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+.sidebar-list-item {
+  margin-bottom: 10px; /* Comfortable spacing between items */
+  display: flex;
+  align-items: center;
+}
+
+/* Sidebar links: full width, left aligned, no rounded corners */
+.user-profile-sidebar .sidebar-link {
+  display: block;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+  padding: 15px 15px; /* Vertical padding only */
+  border-radius: 0; /* Remove rounded corners */
+  transition: background-color 0.3s ease;
+  background: none;
+  border: none;
+  box-sizing: border-box;
+  position: relative;
+  text-align: left;
+}
+.user-profile-sidebar .sidebar-link i {
+  margin-right: 8px;
+  font-size: 1rem;
+}
+
+/* Hover and active states */
+.user-profile-sidebar .sidebar-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.sidebar-list-item.active .sidebar-link {
+  background-color: rgba(255, 255, 255, 0.2);
+  font-weight: bold;
+}
+
+/* Pseudo-element for the unique right border; hidden by default */
+.user-profile-sidebar .sidebar-link::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 4px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Reveal the right border on hover or when active */
+.user-profile-sidebar .sidebar-link:hover::after,
+.sidebar-list-item.active .sidebar-link::after {
+  opacity: 1;
+}
+
+/* Unique right border colors per navigation item */
+/* Profile */
+.sidebar-list-item.nav-item.profile .sidebar-link::after {
+  background-color: #ff5733;
+}
+/* Company */
+.sidebar-list-item.nav-item.company .sidebar-link::after {
+  background-color: #33aaff;
+}
+/* Account */
+.sidebar-list-item.nav-item.account .sidebar-link::after {
+  background-color: #33ff77;
+}
+/* Appearance */
+.sidebar-list-item.nav-item.appearance .sidebar-link::after {
+  background-color: #aa33ff;
+}
+/* Notifications */
+.sidebar-list-item.nav-item.notifications .sidebar-link::after {
+  background-color: #ffaa33;
 }

@@ -7,10 +7,13 @@ const GlobalModal = ({
   onClose,
   title,
   disableBackdropClick,
-  // New props for split layout:
   split = true,
   leftContent,
   rightContent,
+  leftWidth = "50%",
+  rightWidth = "50%",
+  leftContainerPadding = "2rem",
+  leftPanelClass = "",
   children,
   ...props
 }) => {
@@ -34,11 +37,18 @@ const GlobalModal = ({
           <Modal.Title>{title}</Modal.Title>
         </Modal.Header>
       )}
-      <Modal.Body>
+      <Modal.Body className="p-0">
         {split ? (
           <div className="global-modal-container">
-            <div className="global-modal-info">{leftContent}</div>
-            <div className="global-modal-form">{rightContent}</div>
+            <div
+              className={`global-modal-info ${leftPanelClass}`}
+              style={{ width: leftWidth, padding: leftContainerPadding }}
+            >
+              {leftContent}
+            </div>
+            <div className="global-modal-form" style={{ width: rightWidth }}>
+              {rightContent}
+            </div>
           </div>
         ) : (
           children

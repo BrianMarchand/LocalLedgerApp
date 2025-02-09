@@ -1,6 +1,9 @@
-// --- Page: FinancialSummary.jsx --- 
-
+// --- File: FinancialSummary.jsx ---
 import React from "react";
+
+// Helper function to ensure a safe number value
+const safeNumber = (value) =>
+  typeof value === "number" && !isNaN(value) ? value : 0;
 
 const FinancialSummary = ({
   formatCurrency,
@@ -39,57 +42,65 @@ const FinancialSummary = ({
             <i className="bi bi-cash-coin me-2"></i>
             <strong>Total Income:</strong>
             <span className="ms-2 text-success">
-              {formatCurrency(cashReceived ?? 0)}
+              {formatCurrency(safeNumber(cashReceived))}
             </span>
           </li>
           <li>
             <i className="bi bi-cart-dash me-2"></i>
             <strong>Total Expenses:</strong>
             <span className="ms-2 text-danger">
-              {formatCurrency(cashSpent ?? 0)}
+              {formatCurrency(safeNumber(cashSpent))}
             </span>
           </li>
           <li>
             <i className="bi bi-wallet2 me-2"></i>
             <strong>Remaining Budget:</strong>
-            <span className="ms-2">{formatCurrency(remainingBudget)}</span>
+            <span className="ms-2">
+              {formatCurrency(safeNumber(remainingBudget))}
+            </span>
           </li>
           <li>
             <i className="bi bi-bank me-2"></i>
             <strong>Available Funds:</strong>
-            <span className="ms-2">{formatCurrency(availableFunds)}</span>
+            <span className="ms-2">
+              {formatCurrency(safeNumber(availableFunds))}
+            </span>
           </li>
           <li>
             <i className="bi bi-cash-stack me-2"></i>
             <strong>Remaining Client Payment:</strong>
             <span className="ms-2">
-              {formatCurrency(remainingClientPayment)}
+              {formatCurrency(safeNumber(remainingClientPayment))}
             </span>
           </li>
           <li>
             <i className="bi bi-coin me-2"></i>
             <strong>Profit (Net Balance):</strong>
             <span
-              className={`ms-2 ${profit >= 0 ? "text-success" : "text-danger"}`}
+              className={`ms-2 ${
+                safeNumber(profit) >= 0 ? "text-success" : "text-danger"
+              }`}
             >
-              {formatCurrency(profit)}
+              {formatCurrency(safeNumber(profit))}
             </span>
           </li>
           <hr />
           <li>
             <i className="bi bi-bar-chart-line me-2"></i>
             <strong>Budget Spent:</strong>
-            <span className="ms-2">{budgetSpentPercent ?? 0}%</span>
+            <span className="ms-2">{safeNumber(budgetSpentPercent)}%</span>
           </li>
           <li>
             <i className="bi bi-list-check me-2"></i>
             <strong>Total Transactions:</strong>
-            <span className="ms-2">{totalTransactions ?? 0}</span>
+            <span className="ms-2">{safeNumber(totalTransactions)}</span>
           </li>
           <li>
             <i className="bi bi-calendar-check me-2"></i>
             <strong>Days in Progress:</strong>
-            <span className="ms-2">{Math.floor(daysInProgress) ?? 0}</span>
+            <span className="ms-2">
+              {Math.floor(safeNumber(daysInProgress))}
+            </span>
           </li>
         </ul>
       </div>

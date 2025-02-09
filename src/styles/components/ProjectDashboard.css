@@ -1,0 +1,15 @@
+/* Ensure the outer dashboard wrappers use the full width */
+.dashboard-main-container,
+.dashboard-content-container,
+.dashboard-content {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Override the Bootstrap container used in the content area */
+.dashboard-content > .container {
+  max-width: 100% !important;
+  width: 100%;
+  padding: 20px;
+}

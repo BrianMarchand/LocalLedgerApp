@@ -1,0 +1,79 @@
+/* 
+  Styles for the left (navigation) panel in the NotesModal 
+*/
+.notes-modal-left {
+  padding: 1rem;
+  background-color: #f8f9fa; /* Light grey background */
+  border-right: 1px solid #dee2e6;
+  height: 100%;
+}
+
+.notes-modal-sidebar {
+  margin-top: 1rem;
+}
+
+.notes-modal-sidebar ul.sidebar-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.notes-modal-sidebar ul.sidebar-list li {
+  margin-bottom: 0.5rem;
+}
+
+.notes-modal-sidebar ul.sidebar-list li button {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.5rem 1rem;
+  color: #495057;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.notes-modal-sidebar ul.sidebar-list li button:hover,
+.notes-modal-sidebar ul.sidebar-list li.active button {
+  background-color: #e9ecef;
+  color: #212529;
+}
+
+/* 
+    Styles for the right (content) panel in the NotesModal 
+  */
+.notes-modal-content {
+  padding: 1.5rem;
+  /* Optional: set a minimum height or other layout properties */
+}
+
+.notes-modal-header {
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.notes-modal-body {
+  /* Allow scrolling if content is too tall */
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+/* 
+    Mobile navigation adjustments
+  */
+.notes-modal-left .mobile-nav select.form-select {
+  width: 100%;
+  font-size: 1rem;
+  padding: 0.5rem;
+}
+
+/* 
+    Optional: Adjust spacing for the left panel if GlobalModal passes a specific class 
+  */
+.notes-modal-left-panel {
+  /* This class is added via the leftPanelClass prop in GlobalModal */
+  padding: 0;
+}

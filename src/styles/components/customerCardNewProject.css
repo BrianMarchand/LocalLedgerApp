@@ -1,0 +1,68 @@
+/* src/styles/components/customerCard.css */
+.customer-card-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 35%;
+  min-width: 300px;
+  height: 100%;
+  background: #fff;
+  box-shadow: -3px 0 6px rgba(0, 0, 0, 0.2);
+  z-index: 1050; /* Ensure it overlays the modal content */
+  padding: 1.5rem; /* Increased padding for breathing room */
+  overflow-y: auto;
+  /* Initially offscreen to the right */
+  transform: translateX(100%);
+  transition: transform 0.4s ease-in-out;
+}
+
+/* When activated, slide the card into view */
+.customer-card-container.active {
+  transform: translateX(0);
+}
+
+.customer-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.customer-card-header h4 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.customer-card-progress {
+  margin-bottom: 1.5rem;
+}
+
+.progress {
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.progress-bar {
+  height: 100%;
+  background: #007bff;
+}
+
+/* Improve spacing between form fields */
+.customer-card-form .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.customer-card-form .form-control {
+  padding: 0.75rem;
+  font-size: 1rem;
+}
