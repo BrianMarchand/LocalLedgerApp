@@ -356,6 +356,28 @@ const Dashboard = () => {
               Manage Customers
             </Link>
           </div>
+          <div className="dashboard-card card-list">
+            <div className="card-header">
+              <i className="bi bi-card-checklist"></i>
+              <span>Total Lists</span>
+            </div>
+            <div className="dashboard-count">{totalCustomers}</div>
+            <hr className="card-divider" />
+            <Link to="" className="card-link">
+              Manage Lists
+            </Link>
+          </div>
+          <div className="dashboard-card card-summary">
+            <div className="card-header">
+              <i className="bi bi-calculator"></i>
+              <span>Total Summaries</span>
+            </div>
+            <div className="dashboard-count">{totalCustomers}</div>
+            <hr className="card-divider" />
+            <Link to="" className="card-link">
+              Manage Summaries
+            </Link>
+          </div>
         </div>
         <div className="dashboard-grid">
           <div className="dashboard-card">

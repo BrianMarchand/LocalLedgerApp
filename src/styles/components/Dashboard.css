@@ -13,6 +13,10 @@
   flex: 1;
   padding: 20px;
 }
+/* Content container (the main dashboard area) */
+.dashboard-content-container .container-fluid {
+  padding: 0;
+}
 
 /* Header within the dashboard content */
 .dashboard-header {
@@ -54,7 +58,7 @@
   padding: 20px;
   border-radius: 10px; /* increased rounding */
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
+  margin-bottom: 5px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -91,6 +95,13 @@
 
 .card-customers::before {
   background-color: #1bceb4;
+}
+.card-list::before {
+  background-color: #5b54e0;
+}
+
+.card-summary::before {
+  background-color: #bc7eb9;
 }
 
 .card-activity::before {

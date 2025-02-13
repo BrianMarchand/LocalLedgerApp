@@ -219,6 +219,7 @@
 .quick-actions li.add-customer {
   background-color: rgba(27, 206, 180, 1) !important;
   border-radius: 4px !important;
+  margin: 10px 0 10px !important;
   transition:
     background-color 0.5s ease,
     color 0.5s ease;
@@ -228,6 +229,42 @@
   color: rgba(51, 65, 84, 1) !important;
 }
 .quick-actions li.add-customer:active {
+  background-color: rgba(228, 230, 234, 1) !important;
+  color: rgba(51, 65, 84, 1) !important;
+}
+
+/* Add Note (Skylite Blue: HEX #5B54E0) */
+.quick-actions li.add-note {
+  background-color: rgba(91, 84, 224, 1) !important;
+  border-radius: 4px !important;
+  margin: 10px 0 10px !important;
+
+  transition:
+    background-color 0.5s ease,
+    color 0.5s ease;
+}
+.quick-actions li.add-note:hover {
+  background-color: rgba(228, 230, 234, 1) !important;
+  color: rgba(51, 65, 84, 1) !important;
+}
+.quick-actions li.add-note:active {
+  background-color: rgba(228, 230, 234, 1) !important;
+  color: rgba(51, 65, 84, 1) !important;
+}
+
+/* Add Summary (Brick Red: HEX #BC7EB9) */
+.quick-actions li.add-summary {
+  background-color: rgba(188, 126, 185, 1) !important;
+  border-radius: 4px !important;
+  transition:
+    background-color 0.5s ease,
+    color 0.5s ease;
+}
+.quick-actions li.add-summary:hover {
+  background-color: rgba(228, 230, 234, 1) !important;
+  color: rgba(51, 65, 84, 1) !important;
+}
+.quick-actions li.add-summary:active {
   background-color: rgba(228, 230, 234, 1) !important;
   color: rgba(51, 65, 84, 1) !important;
 }
@@ -282,7 +319,6 @@
 .navigation li.nav-item.customers .sidebar-link.active {
   color: rgba(100, 116, 139, 0.4);
 }
-
 /* In collapsed mode, adjust navigation link styles */
 .sidebar .navigation .sidebar-list-item {
   padding: 0 !important;

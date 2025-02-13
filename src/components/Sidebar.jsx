@@ -199,25 +199,29 @@ const Sidebar = ({
               onClick={onAddProject}
             >
               <i className="bi bi-plus-square"></i>
-              {!collapsed && <span>Add Project</span>}
+              {!collapsed && <span>New Project</span>}
             </li>
             <li
               className="sidebar-list-item add-transaction"
               onClick={onAddTransaction}
             >
               <i className="bi bi-plus-circle"></i>
-              {!collapsed && <span>Add Transaction</span>}
+              {!collapsed && <span>New Transaction</span>}
             </li>
             <li
               className="sidebar-list-item add-customer"
               onClick={onAddCustomer}
             >
               <i className="bi bi-person-plus"></i>
-              {!collapsed && <span>Add Customer</span>}
+              {!collapsed && <span>New Customer</span>}
             </li>
             <li className="sidebar-list-item add-note" onClick={onAddNote}>
               <i className="bi bi-sticky"></i>
-              {!collapsed && <span>Add Note</span>}
+              {!collapsed && <span>New List</span>}
+            </li>
+            <li className="sidebar-list-item add-summary">
+              <i className="bi bi-calculator"></i>
+              {!collapsed && <span>New Summary</span>}
             </li>
           </ul>
         </>

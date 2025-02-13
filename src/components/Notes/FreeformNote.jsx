@@ -1,3 +1,4 @@
+// File: src/components/Notes/FreeformNote.jsx
 import React, {
   useRef,
   useState,
@@ -5,146 +6,237 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import { ReactSketchCanvas } from "react-sketch-canvas";
-import "./NotesStyles.css";
+import SketchCanvasWrapper from "./SketchCanvasWrapper";
+import "../../styles/components/notesModal.css";
 import { db } from "@config";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import Swal from "sweetalert2";
 
-const FreeformNote = forwardRef(({ projectId, showNotes, onChange }, ref) => {
-  const canvasRef = useRef(null);
-  const [loading, setLoading] = useState(false);
+const FreeformNote = forwardRef(
+  ({ projectId, onChange, onAutoSaving }, ref) => {
+    const canvasRef = useRef(null);
+    const [loading, setLoading] = useState(false);
+    const [initialPaths, setInitialPaths] = useState("[]");
+    const [ignoreStrokeEvents, setIgnoreStrokeEvents] = useState(false);
 
-  // When the projectId changes, clear the canvas then load the note for that project
-  useEffect(() => {
-    const loadNote = async () => {
-      setLoading(true);
-      try {
-        if (canvasRef.current) {
-          // Clear previous strokes so notes don't merge across projects
-          canvasRef.current.clearCanvas();
-          console.log("Canvas cleared due to project change");
+    // Ref to store the auto-save timer.
+    const autoSaveTimerRef = useRef(null);
+
+    if (!projectId) {
+      return (
+        <div className="alert alert-info">
+          <i className="bi bi-info-circle mx-2"></i>
+          <span>
+            Please select a project from the dropdown above to view and edit
+            freeform notes.
+          </span>
+        </div>
+      );
+    }
+
+    // Load the saved note when projectId changes.
+    useEffect(() => {
+      const loadNote = async () => {
+        setLoading(true);
+        setIgnoreStrokeEvents(true);
+        try {
+          const noteRef = doc(db, "projects", projectId, "notes", "freeform");
+          const noteDoc = await getDoc(noteRef);
+          if (noteDoc.exists() && canvasRef.current) {
+            const storedPaths = noteDoc.data().paths;
+            await canvasRef.current.loadPaths(storedPaths);
+            const loadedPaths = await canvasRef.current.exportPaths();
+            setInitialPaths(loadedPaths);
+            if (typeof onChange === "function") {
+              onChange(false);
+            }
+          }
+        } catch (error) {
+          console.error("Error loading note:", error);
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "There was an error loading your note.",
+          });
+        } finally {
+          setTimeout(() => {
+            setIgnoreStrokeEvents(false);
+          }, 600);
+          setLoading(false);
         }
-        const noteRef = doc(db, "projects", projectId, "notes", "freeform");
-        const noteDoc = await getDoc(noteRef);
-        if (canvasRef.current && noteDoc.exists()) {
-          canvasRef.current.loadPaths(noteDoc.data().paths);
-          console.log("Loaded note for project:", projectId);
-          if (onChange) onChange(false); // No unsaved changes immediately after loading
-        } else {
-          if (onChange) onChange(false);
-          console.log("No saved note for project:", projectId);
+      };
+      loadNote();
+    }, [projectId]);
+
+    // Check if the canvas has changed.
+    const checkCanvasChanges = async () => {
+      if (!canvasRef.current || loading || ignoreStrokeEvents) return;
+      try {
+        const currentPaths = await canvasRef.current.exportPaths();
+        if (currentPaths !== initialPaths && typeof onChange === "function") {
+          onChange(true);
         }
       } catch (error) {
-        console.error("Error loading note:", error);
-        await Swal.fire({
-          target: document.body,
-          icon: "error",
-          title: "Error",
-          text: "There was an error loading your note.",
-        });
-      } finally {
-        setLoading(false);
+        console.error("Error checking canvas changes:", error);
       }
     };
 
-    if (projectId) {
-      loadNote();
-    }
-  }, [projectId, onChange]);
+    // Debounce auto-save using the onChange event.
+    const handleCanvasChange = async () => {
+      console.log("handleCanvasChange triggered");
+      await checkCanvasChanges();
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+      autoSaveTimerRef.current = setTimeout(() => {
+        console.log("Auto-save timer fired from onChange");
+        saveNoteInternal(true);
+      }, 3000);
+    };
 
-  // Expose the saveNote method so the parent can trigger saving
-  const saveNote = async () => {
-    try {
-      const paths = await canvasRef.current.exportPaths();
-      await setDoc(doc(db, "projects", projectId, "notes", "freeform"), {
-        paths,
-      });
-      console.log("Note saved for project:", projectId);
-      if (onChange) onChange(false); // Reset unsaved changes flag after saving
-      await Swal.fire({
-        target: document.body,
-        icon: "success",
-        title: "Note Saved",
-        text: "Your freeform note has been saved successfully.",
-      });
-    } catch (error) {
-      console.error("Error saving note:", error);
-      await Swal.fire({
-        target: document.body,
-        icon: "error",
-        title: "Error",
-        text: "There was an error saving your note.",
-      });
-    }
-  };
+    // (Optional) You can also keep onStrokeEnd for other purposes.
+    const handleStrokeEnd = async () => {
+      console.log("handleStrokeEnd triggered");
+      // We clear and reset the timer here too.
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+      autoSaveTimerRef.current = setTimeout(() => {
+        console.log("Auto-save timer fired from onStrokeEnd");
+        saveNoteInternal(true);
+      }, 3000);
+    };
 
-  useImperativeHandle(ref, () => ({
-    saveNote,
-  }));
+    const handleClear = () => {
+      if (canvasRef.current) {
+        canvasRef.current.clearCanvas();
+        if (typeof onChange === "function") {
+          onChange(true);
+        }
+      }
+    };
 
-  const clearCanvas = () => {
-    if (canvasRef.current) {
-      canvasRef.current.clearCanvas();
-      console.log("Canvas manually cleared");
-      if (onChange) onChange(true); // Mark as unsaved since the user cleared the canvas
-    }
-  };
+    // Central save function. isAutoSave indicates if this is an auto-save.
+    const saveNoteInternal = async (isAutoSave = false) => {
+      if (!canvasRef.current) return;
+      try {
+        if (isAutoSave && typeof onAutoSaving === "function") {
+          onAutoSaving(true);
+          // (Optional) simulate a delay if needed
+          // await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+        let paths;
+        try {
+          paths = await canvasRef.current.exportPaths();
+        } catch (error) {
+          if (error.message && error.message.includes("No stroke found")) {
+            paths = "[]";
+          } else {
+            throw error;
+          }
+        }
+        await setDoc(
+          doc(db, "projects", projectId, "notes", "freeform"),
+          { paths },
+          { merge: true }
+        );
+        let savedPaths;
+        try {
+          savedPaths = await canvasRef.current.exportPaths();
+        } catch (error) {
+          if (error.message && error.message.includes("No stroke found")) {
+            savedPaths = "[]";
+          } else {
+            throw error;
+          }
+        }
+        setInitialPaths(savedPaths);
+        if (typeof onChange === "function") {
+          onChange(false);
+        }
+        // For manual save, trigger the Swal message and wait for it to close.
+        if (!isAutoSave) {
+          await Swal.fire({
+            icon: "success",
+            title: "Note Saved",
+            text: "Your freeform note has been saved successfully.",
+          });
+        }
+        return savedPaths;
+      } catch (error) {
+        console.error("Error saving note:", error);
+        if (!isAutoSave) {
+          await Swal.fire({
+            icon: "error",
+            title: "Save Failed",
+            text: "An error occurred while saving your note.",
+          });
+        }
+        throw error;
+      } finally {
+        if (isAutoSave && typeof onAutoSaving === "function") {
+          onAutoSaving(false);
+        }
+      }
+    };
 
-  // Extra handler: When user releases the mouse anywhere in the container,
-  // mark unsaved changes as true.
-  const handleMouseUp = () => {
-    console.log("Mouse up detected, marking unsaved changes as true");
-    if (onChange) onChange(true);
-  };
+    useImperativeHandle(ref, () => ({
+      exportPaths: async () =>
+        canvasRef.current ? await canvasRef.current.exportPaths() : null,
+      loadPaths: async (paths) =>
+        canvasRef.current ? await canvasRef.current.loadPaths(paths) : null,
+      clearCanvas: () => {
+        if (canvasRef.current) canvasRef.current.clearCanvas();
+      },
+      // When manually saving, we clear any pending auto-save timer and call saveNoteInternal with isAutoSave false.
+      saveNote: async () => {
+        if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
+        }
+        return await saveNoteInternal(false);
+      },
+    }));
 
-  useEffect(() => {
-    if (!showNotes && canvasRef.current) {
-      clearCanvas();
-    }
-  }, [showNotes]);
-
-  return (
-    <div className="freeform-note-container" onMouseUp={handleMouseUp}>
-      {!projectId ? (
-        <div className="alert alert-info">
-          Please select a project from the dropdown above to view and edit
-          freeform notes.
-        </div>
-      ) : (
-        <>
-          {loading && <p>Loading...</p>}
-          <ReactSketchCanvas
-            ref={canvasRef}
-            style={{ border: "1px solid #ccc", borderRadius: "8px" }}
-            strokeWidth={2}
-            strokeColor="black"
-            canvasColor="#fff"
-            width="100%"
-            height="400px"
-            onUpdatePaths={() => {
-              console.log(
-                "onUpdatePaths triggered, marking unsaved changes as true"
-              );
-              if (onChange) onChange(true);
+    return (
+      <div style={{ width: "100%", height: "400px", position: "relative" }}>
+        <SketchCanvasWrapper
+          ref={canvasRef}
+          style={{
+            border: "1px solid #ccc",
+            borderRadius: "8px",
+            width: "100%",
+          }}
+          strokeWidth={2}
+          strokeColor="black"
+          canvasColor="#fff"
+          width="100%"
+          height="400px"
+          onStrokeEnd={handleStrokeEnd}
+          onChange={handleCanvasChange}
+          tabIndex="0"
+        />
+        {loading && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "400px",
+              background: "rgba(255,255,255,0.8)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10,
+              transition: "opacity 0.3s ease",
             }}
-            onEndStroke={() => {
-              console.log(
-                "onEndStroke triggered, marking unsaved changes as true"
-              );
-              if (onChange) onChange(true);
-            }}
-          />
-          <div className="note-actions">
-            {/* Remove internal Save button so that overall modal Save is used */}
-            <button className="btn btn-secondary" onClick={clearCanvas}>
-              Clear
-            </button>
+          >
+            <p style={{ margin: 0 }}>Loading...</p>
           </div>
-        </>
-      )}
-    </div>
-  );
-});
+        )}
+      </div>
+    );
+  }
+);
 
 export default FreeformNote;

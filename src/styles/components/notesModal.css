@@ -1,79 +1,120 @@
-/* 
-  Styles for the left (navigation) panel in the NotesModal 
-*/
+/* ============================= */
+/*       NotesModal Styles       */
+/* ============================= */
+
+/* Left Panel Wrapper with Blue Gradient */
+.notes-modal-left-panel {
+  background: linear-gradient(36deg, #64748b, #334154) !important;
+  padding: 0;
+}
+
+.notes-modal-left-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start !important;
+  align-items: flex-start !important;
+  padding-top: 0;
+}
+
+/* The left panel container itself */
 .notes-modal-left {
-  padding: 1rem;
-  background-color: #f8f9fa; /* Light grey background */
-  border-right: 1px solid #dee2e6;
-  height: 100%;
-}
-
-.notes-modal-sidebar {
-  margin-top: 1rem;
-}
-
-.notes-modal-sidebar ul.sidebar-list {
-  list-style: none;
+  width: 100%;
   padding: 0;
   margin: 0;
 }
 
-.notes-modal-sidebar ul.sidebar-list li {
-  margin-bottom: 0.5rem;
+/* Sidebar Container */
+.notes-modal-sidebar {
+  display: block !important; /* remove any flex layout if present */
+  width: 100% !important;
+  margin-top: 0;
+  padding-top: 0;
 }
 
-.notes-modal-sidebar ul.sidebar-list li button {
+/* Sidebar List */
+.notes-modal-sidebar ul.sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   width: 100%;
-  text-align: left;
-  background: none;
+}
+
+/* Sidebar List Items */
+.notes-modal-sidebar .sidebar-list-item {
+  width: 100%;
+  margin: 0 0 10px 0;
+  padding: 0;
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+}
+
+/* Sidebar Links */
+.notes-modal-sidebar .sidebar-link {
+  display: block;
+  width: 100%;
+  text-decoration: none;
+  color: #ffffff;
+  padding: 15px;
   border: none;
-  padding: 0.5rem 1rem;
-  color: #495057;
-  font-size: 1rem;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  background: none;
+  text-align: left;
+  transition: background-color 0.3s ease;
+  box-sizing: border-box;
+  position: relative;
 }
 
-.notes-modal-sidebar ul.sidebar-list li button:hover,
-.notes-modal-sidebar ul.sidebar-list li.active button {
-  background-color: #e9ecef;
-  color: #212529;
+/* Hover and Active States */
+.notes-modal-sidebar .sidebar-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.notes-modal-sidebar .sidebar-list-item.active .sidebar-link {
+  background-color: rgba(255, 255, 255, 0.2);
+  font-weight: bold;
 }
 
-/* 
-    Styles for the right (content) panel in the NotesModal 
-  */
+/* Pseudo-element for Right-Side Colored Border */
+.notes-modal-sidebar .sidebar-link::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 4px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.notes-modal-sidebar .sidebar-link:hover::after,
+.notes-modal-sidebar .sidebar-list-item.active .sidebar-link::after {
+  opacity: 1;
+}
+
+/* Unique Border Colors for Each Navigation Item */
+.notes-modal-sidebar .sidebar-list-item.freeform .sidebar-link::after {
+  background-color: #ff5733;
+}
+.notes-modal-sidebar .sidebar-list-item.shoppingList .sidebar-link::after {
+  background-color: #33aaff;
+}
+.notes-modal-sidebar .sidebar-list-item.miniNotes .sidebar-link::after {
+  background-color: #ffaa33;
+}
+
+/* Right Panel (Content) */
 .notes-modal-content {
   padding: 1.5rem;
-  /* Optional: set a minimum height or other layout properties */
+  min-height: 500px;
 }
 
+/* Modal Header */
 .notes-modal-header {
   border-bottom: 1px solid #dee2e6;
   padding-bottom: 1rem;
   margin-bottom: 1rem;
 }
 
+/* Modal Body */
 .notes-modal-body {
-  /* Allow scrolling if content is too tall */
   max-height: 60vh;
   overflow-y: auto;
-}
-
-/* 
-    Mobile navigation adjustments
-  */
-.notes-modal-left .mobile-nav select.form-select {
-  width: 100%;
-  font-size: 1rem;
-  padding: 0.5rem;
-}
-
-/* 
-    Optional: Adjust spacing for the left panel if GlobalModal passes a specific class 
-  */
-.notes-modal-left-panel {
-  /* This class is added via the leftPanelClass prop in GlobalModal */
-  padding: 0;
 }
