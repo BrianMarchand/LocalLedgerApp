@@ -21,7 +21,6 @@ import ErrorBoundary from "../../components/ErrorBoundary";
 import ProjectDetailsCard from "../ProjectDetailsCard";
 import useFetchData from "../../hooks/useFetchData";
 import { formatCurrency } from "../../utils/formatUtils";
-import QuickActions from "../../components/QuickActions";
 import { useProjects } from "../../context/ProjectsContext";
 import Swal from "sweetalert2";
 import AddProjectModal from "../../components/AddProjectModal";
@@ -47,43 +46,9 @@ function ProjectDashboard() {
   const [reversionHandled, setReversionHandled] = useState(false);
   const prevTransactionsRef = useRef(transactions);
 
-  const [recentActivities, setRecentActivities] = useState([]);
-
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
-
-  useEffect(() => {
-    const activitiesQuery = query(
-      collection(db, "activity"),
-      orderBy("timestamp", "desc"),
-      limit(3)
-    );
-    const unsubscribe = onSnapshot(activitiesQuery, (snapshot) => {
-      const activitiesList = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setRecentActivities(activitiesList);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const formatActivity = (activity) => {
-    const dateStr = activity.timestamp
-      ? new Date(activity.timestamp.seconds * 1000).toLocaleDateString(
-          "en-US",
-          {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          }
-        )
-      : "";
-    const eventType = activity.title || "Event";
-    const message = activity.description || "";
-    return { dateStr, eventType, message };
-  };
 
   const parseAmount = (amount) => {
     const parsed = parseFloat(amount);
@@ -391,9 +356,6 @@ function ProjectDashboard() {
             <h1 className="dashboard-title">
               {project?.name || "Project Details"}
             </h1>
-            <button className="btn btn-link" onClick={handleRefresh}>
-              <i className="bi bi-arrow-clockwise"></i> Refresh
-            </button>
           </div>
           <div className="quick-actions-wrapper">
             <button
@@ -401,9 +363,8 @@ function ProjectDashboard() {
               onClick={() => setShowNotes(true)}
               aria-label="Add a note to this project"
             >
-              <i className="bi bi-sticky"></i> Add Note
+              <i className="bi bi-sticky"></i> View / Add Notes
             </button>
-            <QuickActions onAddProject={() => {}} onAddTransaction={() => {}} />
           </div>
         </div>
 
@@ -488,8 +449,6 @@ function ProjectDashboard() {
   return (
     <Layout
       pageTitle="Project Dashboard"
-      activities={recentActivities}
-      formatActivity={formatActivity}
       onAddProject={() => setShowProjectModal(true)}
       onAddTransaction={() => setShowTransactionModal(true)}
       onAddCustomer={() => setShowCustomerModal(true)}

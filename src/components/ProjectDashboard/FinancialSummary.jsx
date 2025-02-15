@@ -9,6 +9,7 @@ const FinancialSummary = ({
   formatCurrency,
   cashReceived,
   cashSpent,
+  totalExpenses,
   remainingBudget,
   availableFunds,
   remainingClientPayment,
@@ -49,7 +50,7 @@ const FinancialSummary = ({
             <i className="bi bi-cart-dash me-2"></i>
             <strong>Total Expenses:</strong>
             <span className="ms-2 text-danger">
-              {formatCurrency(safeNumber(cashSpent))}
+              {formatCurrency(safeNumber(totalExpenses))}
             </span>
           </li>
           <li>

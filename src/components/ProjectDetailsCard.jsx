@@ -1,9 +1,7 @@
-// -- Page: ProjectDetailsCard.jsx --
-
+// File: src/pages/ProjectDetailsCard.jsx
 import React, { useEffect, useState } from "react";
 import { calculateProgress } from "../utils/progressUtils"; // Import utility
 import { getBadgeClass, getBadgeLabel } from "../utils/badgeUtils";
-import { useProjects } from "../context/ProjectsContext";
 import { validateStatusTransition } from "../utils/statusValidation";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
@@ -17,9 +15,8 @@ import {
 import { db } from "@config";
 
 const ProjectDetailsCard = ({ project, transactions = [] }) => {
-  console.log("ProjectDetailsCard Loaded:", project); // Log the project details as received
+  console.log("ProjectDetailsCard Loaded:", project);
 
-  // **State to Hold Transactions After Validation**
   const [validTransactions, setValidTransactions] = useState([]);
   const [progressData, setProgressData] = useState({
     percentage: 0,
@@ -27,24 +24,31 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
     income: 0,
     expenses: 0,
   });
+  // State to hold customer info (fetched using project.customerId)
+  const [customerInfo, setCustomerInfo] = useState(null);
 
+  // For status dropdown functionality
+  const [projectDetails, setProjectDetails] = useState(project);
+  const [selectedStatus, setSelectedStatus] = useState(projectDetails.status);
+
+  // Flag to differentiate Fixed Budget from T&M projects
+  const isFixedBudget = project.projectType === "fixed";
+
+  // Fetch the complete project details (including transactions)
   const fetchProjectById = async (id) => {
     try {
       const docRef = doc(db, "projects", id);
       const docSnap = await getDoc(docRef);
-
       if (docSnap.exists()) {
-        const project = { id: docSnap.id, ...docSnap.data() };
-
+        const projectData = { id: docSnap.id, ...docSnap.data() };
         // Fetch transactions
         const transactionsRef = collection(db, `projects/${id}/transactions`);
         const transactionsSnapshot = await getDocs(transactionsRef);
-        project.transactions = transactionsSnapshot.docs.map((txn) => ({
+        projectData.transactions = transactionsSnapshot.docs.map((txn) => ({
           id: txn.id,
           ...txn.data(),
         }));
-
-        return project;
+        return projectData;
       } else {
         throw new Error("Project not found");
       }
@@ -54,80 +58,150 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
     }
   };
 
+  // Fetch customer info based on project.customerId
+  useEffect(() => {
+    const fetchCustomer = async () => {
+      if (project && project.customerId) {
+        try {
+          const customerRef = doc(db, "customers", project.customerId);
+          const customerSnap = await getDoc(customerRef);
+          if (customerSnap.exists()) {
+            setCustomerInfo(customerSnap.data());
+          } else {
+            setCustomerInfo(null);
+          }
+        } catch (error) {
+          console.error("Error fetching customer info:", error);
+          setCustomerInfo(null);
+        }
+      }
+    };
+    fetchCustomer();
+  }, [project]);
+
+  // Fetch transactions and calculate progress
   useEffect(() => {
     const fetchUpdatedTransactions = async () => {
       const transactionsRef = collection(
         db,
-        `projects/${project.id}/transactions`,
+        `projects/${project.id}/transactions`
       );
       const transactionsSnapshot = await getDocs(transactionsRef);
-
-      const validTransactions = transactionsSnapshot.docs.map((txn) => ({
+      const allTransactions = transactionsSnapshot.docs.map((txn) => ({
         id: txn.id,
         ...txn.data(),
       }));
-
-      const result = calculateProgress(project.budget, validTransactions);
-      setProgressData(result); // Update progress
+      const result = calculateProgress(project.budget, allTransactions);
+      setProgressData(result);
     };
+    fetchUpdatedTransactions();
+  }, [project.id]);
 
-    fetchUpdatedTransactions(); // Fetch transactions on load
-  }, [project.id]); // Dependency on project ID
-
-  // **Load Transactions Safely**
   useEffect(() => {
-    // Prefer passed transactions, fallback to project.transactions
-    const loadedTransactions = transactions.length
-      ? transactions
-      : project.transactions || [];
-
-    // **Ensure Transactions Are Valid Before Using Them**
+    const loadedTransactions =
+      transactions.length > 0 ? transactions : project.transactions || [];
     const validatedTransactions = loadedTransactions.filter(
-      (t) => t && t.amount > 0 && t.type && t.category,
+      (t) => t && t.amount > 0 && t.type && t.category
     );
-
-    // Update Transactions State
     setValidTransactions(validatedTransactions);
-
-    // **Calculate Progress**
     const result = calculateProgress(project.budget, validatedTransactions);
     setProgressData(result);
-
-    // Debugging Logs
     console.log("Validated Transactions:", validatedTransactions);
     console.log("Progress Data:", result);
-  }, [project.budget, transactions, project.transactions]); // Watch for changes
+  }, [project.budget, transactions, project.transactions]);
 
   useEffect(() => {
     console.log("Received Transactions in ProjectDetailsCard:", transactions);
   }, [transactions]);
 
-  // **Budget Formatting**
+  // Format budget with an emoji if large
   const formatBudgetWithEmoji = (budget) => {
     const formattedBudget = `$${budget?.toLocaleString() || "0"}`;
     return budget > 99999 ? `${formattedBudget} 🎉` : formattedBudget;
   };
 
+  // Update projectDetails on mount/when project.id changes
+  useEffect(() => {
+    const fetchProjectDetails = async () => {
+      const updatedProject = await fetchProjectById(project.id);
+      setProjectDetails(updatedProject);
+      setSelectedStatus(updatedProject.status);
+    };
+    fetchProjectDetails();
+  }, [project.id]);
+
+  useEffect(() => {
+    console.log("ProjectDetails Loaded:", projectDetails);
+    console.log("Progress Data:", progressData);
+  }, [projectDetails, progressData]);
+
+  // Determine if there is a deposit transaction
+  const hasDeposit = validTransactions.some(
+    (txn) =>
+      txn.category === "Client Payment" &&
+      txn.description?.toLowerCase().includes("deposit")
+  );
+
+  // Update status function:
   const handleStatusChange = async (newStatus) => {
+    // For T&M projects, update status freely.
+    if (!isFixedBudget) {
+      try {
+        const docRef = doc(db, "projects", projectDetails.id);
+        await updateDoc(docRef, {
+          status: newStatus,
+          statusDate: new Date(),
+        });
+        setProjectDetails((prev) => ({
+          ...prev,
+          status: newStatus,
+        }));
+        toast.success(`Project status updated to "${newStatus}".`);
+      } catch (error) {
+        console.error("Error updating status:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Failed to update project status.",
+        });
+        setSelectedStatus(projectDetails.status);
+      }
+      return;
+    }
+
+    // For Fixed Budget projects, perform validations
     try {
       const { valid, reason } = validateStatusTransition(
         newStatus,
         validTransactions,
-        progressData,
+        progressData
       );
-
       if (!valid) {
         Swal.fire({
           icon: "warning",
           title: "Invalid Status Change",
           text: reason,
         });
-        setSelectedStatus(projectDetails.status); // Revert dropdown
+        setSelectedStatus(projectDetails.status);
         return;
       }
 
-      // Confirm for critical changes
-      if (newStatus === "completed" && progressData.percentage >= 100) {
+      // For "completed", ensure the full budget is paid.
+      if (
+        newStatus === "completed" &&
+        progressData.income < (project.budget || 0)
+      ) {
+        await Swal.fire({
+          icon: "error",
+          title: "Budget Incomplete",
+          text: "The project cannot be marked as Completed until the full budget is paid.",
+        });
+        setSelectedStatus(projectDetails.status);
+        return;
+      }
+
+      // Optionally confirm if marking as completed
+      if (newStatus === "completed") {
         const result = await Swal.fire({
           icon: "question",
           title: "Mark as Complete?",
@@ -136,30 +210,23 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
           confirmButtonText: "Yes",
           cancelButtonText: "No",
         });
-
         if (!result.isConfirmed) {
-          setSelectedStatus(projectDetails.status); // Revert dropdown
+          setSelectedStatus(projectDetails.status);
           return;
         }
       }
 
-      // Update Firestore
+      // Update Firestore with the new status
       const docRef = doc(db, "projects", projectDetails.id);
       await updateDoc(docRef, {
         status: newStatus,
         statusDate: new Date(),
       });
-
-      // Update local state
       setProjectDetails((prev) => ({
         ...prev,
         status: newStatus,
       }));
-
-      // Use toast to display success
-      if (toast) {
-        toast.success(`Project status updated to "${newStatus}".`);
-      }
+      toast.success(`Project status updated to "${newStatus}".`);
     } catch (error) {
       console.error("Error updating status:", error);
       Swal.fire({
@@ -167,37 +234,10 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
         title: "Error",
         text: "Failed to update project status.",
       });
-
-      // Revert dropdown selection
       setSelectedStatus(projectDetails.status);
     }
   };
 
-  const [projectDetails, setProjectDetails] = useState(project); // Default to passed project
-  const [selectedStatus, setSelectedStatus] = useState(projectDetails.status); // Track dropdown state
-
-  useEffect(() => {
-    const fetchProjectDetails = async () => {
-      const updatedProject = await fetchProjectById(project.id);
-      setProjectDetails(updatedProject); // Update state with fresh data
-    };
-
-    fetchProjectDetails();
-  }, [project.id]); // Runs when the project ID changes
-
-  useEffect(() => {
-    console.log("ProjectDetails Loaded:", projectDetails);
-    console.log("Progress Data:", progressData);
-  }, [projectDetails, progressData]);
-
-  // --- Define hasDeposit at the start of the component ---
-  const hasDeposit = validTransactions.some(
-    (txn) =>
-      txn.category === "Client Payment" &&
-      txn.description?.toLowerCase().includes("deposit"),
-  );
-
-  // **Render Card**
   return (
     <div className="global-card">
       <div className="card-header d-flex justify-content-between align-items-center">
@@ -210,6 +250,14 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
         </span>
       </div>
       <div className="card-body">
+        {/* Customer block moved above Location */}
+        <p className="lh-1">
+          <i className="bi bi-person-fill text-primary me-2"></i>
+          <strong>Customer:</strong>{" "}
+          {customerInfo
+            ? `${customerInfo.firstName} ${customerInfo.lastName}`
+            : "N/A"}
+        </p>
         <p className="lh-1">
           <i className="bi bi-geo-alt-fill text-primary me-2"></i>
           <strong>Location:</strong> {project.location || "N/A"}
@@ -221,10 +269,35 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
             ? new Date(project.estimatedCompletionDate).toLocaleDateString()
             : "Not Set"}
         </p>
-        <p className="lh-1">
-          <i className="bi bi-bank text-success me-2"></i>
-          <strong>Budget:</strong> {formatBudgetWithEmoji(project.budget)}
-        </p>
+        {isFixedBudget ? (
+          <p className="lh-1">
+            <i className="bi bi-bank text-success me-2"></i>
+            <strong>Budget:</strong> {formatBudgetWithEmoji(project.budget)}
+          </p>
+        ) : (
+          <>
+            <p className="lh-1">
+              <i className="bi bi-clock text-success me-2"></i>
+              <strong>Day Rate:</strong>{" "}
+              {project.dayRate
+                ? `$${Number(project.dayRate).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`
+                : "N/A"}
+            </p>
+            <p className="lh-1">
+              <i className="bi bi-clock-history text-success me-2"></i>
+              <strong>Hourly Rate:</strong>{" "}
+              {project.hourlyRate
+                ? `$${Number(project.hourlyRate).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`
+                : "N/A"}
+            </p>
+          </>
+        )}
         <p className="lh-1">
           <i className="bi bi-calendar-check text-secondary me-2"></i>
           <strong>Created:</strong>{" "}
@@ -240,11 +313,9 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
         </p>
 
         {/* Status Dropdown */}
-        {/* Status Dropdown */}
         <div className="d-flex align-items-center gap-2 mb-3">
           <i className="bi bi-substack text-secondary"></i>
           <strong className="text-nowrap me-2">Change Status:</strong>
-
           <select
             id="status"
             className="form-select w-auto"
@@ -253,71 +324,73 @@ const ProjectDetailsCard = ({ project, transactions = [] }) => {
               setSelectedStatus(e.target.value);
               handleStatusChange(e.target.value);
             }}
-            disabled={!validTransactions.length}
+            // For Fixed Budget projects, disable if no valid transactions; for T&M, always enabled
+            disabled={isFixedBudget ? !validTransactions.length : false}
           >
-            {/* ✅ Prevent "New" if reopening a project that already has a deposit */}
             <option
               value="new"
-              disabled={projectDetails.status === "on-hold" && hasDeposit}
+              disabled={
+                isFixedBudget &&
+                projectDetails.status === "on-hold" &&
+                hasDeposit
+              }
             >
               New
             </option>
-
-            {/* ✅ Ensure "In Progress" is only enabled if a deposit exists */}
-            <option value="in-progress" disabled={!hasDeposit}>
+            <option value="in-progress" disabled={isFixedBudget && !hasDeposit}>
               In Progress
             </option>
-
-            {/* ✅ Ensure "Completed" is only enabled if the full budget is paid */}
             <option
               value="completed"
-              disabled={progressData.income < (project.budget || 0)}
+              disabled={
+                isFixedBudget && progressData.income < (project.budget || 0)
+              }
             >
               Completed
             </option>
-
             <option value="on-hold">On Hold</option>
             <option value="cancelled">Cancelled</option>
           </select>
         </div>
 
-        {/* Progress Bar  */}
-        <div className="d-flex align-items-center gap-2 mb-3">
-          <i className="bi bi-graph-up-arrow text-secondary"></i>
-          <strong className="text-nowrap me-2">Progress:</strong>
-
-          <div className="progress flex-grow-1" style={{ height: "30px" }}>
-            {progressData.status === "over-budget" && (
-              <p className="text-danger m-0">
-                Warning: Expenses exceed budget by $
-                {progressData.expenses - progressData.income - project.budget}!
-              </p>
-            )}
-            <div
-              className={`progress-bar ${
-                progressData.status === "complete"
-                  ? "bg-success"
-                  : progressData.status === "over-budget"
-                    ? "bg-danger"
-                    : "bg-primary"
-              }`}
-              role="progressbar"
-              style={{
-                width: `${progressData.percentage}%`,
-                fontSize: "11px", // ✅ Ensure text is readable
-                fontWeight: "normal", // ✅ Make text stand out
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              aria-valuenow={progressData.percentage}
-              aria-valuemin="0"
-              aria-valuemax="100"
-            >
-              {`${progressData.percentage}%`}
+        {/* Conditionally render progress indicator only for Fixed Budget projects */}
+        {isFixedBudget && (
+          <div className="d-flex align-items-center gap-2 mb-3">
+            <i className="bi bi-graph-up-arrow text-secondary me-2"></i>
+            <strong className="text-nowrap me-2">Progress:</strong>
+            <div className="progress flex-grow-1" style={{ height: "30px" }}>
+              {progressData.status === "over-budget" && (
+                <p className="text-danger m-0">
+                  Warning: Expenses exceed budget by $
+                  {progressData.expenses - progressData.income - project.budget}
+                  !
+                </p>
+              )}
+              <div
+                className={`progress-bar ${
+                  progressData.status === "complete"
+                    ? "bg-success"
+                    : progressData.status === "over-budget"
+                      ? "bg-danger"
+                      : "bg-primary"
+                }`}
+                role="progressbar"
+                style={{
+                  width: `${progressData.percentage}%`,
+                  fontSize: "11px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                aria-valuenow={progressData.percentage}
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                {`${progressData.percentage}%`}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

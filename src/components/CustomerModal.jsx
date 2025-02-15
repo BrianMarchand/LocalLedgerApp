@@ -1,5 +1,5 @@
 // File: src/components/CustomerModal.jsx
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "react-bootstrap";
 import GlobalModal from "./GlobalModal";
 import "../styles/components/customerModal.css";
@@ -69,7 +69,30 @@ const CustomerModal = ({
     handleSave,
     handleEditCustomer,
     handleClose,
+    show,
   });
+
+  // Pre-populate project association when editing an existing customer.
+  // If the customer exists and doesn't already have a projectId in their data,
+  // look through the available projects for one whose customerId matches.
+  useEffect(() => {
+    if (
+      customer &&
+      projects &&
+      projects.length > 0 &&
+      !customerData.projectId
+    ) {
+      const associatedProject = projects.find(
+        (project) => project.customerId === customer.id
+      );
+      if (associatedProject) {
+        setCustomerData((prevData) => ({
+          ...prevData,
+          projectId: associatedProject.id,
+        }));
+      }
+    }
+  }, [customer, projects, customerData.projectId, setCustomerData]);
 
   // Toggle handlers for checkboxes
   const toggleAnyPets = (e) => {

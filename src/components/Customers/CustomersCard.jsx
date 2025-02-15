@@ -1,5 +1,12 @@
+// File: src/components/CustomersCard.jsx
 import React, { useEffect, useState, useMemo, useReducer } from "react";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  deleteDoc,
+  doc,
+  onSnapshot,
+} from "firebase/firestore";
 import { Link } from "react-router-dom";
 import { db } from "@config";
 import "../../styles/components/CustomersCard.css";
@@ -26,25 +33,26 @@ const CustomersCard = ({
     setLocalCustomers(localCustomersMemo);
   }, [localCustomersMemo]);
 
+  // Replace the getDocs-based fetching with an onSnapshot listener
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch Projects
-        const projectsCollection = collection(db, "projects");
-        const projectSnapshot = await getDocs(projectsCollection);
-        const projectList = projectSnapshot.docs.map((doc) => ({
+    const projectsCollection = collection(db, "projects");
+    const unsubscribe = onSnapshot(
+      projectsCollection,
+      (snapshot) => {
+        const projectList = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
         setProjects(projectList);
         setLoading(false);
-      } catch (error) {
-        console.error("❌ Error fetching data:", error);
+      },
+      (error) => {
+        console.error("❌ Error fetching projects:", error);
         setLoading(false);
       }
-    };
-    fetchData();
-  }, [showCustomerModal]); // Added showCustomerModal to the dependency array
+    );
+    return () => unsubscribe();
+  }, []); // Set up once on mount
 
   const getProjectName = (projectId) => {
     const project = projects.find((p) => p.id === projectId);
@@ -79,7 +87,7 @@ const CustomersCard = ({
           const customerRef = doc(db, "customers", customerId);
           await deleteDoc(customerRef);
 
-          // Re-fetch customers
+          // Re-fetch customers after deletion
           const customersCollection = collection(db, "customers");
           const customerSnapshot = await getDocs(customersCollection);
           const customerList = customerSnapshot.docs.map((doc) => ({
@@ -96,7 +104,7 @@ const CustomersCard = ({
           Swal.fire(
             "Error",
             "There was an error deleting this customer",
-            "error",
+            "error"
           );
         }
       }
@@ -110,16 +118,11 @@ const CustomersCard = ({
   console.log("Customers in CustomersCard:", customers);
 
   return (
-    <div className="global-card">
-      {/* Header Section */}
-      <div className="customers-header">
-        <h5>
-          <i className="bi bi-people-fill me-2"></i> Customers
-        </h5>
-        <button
-          className="btn btn-primary btn-sm"
-          onClick={() => handleOpenModal()}
-        >
+    <div className="container-fluid">
+      <div className="dashboard-header mb-4 d-flex justify-content-between align-items-center">
+        <h1 className="dashboard-title">Customers</h1>
+
+        <button className="btn btn-primary" onClick={() => handleOpenModal()}>
           <i className="bi bi-plus-lg"></i> Add Customer
         </button>
       </div>
@@ -143,7 +146,7 @@ const CustomersCard = ({
         ) : (
           localCustomers?.map((customer) => (
             <div key={customer.id} className="customer-row">
-              <div className="customer-cell">
+              <div className="customer-cell name-text">
                 {customer.firstName} {customer.lastName}
               </div>
 
@@ -163,21 +166,20 @@ const CustomersCard = ({
 
               {/* 🔹 Google Maps Address Link */}
               <div className="customer-cell">
-                {customer.number &&
-                customer.streetName &&
+                {customer.streetName &&
                 customer.city &&
                 customer.state &&
                 customer.postalCode &&
                 customer.country ? (
                   <a
                     href={getGoogleMapsUrl(
-                      `${customer.number} ${customer.streetName}, ${customer.city}, ${customer.state}, ${customer.postalCode}, ${customer.country}`,
+                      `${customer.streetName}, ${customer.city}, ${customer.state}, ${customer.postalCode}, ${customer.country}`
                     )}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="address-link"
                   >
-                    {`${customer.number} ${customer.streetName}, ${customer.city}, ${customer.state}, ${customer.postalCode}, ${customer.country}`}
+                    {customer.streetName}
                   </a>
                 ) : (
                   "N/A"
@@ -186,23 +188,35 @@ const CustomersCard = ({
 
               {/* 🔹 Project Name (Linked to Project Dashboard) */}
               <div className="customer-cell">
-                {customer.projectId ? (
-                  <Link
-                    to={`/project/${customer.projectId}`}
-                    className="project-link"
-                  >
-                    {getProjectName(customer.projectId)}
-                  </Link>
-                ) : (
-                  "N/A"
-                )}
+                {(() => {
+                  // Try to find a project using the new association pattern
+                  let associatedProject = projects.find(
+                    (project) => project.customerId === customer.id
+                  );
+                  // Fallback to the older pattern if available
+                  if (!associatedProject && customer.projectId) {
+                    associatedProject = projects.find(
+                      (project) => project.id === customer.projectId
+                    );
+                  }
+                  return associatedProject ? (
+                    <Link
+                      to={`/project/${associatedProject.id}`}
+                      className="project-link"
+                    >
+                      {associatedProject.name}
+                    </Link>
+                  ) : (
+                    "N/A"
+                  );
+                })()}
               </div>
 
               {/* Actions */}
               <div className="customer-cell customer-actions">
                 <button
                   className="btn btn-warning btn-sm"
-                  onClick={() => handleOpenModal(customer)}
+                  onClick={() => handleShowModal(customer)}
                 >
                   <i className="bi bi-pencil"></i>
                 </button>

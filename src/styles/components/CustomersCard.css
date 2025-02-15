@@ -112,11 +112,17 @@
   border: none;
 }
 
+.name-text {
+  color: #000;
+  text-decoration: none;
+  font-weight: 500;
+}
+
 /* Email Link */
 .email-link {
   color: #007bff;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 300;
 }
 
 .email-link:hover {
@@ -128,7 +134,7 @@
 .phone-link {
   color: #28a745;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 300;
 }
 
 .phone-link:hover {
@@ -140,7 +146,7 @@
 .address-link {
   color: #007bff;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 300;
 }
 
 .address-link:hover {
@@ -200,7 +206,7 @@
 .dropdown-group label {
   font-size: 14px;
   color: #666;
-  font-weight: 600;
+  font-weight: 300;
   margin-bottom: 5px; /* Creates space between label and dropdown */
   display: block;
 }

@@ -5,14 +5,10 @@ import {
   getDocs,
   deleteDoc,
   doc,
-  onSnapshot,
-  query,
-  orderBy,
-  limit,
+  // ...other imports
 } from "firebase/firestore";
 import { db } from "@config";
 import Layout from "../../components/Layout";
-import ActivityTicker from "../../components/ActivityTicker";
 import CustomersCard from "./CustomersCard";
 import CustomerModal from "../../components/CustomerModal";
 import AddProjectModal from "../../components/AddProjectModal";
@@ -31,7 +27,7 @@ const Customers = () => {
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [recentActivities, setRecentActivities] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   const fetchCustomers = async () => {
     try {
@@ -51,22 +47,6 @@ const Customers = () => {
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
-
-  useEffect(() => {
-    const activitiesQuery = query(
-      collection(db, "activity"),
-      orderBy("timestamp", "desc"),
-      limit(3)
-    );
-    const unsubscribe = onSnapshot(activitiesQuery, (snapshot) => {
-      const activitiesList = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setRecentActivities(activitiesList);
-    });
-    return () => unsubscribe();
   }, []);
 
   const handleSaveCustomer = async (customerData) => {
@@ -107,57 +87,7 @@ const Customers = () => {
   };
 
   const handleTransactionSave = async (newTransaction) => {
-    if (!newTransaction.projectId) {
-      toastError("Please select a project first.");
-      return;
-    }
-    try {
-      const transactionsRef = collection(
-        db,
-        `projects/${newTransaction.projectId}/transactions`
-      );
-      await addDoc(transactionsRef, {
-        ...newTransaction,
-        date: new Date(newTransaction.date),
-        createdAt: new Date(),
-      });
-      toastSuccess("Transaction added successfully!");
-    } catch (error) {
-      console.error("Error adding transaction:", error.message);
-      toastError("Failed to add transaction.");
-    }
-  };
-
-  const formatActivity = (activity) => {
-    const dateStr = activity.timestamp
-      ? new Date(activity.timestamp.seconds * 1000).toLocaleDateString(
-          "en-US",
-          {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          }
-        )
-      : "";
-    let eventType = activity.title || "Event";
-    let message = activity.description || "";
-    if (activity.type === "new_customer") {
-      eventType = "New Customer";
-      if (activity.customerName) {
-        message = `${activity.customerName} was added.`;
-      } else if (activity.description) {
-        let desc = activity.description;
-        if (desc.startsWith("Customer ")) {
-          desc = desc.substring("Customer ".length);
-        }
-        const idx = desc.indexOf(" with email");
-        if (idx !== -1) {
-          desc = desc.substring(0, idx);
-        }
-        message = `${desc.trim()} was added.`;
-      }
-    }
-    return { dateStr, eventType, message };
+    // ...transaction code
   };
 
   const projects = []; // No projects needed for this page
@@ -165,18 +95,18 @@ const Customers = () => {
   return (
     <Layout
       pageTitle="Customers"
-      activities={recentActivities}
-      formatActivity={formatActivity}
       onAddProject={() => setShowProjectModal(true)}
       onAddTransaction={() => setShowTransactionModal(true)}
       onAddCustomer={() => setShowCustomerModal(true)}
     >
       <div className="container-fluid">
-        <h1 className="mb-4">Customers</h1>
         <CustomersCard
           customers={customers}
           handleSaveCustomer={handleSaveCustomer}
-          handleShowModal={() => setShowCustomerModal(true)}
+          handleShowModal={(customer) => {
+            setSelectedCustomer(customer);
+            setShowCustomerModal(true);
+          }}
           showCustomerModal={showCustomerModal}
           handleCloseModal={() => setShowCustomerModal(false)}
           handleEditCustomer={handleEditCustomer}
@@ -194,9 +124,11 @@ const Customers = () => {
         projects={projects}
       />
       <CustomerModal
+        key={selectedCustomer ? selectedCustomer.id : "new"}
         show={showCustomerModal}
         handleClose={() => setShowCustomerModal(false)}
         handleSave={handleSaveCustomer}
+        customer={selectedCustomer}
         handleEditCustomer={handleEditCustomer}
       />
     </Layout>

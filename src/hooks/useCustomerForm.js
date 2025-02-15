@@ -10,6 +10,7 @@ const useCustomerForm = ({
   handleSave,
   handleEditCustomer,
   handleClose,
+  show, // new prop to trigger re-initialization when modal is opened
 }) => {
   const initialCustomerData = {
     projectId: "",
@@ -34,6 +35,16 @@ const useCustomerForm = ({
     parkingIsPaid: false,
   };
 
+  // Move this function above its usage in useEffect so it is defined.
+  const formatPhoneNumber = (value) => {
+    if (!value) return "";
+    const cleaned = value.replace(/\D/g, "");
+    if (cleaned.length <= 3) return `(${cleaned}`;
+    if (cleaned.length <= 6)
+      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
+    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
+  };
+
   const [error, setError] = useState("");
   const [customerData, setCustomerData] = useState(initialCustomerData);
   const [projects, setProjects] = useState([]);
@@ -42,8 +53,6 @@ const useCustomerForm = ({
   const [petAccordionOpen, setPetAccordionOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
-
-  // NEW: isSaving state to indicate saving progress
   const [isSaving, setIsSaving] = useState(false);
 
   // Fetch projects from Firestore when the hook mounts.
@@ -64,54 +73,47 @@ const useCustomerForm = ({
     fetchProjects();
   }, []);
 
-  // Pre-fill customer data if editing.
+  // Pre-fill customer data if editing. Also reinitialize when modal is opened.
   useEffect(() => {
-    if (customer) {
-      setCustomerData({
-        id: customer.id,
-        projectId: customer.projectId || "",
-        firstName: customer.firstName || "",
-        lastName: customer.lastName || "",
-        email: customer.email || "",
-        phone: formatPhoneNumber(customer.phone || ""),
-        streetName: customer.streetName || "",
-        city: customer.city || "",
-        state: customer.state || "Ontario",
-        postalCode: customer.postalCode || "",
-        country: customer.country || "Canada",
-        anyPets: customer.anyPets ?? false,
-        anyKids: customer.anyKids ?? false,
-        parkingAvailable: customer.parkingAvailable ?? false,
-        referredBy: customer.referredBy || "",
-        specialConsiderations: customer.specialConsiderations || "",
-        customerNotes: customer.customerNotes || "",
-        pets: customer.pets || [],
-        kids: customer.kids || [],
-        parkingLocation: customer.parkingLocation || "",
-        parkingIsPaid: customer.parkingIsPaid ?? false,
-      });
-    } else {
-      setCustomerData(initialCustomerData);
+    console.log("Prefill useEffect triggered, customer:", customer);
+    if (show) {
+      if (customer) {
+        setCustomerData({
+          id: customer.id,
+          projectId: customer.projectId || "",
+          firstName: customer.firstName || "",
+          lastName: customer.lastName || "",
+          email: customer.email || "",
+          phone: formatPhoneNumber(customer.phone || ""),
+          streetName: customer.streetName || "",
+          city: customer.city || "",
+          state: customer.state || "Ontario",
+          postalCode: customer.postalCode || "",
+          country: customer.country || "Canada",
+          anyPets: customer.anyPets ?? false,
+          anyKids: customer.anyKids ?? false,
+          parkingAvailable: customer.parkingAvailable ?? false,
+          referredBy: customer.referredBy || "",
+          specialConsiderations: customer.specialConsiderations || "",
+          customerNotes: customer.customerNotes || "",
+          pets: customer.pets || [],
+          kids: customer.kids || [],
+          parkingLocation: customer.parkingLocation || "",
+          parkingIsPaid: customer.parkingIsPaid ?? false,
+        });
+      } else {
+        setCustomerData(initialCustomerData);
+      }
+      setError("");
+      setCurrentStep(1);
     }
-    setError("");
-    setCurrentStep(1);
-  }, [customer]);
+  }, [customer, show]);
 
   // Clear errors and reset submitAttempted when currentStep changes.
   useEffect(() => {
     setError("");
     setSubmitAttempted(false);
   }, [currentStep]);
-
-  // --- Utility Functions ---
-  const formatPhoneNumber = (value) => {
-    if (!value) return "";
-    const cleaned = value.replace(/\D/g, "");
-    if (cleaned.length <= 3) return `(${cleaned}`;
-    if (cleaned.length <= 6)
-      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
-    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -297,7 +299,7 @@ const useCustomerForm = ({
     handleNext,
     handleBack,
     handleFinalSubmit,
-    isSaving, // Return the saving state
+    isSaving,
     addPet,
     updatePet,
     removePet,

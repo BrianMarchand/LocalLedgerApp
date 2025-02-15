@@ -30,7 +30,6 @@ import {
 
 // Import the shared Layout and ActivityTicker components
 import Layout from "../../components/Layout";
-import ActivityTicker from "../../components/ActivityTicker";
 import { formatFirestoreTimestamp } from "../../utils/formatUtils";
 import { useProjects } from "../../context/ProjectsContext";
 
@@ -38,9 +37,6 @@ const TransactionSummary = () => {
   // State for transactions & loading
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // State for recent activities (used by ActivityTicker)
-  const [recentActivities, setRecentActivities] = useState([]);
 
   // --- Modal State Variables ---
   const [showProjectModal, setShowProjectModal] = useState(false);
@@ -95,45 +91,11 @@ const TransactionSummary = () => {
     const mapping = {};
     if (projects && projects.length > 0) {
       projects.forEach((proj) => {
-        mapping[proj.id] = proj.name;
+        mapping[proj.id] = proj.name || proj.projectName || "Unnamed Project";
       });
     }
     return mapping;
   }, [projects]);
-
-  // Format an activity for display in the ActivityTicker
-  const formatActivity = (activity) => {
-    const dateStr = activity.timestamp
-      ? new Date(activity.timestamp.seconds * 1000).toLocaleDateString(
-          "en-US",
-          {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          }
-        )
-      : "";
-    let eventType = activity.title || "Event";
-    let message = activity.description || "";
-    return { dateStr, eventType, message };
-  };
-
-  // Fetch recent activities for the ActivityTicker
-  useEffect(() => {
-    const activitiesQuery = query(
-      collection(db, "activity"),
-      orderBy("timestamp", "desc"),
-      limit(3)
-    );
-    const unsubscribe = onSnapshot(activitiesQuery, (snapshot) => {
-      const activitiesList = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setRecentActivities(activitiesList);
-    });
-    return () => unsubscribe();
-  }, []);
 
   // Handler for saving a new transaction via the TransactionModal
   const handleTransactionSave = async (newTransaction) => {
@@ -161,14 +123,21 @@ const TransactionSummary = () => {
   return (
     <Layout
       pageTitle="Transaction Summary"
-      activities={recentActivities}
-      formatActivity={formatActivity}
       onAddProject={() => setShowProjectModal(true)}
       onAddTransaction={() => setShowTransactionModal(true)}
       onAddCustomer={() => setShowCustomerModal(true)}
     >
       <div className="container-fluid">
-        <h1 className="text-center mb-4">Transaction Summary</h1>
+        <div className="dashboard-header mb-4 d-flex justify-content-between align-items-center">
+          <h1 className="dashboard-title">Transaction Summary</h1>
+
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowTransactionModal(true)}
+          >
+            <i className="bi bi-plus-lg"></i> Add New Transaction
+          </button>
+        </div>
         {loading ? (
           <p>Loading transactions...</p>
         ) : Object.keys(groupedTransactions).length > 0 ? (
@@ -206,11 +175,6 @@ const TransactionSummary = () => {
         ) : (
           <p className="text-muted">No transactions found.</p>
         )}
-        <div className="text-center mt-4">
-          <Link to="/dashboard" className="btn btn-secondary">
-            Back to Dashboard
-          </Link>
-        </div>
       </div>
 
       {/* Quick Action Modals */}
