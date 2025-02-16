@@ -33,19 +33,48 @@ import {
 } from "../../../firebase/customerAPI";
 import Layout from "../../components/Layout";
 
+// Custom hook to track window dimensions
+function useWindowDimensions() {
+  const [windowDimensions, setWindowDimensions] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
+  useEffect(() => {
+    function handleResize() {
+      setWindowDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  return windowDimensions;
+}
+
 function ProjectList() {
   const navigate = useNavigate();
   const { projects, setProjects, fetchProjects, loading, addProject } =
     useProjects();
   const { currentUser } = useAuth();
+  const { width } = useWindowDimensions();
 
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
-  const [viewMode, setViewMode] = useState("cards");
-  // Build a mapping of customerId => "FirstName LastName"
+  // Persist view mode using localStorage; default to "cards"
+  const [viewMode, setViewMode] = useState(
+    () => localStorage.getItem("projectListViewMode") || "cards"
+  );
   const [customerMap, setCustomerMap] = useState({});
+
+  // When screen width is less than 769px, force card view.
+  const effectiveView = width < 769 ? "cards" : viewMode;
+
+  useEffect(() => {
+    localStorage.setItem("projectListViewMode", viewMode);
+  }, [viewMode]);
 
   // Realtime listener for projects
   useEffect(() => {
@@ -75,7 +104,7 @@ function ProjectList() {
     }
   }, [currentUser, setProjects]);
 
-  // Real-time listener for customers
+  // Realtime listener for customers
   useEffect(() => {
     const unsubscribe = onSnapshot(
       collection(db, "customers"),
@@ -116,15 +145,7 @@ function ProjectList() {
     }
   };
 
-  // Separate projects by type
-  const fixedProjects = projects.filter(
-    (p) => (p.projectType || "fixed") === "fixed"
-  );
-  const tmProjects = projects.filter(
-    (p) => (p.projectType || "fixed") === "time_and_materials"
-  );
-
-  // Helper function to confirm actions
+  // Helper function for confirmations
   const confirmAction = async (action, title, text, successMessage) => {
     const result = await Swal.fire({
       title,
@@ -142,12 +163,129 @@ function ProjectList() {
     }
   };
 
-  // Render cards view
+  // Helper for handling select actions in list view
+  const handleAction = (action, project, event) => {
+    // Reset the select to the placeholder.
+    event.target.selectedIndex = 0;
+    switch (action) {
+      case "view":
+        navigate(`/project/${project.id}`);
+        break;
+      case "edit":
+        setEditingProject(project);
+        setShowModal(true);
+        break;
+      case "reopen":
+        confirmAction(
+          async () => {
+            const projRef = doc(db, "projects", project.id);
+            await updateDoc(projRef, {
+              status: "new",
+              statusDate: new Date(),
+            });
+            fetchProjects();
+          },
+          "Reopen Project?",
+          `Reopening "${project.name}". Status will be set to "new".`,
+          `Project "${project.name}" reopened as "new".`
+        );
+        break;
+      case "onhold":
+        confirmAction(
+          async () => {
+            const projRef = doc(db, "projects", project.id);
+            await updateDoc(projRef, {
+              status: "on-hold",
+              statusDate: new Date(),
+            });
+            fetchProjects();
+          },
+          "Put Project on Hold?",
+          `Are you sure you want to put "${project.name}" on hold?`,
+          `Project "${project.name}" is now on hold.`
+        );
+        break;
+      case "complete":
+        confirmAction(
+          async () => {
+            const projRef = doc(db, "projects", project.id);
+            await updateDoc(projRef, {
+              status: "completed",
+              statusDate: new Date(),
+            });
+            fetchProjects();
+          },
+          "Mark as Complete?",
+          `Mark "${project.name}" as complete? This action cannot be undone.`,
+          `Project "${project.name}" marked as complete!`
+        );
+        break;
+      case "cancel":
+        confirmAction(
+          async () => {
+            const projRef = doc(db, "projects", project.id);
+            await updateDoc(projRef, {
+              status: "cancelled",
+              statusDate: new Date(),
+            });
+            fetchProjects();
+          },
+          "Cancel Project?",
+          `Are you sure you want to cancel "${project.name}"? This cannot be undone.`,
+          `Project "${project.name}" has been cancelled.`
+        );
+        break;
+      case "delete":
+        confirmAction(
+          async () => {
+            await deleteDoc(doc(db, "projects", project.id));
+            fetchProjects();
+          },
+          "Delete Project?",
+          `This will permanently delete the project "${project.name}".`,
+          `Project "${project.name}" has been deleted.`
+        );
+        break;
+      default:
+        break;
+    }
+  };
+
+  const fixedProjects = projects.filter(
+    (p) => (p.projectType || "fixed") === "fixed"
+  );
+  const tmProjects = projects.filter(
+    (p) => (p.projectType || "fixed") === "time_and_materials"
+  );
+
+  // Render Cards View (used for mobile/tablet and when effectiveView is "cards")
   const renderCards = () => (
     <>
       {fixedProjects.length > 0 && (
         <section className="mb-5">
-          <h2>Fixed Budget Projects</h2>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h2>Fixed Budget Projects</h2>
+            {width >= 769 && (
+              <div className="form-check form-switch">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id="viewModeSwitchCards"
+                  checked={viewMode === "list"}
+                  onChange={(e) =>
+                    setViewMode(e.target.checked ? "list" : "cards")
+                  }
+                />
+                <label
+                  className="form-check-label"
+                  htmlFor="viewModeSwitchCards"
+                >
+                  {viewMode === "list" ? "List View" : "Card View"}
+                </label>
+              </div>
+            )}
+          </div>
           <div className="project-list-grid">
             {fixedProjects.map((project, index) => (
               <ProjectCard
@@ -182,449 +320,286 @@ function ProjectList() {
     </>
   );
 
-  // Render list view as a table-like layout using divs.
-  const renderList = () => {
-    const renderFixedList = () => (
-      <>
-        <h2>Fixed Budget Projects</h2>
-        <div className="project-list-table global-card">
-          <div className="project-header-row">
-            <div className="project-cell" style={{ flex: "1.5" }}>
-              Project Name
-            </div>
-            <div className="project-cell" style={{ flex: "1.2" }}>
-              Location
-            </div>
-            <div className="project-cell" style={{ flex: "1.2" }}>
-              Estimated Completion
-            </div>
-            <div className="project-cell" style={{ flex: "1.5" }}>
-              Customer
-            </div>
-            <div className="project-cell" style={{ flex: "1.2" }}>
-              Budget
-            </div>
-            <div className="project-cell" style={{ flex: "1" }}>
-              Transactions
-            </div>
-            <div className="project-cell" style={{ flex: "1" }}>
-              Status
-            </div>
-            <div className="project-cell" style={{ flex: "2" }}>
-              Status Note
-            </div>
-            <div className="project-cell" style={{ flex: "1" }}>
-              Progress
-            </div>
-            <div className="project-cell" style={{ flex: "0 0 150px" }}>
-              Actions
+  // Render Desktop List View (table-like layout)
+  const renderDesktopList = () => (
+    <>
+      {fixedProjects.length > 0 && (
+        <section className="mb-5">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h2>Fixed Budget Projects</h2>
+            <div className="form-check form-switch">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                role="switch"
+                id="viewModeSwitchDesktop"
+                checked={viewMode === "list"}
+                onChange={(e) =>
+                  setViewMode(e.target.checked ? "list" : "cards")
+                }
+              />
+              <label
+                className="form-check-label"
+                htmlFor="viewModeSwitchDesktop"
+              >
+                {viewMode === "list" ? "List View" : "Card View"}
+              </label>
             </div>
           </div>
-          {fixedProjects.map((project) => {
-            const progress = project.progress || "0%";
-            const totalIncome = project.transactions
-              ? project.transactions
-                  .filter((t) => t.category === "Client Payment")
-                  .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
-              : 0;
-            return (
-              <div key={project.id} className="project-row">
-                <div className="project-cell" style={{ flex: "1.5" }}>
-                  {project.name || "Unnamed"}
-                </div>
-                <div className="project-cell" style={{ flex: "1.2" }}>
-                  {project.location || "N/A"}
-                </div>
-                <div className="project-cell" style={{ flex: "1.2" }}>
-                  {project.estimatedCompletionDate
-                    ? new Date(
-                        project.estimatedCompletionDate
-                      ).toLocaleDateString()
-                    : "Not Set"}
-                </div>
-                <div className="project-cell" style={{ flex: "1.5" }}>
-                  {customerMap[project.customerId] || "N/A"}
-                </div>
-                <div className="project-cell" style={{ flex: "1.2" }}>
-                  $
-                  {Number(project.budget)?.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  }) || "0"}
-                </div>
-                <div className="project-cell" style={{ flex: "1" }}>
-                  {project.transactions ? project.transactions.length : "0"}
-                </div>
-                <div className="project-cell" style={{ flex: "1" }}>
-                  {project.status}
-                </div>
-                <div className="project-cell" style={{ flex: "2" }}>
-                  {project.statusNote || "No notes."}
-                </div>
-                <div className="project-cell" style={{ flex: "1" }}>
-                  {progress}
-                </div>
-                <div
-                  className="project-cell actions-cell"
-                  style={{ flex: "0 0 150px" }}
-                >
-                  <button
-                    className="btn btn-primary btn-sm"
-                    title="View Project"
-                    onClick={() => navigate(`/project/${project.id}`)}
-                  >
-                    <i className="bi bi-eye"></i>
-                  </button>
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    title="Edit Project"
-                    onClick={() => {
-                      setEditingProject(project);
-                      setShowModal(true);
-                    }}
-                  >
-                    <i className="bi bi-pencil-square"></i>
-                  </button>
-                  {["on-hold", "cancelled", "completed"].includes(
-                    project.status
-                  ) ? (
-                    <button
-                      className="btn btn-warning btn-sm"
-                      title="Reopen Project"
-                      onClick={() =>
-                        confirmAction(
-                          async () => {
-                            const projRef = doc(db, "projects", project.id);
-                            await updateDoc(projRef, {
-                              status: "new",
-                              statusDate: new Date(),
-                            });
-                            fetchProjects();
-                          },
-                          "Reopen Project?",
-                          `Reopening "${project.name}". Status will be set to "new".`,
-                          `Project "${project.name}" reopened as "new".`
-                        )
-                      }
-                    >
-                      <i className="bi bi-arrow-repeat"></i>
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        className="btn btn-warning btn-sm"
-                        title="Put on Hold"
-                        onClick={() =>
-                          confirmAction(
-                            async () => {
-                              const projRef = doc(db, "projects", project.id);
-                              await updateDoc(projRef, {
-                                status: "on-hold",
-                                statusDate: new Date(),
-                              });
-                              fetchProjects();
-                            },
-                            "Put Project on Hold?",
-                            `Are you sure you want to put "${project.name}" on hold?`,
-                            `Project "${project.name}" is now on hold.`
-                          )
-                        }
-                      >
-                        <i className="bi bi-pause-circle"></i>
-                      </button>
-                      {(isTM || (!isTM && totalIncome >= project.budget)) && (
-                        <button
-                          className="btn btn-success btn-sm"
-                          title="Mark as Complete"
-                          onClick={() =>
-                            confirmAction(
-                              async () => {
-                                const projRef = doc(db, "projects", project.id);
-                                await updateDoc(projRef, {
-                                  status: "completed",
-                                  statusDate: new Date(),
-                                });
-                                fetchProjects();
-                              },
-                              "Mark as Complete?",
-                              `Mark "${project.name}" as complete? This action cannot be undone.`,
-                              `Project "${project.name}" marked as complete!`
-                            )
-                          }
-                        >
-                          <i className="bi bi-check-circle"></i>
-                        </button>
-                      )}
-                      <button
-                        className="btn btn-danger btn-sm"
-                        title="Cancel Project"
-                        onClick={() =>
-                          confirmAction(
-                            async () => {
-                              const projRef = doc(db, "projects", project.id);
-                              await updateDoc(projRef, {
-                                status: "cancelled",
-                                statusDate: new Date(),
-                              });
-                              fetchProjects();
-                            },
-                            "Cancel Project?",
-                            `Are you sure you want to cancel "${project.name}"? This cannot be undone.`,
-                            `Project "${project.name}" has been cancelled.`
-                          )
-                        }
-                      >
-                        <i className="bi bi-x-circle"></i>
-                      </button>
-                    </>
-                  )}
-                  <button
-                    className="btn btn-danger btn-sm"
-                    title="Delete Project"
-                    onClick={() =>
-                      confirmAction(
-                        async () => {
-                          await deleteDoc(doc(db, "projects", project.id));
-                          fetchProjects();
-                        },
-                        "Delete Project?",
-                        `This will permanently delete the project "${project.name}".`,
-                        `Project "${project.name}" has been deleted.`
-                      )
-                    }
-                  >
-                    <i className="bi bi-trash"></i>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </>
-    );
-
-    const renderTMList = () => (
-      <>
-        <h2>Time &amp; Materials Projects</h2>
-        <div className="project-list-table global-card">
-          <div className="project-header-row">
-            <div className="project-cell" style={{ flex: "1.5" }}>
-              Project Name
-            </div>
-            <div className="project-cell" style={{ flex: "1.2" }}>
-              Location
-            </div>
-            <div className="project-cell" style={{ flex: "1.2" }}>
-              Estimated Completion
-            </div>
-            <div className="project-cell" style={{ flex: "1.5" }}>
-              Customer
-            </div>
-            <div className="project-cell" style={{ flex: "1.2" }}>
-              Day Rate
-            </div>
-            <div className="project-cell" style={{ flex: "1.2" }}>
-              Hourly Rate
-            </div>
-            <div className="project-cell" style={{ flex: "1" }}>
-              Transactions
-            </div>
-            <div className="project-cell" style={{ flex: "1" }}>
-              Status
-            </div>
-            <div className="project-cell" style={{ flex: "2" }}>
-              Status Note
-            </div>
-            <div className="project-cell" style={{ flex: "0 0 150px" }}>
-              Actions
-            </div>
-          </div>
-          {tmProjects.map((project) => (
-            <div key={project.id} className="project-row">
+          <div className="project-list-table global-card">
+            <div className="project-header-row">
               <div className="project-cell" style={{ flex: "1.5" }}>
-                {project.name || "Unnamed"}
+                Project Name
               </div>
               <div className="project-cell" style={{ flex: "1.2" }}>
-                {project.location || "N/A"}
+                Location
               </div>
               <div className="project-cell" style={{ flex: "1.2" }}>
-                {project.estimatedCompletionDate
-                  ? new Date(
-                      project.estimatedCompletionDate
-                    ).toLocaleDateString()
-                  : "Not Set"}
+                Estimated Completion
               </div>
               <div className="project-cell" style={{ flex: "1.5" }}>
-                {customerMap[project.customerId] || "N/A"}
+                Customer
               </div>
               <div className="project-cell" style={{ flex: "1.2" }}>
-                $
-                {Number(project.dayRate)?.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                }) || "0"}
-              </div>
-              <div className="project-cell" style={{ flex: "1.2" }}>
-                $
-                {Number(project.hourlyRate)?.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                }) || "0"}
+                Budget
               </div>
               <div className="project-cell" style={{ flex: "1" }}>
-                {project.transactions ? project.transactions.length : "0"}
+                Transactions
               </div>
               <div className="project-cell" style={{ flex: "1" }}>
-                {project.status}
+                Status
               </div>
               <div className="project-cell" style={{ flex: "2" }}>
-                {project.statusNote || "No notes."}
+                Status Note
               </div>
-              <div
-                className="project-cell actions-cell"
-                style={{ flex: "0 0 150px" }}
-              >
-                <button
-                  className="btn btn-primary btn-sm"
-                  title="View Project"
-                  onClick={() => navigate(`/project/${project.id}`)}
-                >
-                  <i className="bi bi-eye"></i>
-                </button>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  title="Edit Project"
-                  onClick={() => {
-                    setEditingProject(project);
-                    setShowModal(true);
-                  }}
-                >
-                  <i className="bi bi-pencil-square"></i>
-                </button>
-                {["on-hold", "cancelled", "completed"].includes(
-                  project.status
-                ) ? (
-                  <button
-                    className="btn btn-warning btn-sm"
-                    title="Reopen Project"
-                    onClick={() =>
-                      confirmAction(
-                        async () => {
-                          const projRef = doc(db, "projects", project.id);
-                          await updateDoc(projRef, {
-                            status: "new",
-                            statusDate: new Date(),
-                          });
-                          fetchProjects();
-                        },
-                        "Reopen Project?",
-                        `Reopening "${project.name}". Status will be set to "new".`,
-                        `Project "${project.name}" reopened as "new".`
-                      )
-                    }
-                  >
-                    <i className="bi bi-arrow-repeat"></i>
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      className="btn btn-warning btn-sm"
-                      title="Put on Hold"
-                      onClick={() =>
-                        confirmAction(
-                          async () => {
-                            const projRef = doc(db, "projects", project.id);
-                            await updateDoc(projRef, {
-                              status: "on-hold",
-                              statusDate: new Date(),
-                            });
-                            fetchProjects();
-                          },
-                          "Put Project on Hold?",
-                          `Are you sure you want to put "${project.name}" on hold?`,
-                          `Project "${project.name}" is now on hold.`
-                        )
-                      }
-                    >
-                      <i className="bi bi-pause-circle"></i>
-                    </button>
-                    {(isTM || (!isTM && totalIncome >= project.budget)) && (
-                      <button
-                        className="btn btn-success btn-sm"
-                        title="Mark as Complete"
-                        onClick={() =>
-                          confirmAction(
-                            async () => {
-                              const projRef = doc(db, "projects", project.id);
-                              await updateDoc(projRef, {
-                                status: "completed",
-                                statusDate: new Date(),
-                              });
-                              fetchProjects();
-                            },
-                            "Mark as Complete?",
-                            `Mark "${project.name}" as complete? This action cannot be undone.`,
-                            `Project "${project.name}" marked as complete!`
-                          )
-                        }
-                      >
-                        <i className="bi bi-check-circle"></i>
-                      </button>
-                    )}
-                    <button
-                      className="btn btn-danger btn-sm"
-                      title="Cancel Project"
-                      onClick={() =>
-                        confirmAction(
-                          async () => {
-                            const projRef = doc(db, "projects", project.id);
-                            await updateDoc(projRef, {
-                              status: "cancelled",
-                              statusDate: new Date(),
-                            });
-                            fetchProjects();
-                          },
-                          "Cancel Project?",
-                          `Are you sure you want to cancel "${project.name}"? This cannot be undone.`,
-                          `Project "${project.name}" has been cancelled.`
-                        )
-                      }
-                    >
-                      <i className="bi bi-x-circle"></i>
-                    </button>
-                  </>
-                )}
-                <button
-                  className="btn btn-danger btn-sm"
-                  title="Delete Project"
-                  onClick={() =>
-                    confirmAction(
-                      async () => {
-                        await deleteDoc(doc(db, "projects", project.id));
-                        fetchProjects();
-                      },
-                      "Delete Project?",
-                      `This will permanently delete the project "${project.name}".`,
-                      `Project "${project.name}" has been deleted.`
-                    )
-                  }
-                >
-                  <i className="bi bi-trash"></i>
-                </button>
+              <div className="project-cell" style={{ flex: "1" }}>
+                Progress
+              </div>
+              <div className="project-cell" style={{ flex: "0 0 150px" }}>
+                Actions
               </div>
             </div>
-          ))}
-        </div>
-      </>
-    );
+            {fixedProjects.map((project) => {
+              const progress = project.progress || "0%";
+              const totalIncome = project.transactions
+                ? project.transactions
+                    .filter((t) => t.category === "Client Payment")
+                    .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
+                : 0;
+              return (
+                <div
+                  key={project.id}
+                  className="project-row"
+                  onClick={() => navigate(`/project/${project.id}`)}
+                >
+                  <div className="project-cell" style={{ flex: "1.5" }}>
+                    {project.name || "Unnamed"}
+                  </div>
+                  <div className="project-cell" style={{ flex: "1.2" }}>
+                    {project.location || "N/A"}
+                  </div>
+                  <div className="project-cell" style={{ flex: "1.2" }}>
+                    {project.estimatedCompletionDate
+                      ? new Date(
+                          project.estimatedCompletionDate
+                        ).toLocaleDateString()
+                      : "Not Set"}
+                  </div>
+                  <div className="project-cell" style={{ flex: "1.5" }}>
+                    {customerMap[project.customerId] || "N/A"}
+                  </div>
+                  <div className="project-cell" style={{ flex: "1.2" }}>
+                    $
+                    {Number(project.budget)?.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }) || "0"}
+                  </div>
+                  <div className="project-cell" style={{ flex: "1" }}>
+                    {project.transactions ? project.transactions.length : "0"}
+                  </div>
+                  <div className="project-cell" style={{ flex: "1" }}>
+                    {project.status}
+                  </div>
+                  <div className="project-cell" style={{ flex: "2" }}>
+                    {project.statusNote || "No notes."}
+                  </div>
+                  <div className="project-cell" style={{ flex: "1" }}>
+                    {progress}
+                  </div>
+                  <div
+                    className="project-cell actions-cell"
+                    style={{ flex: "0 0 150px" }}
+                  >
+                    <select
+                      className="form-select form-select-sm"
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => handleAction(e.target.value, project, e)}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>
+                        Select Action
+                      </option>
+                      <option value="view">View Project</option>
+                      <option value="edit">Edit Project</option>
+                      {["on-hold", "cancelled", "completed"].includes(
+                        project.status
+                      ) ? (
+                        <option value="reopen">Reopen Project</option>
+                      ) : (
+                        <>
+                          <option value="onhold">Put on Hold</option>
+                          {(project.projectType === "time_and_materials" ||
+                            (project.projectType !== "time_and_materials" &&
+                              totalIncome >= project.budget)) && (
+                            <option value="complete">Mark as Complete</option>
+                          )}
+                          <option value="cancel">Cancel Project</option>
+                        </>
+                      )}
+                      <option value="delete">Delete Project</option>
+                    </select>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      {tmProjects.length > 0 && (
+        <section className="mb-5">
+          <h2>Time &amp; Materials Projects</h2>
+          <div
+            className="project-list-table global-card"
+            style={{ marginTop: "20px" }}
+          >
+            <div className="project-header-row">
+              <div className="project-cell" style={{ flex: "1.5" }}>
+                Project Name
+              </div>
+              <div className="project-cell" style={{ flex: "1.2" }}>
+                Location
+              </div>
+              <div className="project-cell" style={{ flex: "1.2" }}>
+                Estimated Completion
+              </div>
+              <div className="project-cell" style={{ flex: "1.5" }}>
+                Customer
+              </div>
+              <div className="project-cell" style={{ flex: "1.2" }}>
+                Day Rate
+              </div>
+              <div className="project-cell" style={{ flex: "1.2" }}>
+                Hourly Rate
+              </div>
+              <div className="project-cell" style={{ flex: "1" }}>
+                Transactions
+              </div>
+              <div className="project-cell" style={{ flex: "1" }}>
+                Status
+              </div>
+              <div className="project-cell" style={{ flex: "2" }}>
+                Status Note
+              </div>
+              <div className="project-cell" style={{ flex: "0 0 150px" }}>
+                Actions
+              </div>
+            </div>
+            {tmProjects.map((project) => {
+              const totalIncome = project.transactions
+                ? project.transactions
+                    .filter((t) => t.category === "Client Payment")
+                    .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
+                : 0;
+              return (
+                <div
+                  key={project.id}
+                  className="project-row"
+                  onClick={() => navigate(`/project/${project.id}`)}
+                >
+                  <div className="project-cell" style={{ flex: "1.5" }}>
+                    {project.name || "Unnamed"}
+                  </div>
+                  <div className="project-cell" style={{ flex: "1.2" }}>
+                    {project.location || "N/A"}
+                  </div>
+                  <div className="project-cell" style={{ flex: "1.2" }}>
+                    {project.estimatedCompletionDate
+                      ? new Date(
+                          project.estimatedCompletionDate
+                        ).toLocaleDateString()
+                      : "Not Set"}
+                  </div>
+                  <div className="project-cell" style={{ flex: "1.5" }}>
+                    {customerMap[project.customerId] || "N/A"}
+                  </div>
+                  <div className="project-cell" style={{ flex: "1.2" }}>
+                    $
+                    {Number(project.dayRate)?.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }) || "0"}
+                  </div>
+                  <div className="project-cell" style={{ flex: "1.2" }}>
+                    $
+                    {Number(project.hourlyRate)?.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }) || "0"}
+                  </div>
+                  <div className="project-cell" style={{ flex: "1" }}>
+                    {project.transactions ? project.transactions.length : "0"}
+                  </div>
+                  <div className="project-cell" style={{ flex: "1" }}>
+                    {project.status}
+                  </div>
+                  <div className="project-cell" style={{ flex: "2" }}>
+                    {project.statusNote || "No notes."}
+                  </div>
+                  <div
+                    className="project-cell actions-cell"
+                    style={{ flex: "0 0 150px" }}
+                  >
+                    <select
+                      className="form-select form-select-sm"
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => handleAction(e.target.value, project, e)}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>
+                        Select Action
+                      </option>
+                      <option value="view">View Project</option>
+                      <option value="edit">Edit Project</option>
+                      {["on-hold", "cancelled", "completed"].includes(
+                        project.status
+                      ) ? (
+                        <option value="reopen">Reopen Project</option>
+                      ) : (
+                        <>
+                          <option value="onhold">Put on Hold</option>
+                          {(project.projectType === "time_and_materials" ||
+                            (project.projectType !== "time_and_materials" &&
+                              totalIncome >= project.budget)) && (
+                            <option value="complete">Mark as Complete</option>
+                          )}
+                          <option value="cancel">Cancel Project</option>
+                        </>
+                      )}
+                      <option value="delete">Delete Project</option>
+                    </select>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+    </>
+  );
 
-    return (
-      <>
-        {fixedProjects.length > 0 && renderFixedList()}
-        {tmProjects.length > 0 && renderTMList()}
-      </>
-    );
-  };
+  // For tablet and mobile, we force the card view (which is already working great)
+  const renderCardsView = () => renderCards();
 
   return (
     <Layout
@@ -636,21 +611,6 @@ function ProjectList() {
       <div className="container-fluid">
         <div className="dashboard-header mb-4 d-flex justify-content-between align-items-center">
           <h1 className="dashboard-title">Current Projects</h1>
-          <div className="view-mode-toggle d-flex align-items-center gap-2">
-            <span>View:</span>
-            <button
-              className={`btn btn-sm ${viewMode === "cards" ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => setViewMode("cards")}
-            >
-              Cards
-            </button>
-            <button
-              className={`btn btn-sm ${viewMode === "list" ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => setViewMode("list")}
-            >
-              List
-            </button>
-          </div>
           <div className="quick-actions-wrapper">
             <QuickActions
               onAddProject={() => setShowModal(true)}
@@ -659,18 +619,16 @@ function ProjectList() {
             />
           </div>
         </div>
-
         {loading ? (
           <div className="text-center py-5">
             <Spinner animation="border" variant="primary" />
             <p>Loading Your Projects...</p>
           </div>
-        ) : viewMode === "cards" ? (
-          renderCards()
+        ) : effectiveView === "cards" ? (
+          renderCardsView()
         ) : (
-          renderList()
+          renderDesktopList()
         )}
-
         <AddProjectModal
           show={showModal}
           handleClose={() => {

@@ -255,3 +255,47 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
 }
+
+/* --- Responsive Breakpoints for List View --- */
+
+/* Mobile devices (max-width: 576px) */
+@media (max-width: 576px) {
+  .project-header-row,
+  .project-row {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px 10px !important;
+  }
+  .project-cell {
+    padding: 4px 6px !important;
+    font-size: 12px !important;
+    white-space: normal;
+  }
+  .project-row {
+    gap: 4px;
+  }
+  .project-cell.actions-cell {
+    width: 100%;
+    margin-top: 8px;
+  }
+  .project-list-table {
+    padding: 0.5rem !important;
+  }
+}
+
+/* Tablet devices (min-width: 577px and max-width: 768px) */
+@media (min-width: 577px) and (max-width: 768px) {
+  .project-header-row,
+  .project-row {
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 10px !important;
+  }
+  .project-cell {
+    padding: 6px 8px !important;
+    font-size: 13px !important;
+  }
+  .project-list-table {
+    padding: 0.75rem !important;
+  }
+}
