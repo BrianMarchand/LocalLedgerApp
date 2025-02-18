@@ -1,5 +1,6 @@
-/* File: src/styles/components/globalModalSlide.css */
-
+/* ----------------------------------------------------------------------
+   Modal Slide Base Styles
+---------------------------------------------------------------------- */
 /* Modal dialog positioning, width & height updates */
 .modal-dialog.modal-slide {
   position: fixed;
@@ -59,32 +60,125 @@
   backdrop-filter: blur(20px);
 }
 
-/* Internal layout: vertical stacking of steps block and form area */
+/* ----------------------------------------------------------------------
+   Internal Modal Layout
+---------------------------------------------------------------------- */
+/* Container for splitting the steps (left) and form area (right) */
 .global-modal-container {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-/* Top panel (steps block) occupies 10% height (min 10vh) */
+/* 
+  Steps/Progress Header
+  - Uses flex layout to center text
+  - Provides extra padding and refined typography
+*/
 .global-modal-info {
-  width: 100%;
-  height: 10%;
-  min-height: 10vh;
-  padding: 1rem;
+  width: 100%; /* Ensure full width */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem;
   background: linear-gradient(to bottom, rgb(115, 208, 255), rgb(26, 118, 252));
   color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: visible;
 }
 
-/* Bottom panel (form area) occupies the remaining space */
+.global-modal-info h2 {
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.global-modal-info p {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+/* Styled progress bar inside the steps container */
+.global-modal-info .progress-indicator {
+  width: 90%;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  height: 6px;
+  margin: 0 auto;
+}
+
+.global-modal-info .progress-indicator .progress-bar {
+  height: 100%;
+  background: #fff;
+  transition: width 0.3s ease;
+}
+
+/* 
+  Form Area / Modal Body Content
+  - Increased padding for improved readability and spacing 
+*/
 .global-modal-form {
   width: 100%;
   flex: 1;
-  padding: 1rem;
+  padding: 2rem;
   background: #fff;
   overflow-y: auto;
+}
+
+/* ----------------------------------------------------------------------
+   Mobile and Tablet Breakpoints
+---------------------------------------------------------------------- */
+/* Tablet devices (e.g., iPad Mini in portrait)
+   Adjust modal width to 60% for screens below 992px */
+@media (max-width: 991.98px) {
+  .modal-dialog.modal-slide {
+    width: 60%;
+    max-width: 60%;
+  }
+}
+
+/* Mobile devices (e.g., Google Pixel 9 Pro XL)
+   Use full-width panel for screens below 768px */
+@media (max-width: 767.98px) {
+  .modal-dialog.modal-slide {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+/* ----------------------------------------------------------------------
+   Global Modal Action Button Style
+   Use this class for all modal action buttons.
+---------------------------------------------------------------------- */
+.global-modal-action-btn {
+  background-color: #1a76fc; /* Primary blue */
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition:
+    background-color 0.3s ease,
+    box-shadow 0.3s ease;
+  margin-right: 0.5rem;
+}
+
+.global-modal-action-btn:hover {
+  background-color: #155bb5; /* Darker blue on hover */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.global-modal-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Optional: A global footer container style for action buttons */
+.global-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 1rem 2rem;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
 }

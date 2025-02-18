@@ -1,3 +1,5 @@
+// File: src/components/AddProjectModalSliding.jsx
+
 import React, { useState, useEffect } from "react";
 import { Button } from "react-bootstrap";
 import SlidingModal from "./SlidingModal";
@@ -343,8 +345,8 @@ const AddProjectModalSliding = ({ show, handleClose, editingProject }) => {
           {projectType === "fixed" ? (
             <div className="auth-form-group">
               <label htmlFor="budget">Budget ($)</label>
-              <div className="input-group">
-                <span className="input-group-text">$</span>
+              <div className="input-container">
+                <span className="input-icon">$</span>
                 <input
                   type="text"
                   id="budget"
@@ -369,8 +371,8 @@ const AddProjectModalSliding = ({ show, handleClose, editingProject }) => {
             <>
               <div className="auth-form-group">
                 <label htmlFor="dayRate">Day Rate ($)</label>
-                <div className="input-group">
-                  <span className="input-group-text">$</span>
+                <div className="input-container">
+                  <span className="input-icon">$</span>
                   <input
                     type="text"
                     id="dayRate"
@@ -395,8 +397,8 @@ const AddProjectModalSliding = ({ show, handleClose, editingProject }) => {
               </div>
               <div className="auth-form-group">
                 <label htmlFor="hourlyRate">Hourly Rate ($)</label>
-                <div className="input-group">
-                  <span className="input-group-text">$</span>
+                <div className="input-container">
+                  <span className="input-icon">$</span>
                   <input
                     type="text"
                     id="hourlyRate"
@@ -602,22 +604,38 @@ const AddProjectModalSliding = ({ show, handleClose, editingProject }) => {
         <div style={{ position: "relative" }}>
           {renderStepContent()}
           <div className="modal-footer">
-            <Button variant="secondary" type="button" onClick={handleClose}>
+            <Button
+              variant="secondary"
+              type="button"
+              className="global-modal-action-btn"
+              onClick={handleClose}
+            >
               Cancel
             </Button>
             {currentStep > 1 && (
-              <Button variant="secondary" type="button" onClick={handleBack}>
+              <Button
+                variant="secondary"
+                type="button"
+                className="global-modal-action-btn"
+                onClick={handleBack}
+              >
                 Back
               </Button>
             )}
             {currentStep < totalSteps ? (
-              <Button variant="primary" type="button" onClick={handleNext}>
+              <Button
+                variant="primary"
+                type="button"
+                className="global-modal-action-btn"
+                onClick={handleNext}
+              >
                 Next
               </Button>
             ) : (
               <Button
                 variant="primary"
                 type="button"
+                className="global-modal-action-btn"
                 onClick={handleFinalSubmit}
                 disabled={loading}
               >

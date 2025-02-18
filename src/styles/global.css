@@ -669,3 +669,99 @@ li {
   font-size: 0.8rem;
   margin-top: 0.25rem;
 }
+
+/* ==========================================================================
+   Global Form Input Styles 
+   ========================================================================== */
+
+/* Ensure form controls have a white background globally */
+.form-control,
+.form-select {
+  background-color: #fff !important;
+}
+
+/* A flexible container that holds both the icon and the input field */
+.input-container {
+  display: inline-flex;
+  align-items: center;
+  height: 2.5rem; /* Matches typical Bootstrap input height */
+  border: 1px solid #ccc; /* Single border for the entire container */
+  border-radius: 4px;
+  background-color: #fff;
+  overflow: hidden;
+}
+
+/* Icon area (left side). If you want a line between the icon and the input,
+   add `border-right: 1px solid #ccc;` here. */
+.input-container .input-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f0f0f0; /* Slightly different color to highlight the icon area */
+  padding: 0 0.75rem; /* Horizontal padding */
+  color: #555;
+}
+
+/* Style the inner inputs, selects, and textareas */
+.input-container input,
+.input-container select,
+.input-container textarea {
+  flex: 1;
+  border: none;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  outline: none;
+  background-color: #fff !important;
+}
+
+/* Make sure the input or select takes up remaining space with no extra border */
+.input-container .form-control {
+  border: none !important;
+  outline: none;
+  box-shadow: none !important;
+  flex: 1;
+  background-color: transparent;
+  padding: 0 0.75rem;
+  font-size: 1rem;
+}
+
+/* Ensure consistent height and line-height for text inputs and selects */
+.input-container input,
+.input-container select {
+  height: 2.5rem;
+  line-height: 1.5rem;
+}
+
+/* Custom select styling: remove default arrow and add custom down arrow */
+.input-container select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg fill='none' stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+  /* Fix vertical padding issues for dropdown text */
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.375rem !important;
+}
+
+/* Same styling for <textarea> if used inside .input-container */
+.input-container textarea.form-control {
+  resize: vertical; /* Keep vertical resizing if needed */
+}
+
+/* On focus, highlight the entire container rather than just the input */
+.input-container:focus-within {
+  border-color: #1a76fc;
+  box-shadow: 0 0 0 0.2rem rgba(26, 118, 252, 0.25);
+}
+
+/* Focus state for all inputs */
+.input-container input:focus,
+.input-container select:focus,
+.input-container textarea:focus {
+  border-color: #1a76fc;
+  box-shadow: 0 0 0 0.2rem rgba(26, 118, 252, 0.25);
+}
