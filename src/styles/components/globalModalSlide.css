@@ -1,0 +1,90 @@
+/* File: src/styles/components/globalModalSlide.css */
+
+/* Modal dialog positioning, width & height updates */
+.modal-dialog.modal-slide {
+  position: fixed;
+  right: 0;
+  top: 0;
+  margin: 0;
+  width: 40%;
+  max-width: 40%;
+  height: 100vh !important;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+/* Modal content fills the full viewport height and uses a vertical layout */
+.modal-dialog.modal-slide .modal-content {
+  height: 100vh;
+  border: none;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Keyframes for sliding in from the right */
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Keyframes for sliding out to the right */
+@keyframes slideOutToRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Apply slide-in animation when opening */
+.modal-dialog.modal-slide.slide-in {
+  animation: slideInFromRight 0.5s forwards ease-in-out;
+}
+
+/* Apply slide-out animation when closing */
+.modal-dialog.modal-slide.slide-out {
+  animation: slideOutToRight 0.5s forwards ease-in-out;
+}
+
+/* Backdrop styling remains unchanged */
+.global-modal-backdrop {
+  background-color: rgba(71, 24, 67, 0.648) !important;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+/* Internal layout: vertical stacking of steps block and form area */
+.global-modal-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Top panel (steps block) occupies 10% height (min 10vh) */
+.global-modal-info {
+  width: 100%;
+  height: 10%;
+  min-height: 10vh;
+  padding: 1rem;
+  background: linear-gradient(to bottom, rgb(115, 208, 255), rgb(26, 118, 252));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+/* Bottom panel (form area) occupies the remaining space */
+.global-modal-form {
+  width: 100%;
+  flex: 1;
+  padding: 1rem;
+  background: #fff;
+  overflow-y: auto;
+}

@@ -28,7 +28,7 @@ import {
   LineElement,
   BarElement,
 } from "chart.js";
-import AddProjectModal from "../../components/AddProjectModal";
+import AddProjectModal from "../../components/AddProjectModalSliding";
 import TransactionModal from "../../components/TransactionModal";
 import CustomerModal from "../../components/CustomerModal";
 import { useProjects } from "../../context/ProjectsContext";

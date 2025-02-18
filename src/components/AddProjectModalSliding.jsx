@@ -1,8 +1,6 @@
-// File: src/components/AddProjectModal.jsx
-
 import React, { useState, useEffect } from "react";
 import { Button } from "react-bootstrap";
-import GlobalModal from "./GlobalModal";
+import SlidingModal from "./SlidingModal";
 import "../styles/components/projectModal.css";
 import { getAuth } from "firebase/auth";
 import { useProjects } from "../context/ProjectsContext";
@@ -13,7 +11,7 @@ import { collection, getDocs, addDoc } from "firebase/firestore";
 import { db } from "@config";
 import CustomerCard from "./customerCardNewProject";
 
-const AddProjectModal = ({ show, handleClose, editingProject }) => {
+const AddProjectModalSliding = ({ show, handleClose, editingProject }) => {
   // Step state for multi-step wizard
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 2;
@@ -577,7 +575,7 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
   };
 
   return (
-    <GlobalModal
+    <SlidingModal
       show={show}
       onClose={handleClose}
       title={editingProject ? "Edit Project" : "Add New Project"}
@@ -600,8 +598,7 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
         </div>
       }
       rightContent={
-        // Wrap rightContent in a container with position: relative so that
-        // absolutely positioned children (CustomerCard) are relative to this container.
+        // Wrap rightContent in a container with position: relative
         <div style={{ position: "relative" }}>
           {renderStepContent()}
           <div className="modal-footer">
@@ -663,4 +660,4 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
   );
 };
 
-export default AddProjectModal;
+export default AddProjectModalSliding;
