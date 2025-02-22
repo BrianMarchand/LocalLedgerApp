@@ -1,6 +1,6 @@
 // File: src/components/GlobalModal.jsx
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Modal } from "react-bootstrap";
 import "../styles/components/globalModal.css";
 
@@ -12,27 +12,53 @@ const GlobalModal = ({
   split = true,
   leftContent,
   rightContent,
-  leftWidth = "50%",
-  rightWidth = "50%",
-  leftContainerPadding = "2rem",
-  leftPanelClass = "",
   children,
-  ...props
+  className = "", // ✅ Ensures a clean way to pass extra styles
 }) => {
+  // Internal state to control mounting independently of parent's show prop
+  const [internalShow, setInternalShow] = useState(false);
+  // State for controlling the animation class: "slide-in" or "slide-out"
+  const [animationClass, setAnimationClass] = useState("");
+
+  useEffect(() => {
+    if (show) {
+      setInternalShow(true);
+      requestAnimationFrame(() => {
+        setAnimationClass("slide-in");
+      });
+    } else {
+      if (internalShow) {
+        setAnimationClass("slide-out");
+        const timer = setTimeout(() => {
+          setInternalShow(false);
+          onClose();
+        }, 500); // 500ms matches the CSS animation duration
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [show, onClose, internalShow]);
+
+  if (!internalShow) return null;
+
   return (
     <Modal
-      show={show}
-      onHide={onClose}
+      show={internalShow}
+      onHide={() => {
+        setAnimationClass("slide-out");
+        setTimeout(() => {
+          setInternalShow(false);
+          onClose();
+        }, 500);
+      }}
       backdrop={disableBackdropClick ? "static" : true}
       onExited={() => {
         if (document.activeElement) {
           document.activeElement.blur();
         }
       }}
-      centered
-      dialogClassName="global-modal"
+      animation={false}
+      dialogClassName={`modal-slide ${animationClass} ${className}`} // ✅ Fix: Only valid props are passed
       backdropClassName="global-modal-backdrop"
-      {...props}
     >
       {title && (
         <Modal.Header closeButton>
@@ -42,15 +68,8 @@ const GlobalModal = ({
       <Modal.Body className="p-0">
         {split ? (
           <div className="global-modal-container">
-            <div
-              className={`global-modal-info ${leftPanelClass}`}
-              style={{ width: leftWidth, padding: leftContainerPadding }}
-            >
-              {leftContent}
-            </div>
-            <div className="global-modal-form" style={{ width: rightWidth }}>
-              {rightContent}
-            </div>
+            <div className="global-modal-info">{leftContent}</div>
+            <div className="global-modal-form">{rightContent}</div>
           </div>
         ) : (
           children

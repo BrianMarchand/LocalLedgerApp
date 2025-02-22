@@ -1,114 +1,156 @@
-/* File: src/styles/components/globalModal.css */
-
-/* Global modal sizing and rounded corners */
-.global-modal .modal-dialog {
-  max-width: 70%;
-  margin: auto;
-  border-radius: 50px !important;
-}
-.modal-dialog.global-modal {
-  width: 70% !important;
-  max-width: 70% !important;
-  margin: auto;
-  border-radius: 50px !important;
-}
-
-/* Override the default flex centering for the left panel when using the user profile modal */
-.global-modal-info.user-profile-left-panel {
-  align-items: flex-start !important;
-  justify-content: flex-start !important;
-  padding: 0 !important;
+/* ----------------------------------------------------------------------
+   Modal Slide Base Styles
+---------------------------------------------------------------------- */
+/* Modal dialog positioning, width & height updates */
+.modal-dialog.modal-slide {
+  position: fixed;
+  right: 0;
+  top: 0;
+  margin: 0;
+  width: 40%;
+  max-width: 40%;
+  height: 100vh !important;
+  border-radius: 0;
+  overflow: hidden;
 }
 
-/* Backdrop with dimming and blur */
+/* Modal content fills the full viewport height and uses a vertical layout */
+.modal-dialog.modal-slide .modal-content {
+  height: 100vh;
+  border: none;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Keyframes for sliding in from the right */
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Keyframes for sliding out to the right */
+@keyframes slideOutToRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Apply slide-in animation when opening */
+.modal-dialog.modal-slide.slide-in {
+  animation: slideInFromRight 0.5s forwards ease-in-out;
+}
+
+/* Apply slide-out animation when closing */
+.modal-dialog.modal-slide.slide-out {
+  animation: slideOutToRight 0.5s forwards ease-in-out;
+}
+
+/* Backdrop styling remains unchanged */
 .global-modal-backdrop {
   background-color: rgba(71, 24, 67, 0.648) !important;
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
 }
 
-/* Responsive breakpoints */
-@media (max-width: 768px) {
-  .global-modal .modal-dialog {
-    max-width: 90%;
-  }
-  .modal-dialog.global-modal {
-    width: 90% !important;
-    max-width: 90% !important;
-  }
-}
-@media (max-width: 576px) {
-  .global-modal .modal-dialog {
-    max-width: 95%;
-  }
-  .modal-dialog.global-modal {
-    width: 95% !important;
-    max-width: 95% !important;
-  }
-}
-
-/* --- 50/50 Layout Styles --- */
-
-/* Container for the two-column layout */
+/* ----------------------------------------------------------------------
+   Internal Modal Layout
+---------------------------------------------------------------------- */
+/* Container for splitting the steps (left) and form area (right) */
 .global-modal-container {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   height: 100%;
 }
 
-/* Left panel: gradient background with centered info */
+/* 
+  Steps/Progress Header
+  - Uses flex layout to center text
+  - Provides extra padding and refined typography
+*/
 .global-modal-info {
-  width: 50%;
+  width: 100%; /* Ensure full width */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem;
   background: linear-gradient(to bottom, rgb(115, 208, 255), rgb(26, 118, 252));
   color: white;
-  padding: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.global-modal-info .info-content {
-  text-align: center;
-}
-.global-modal-info h2 {
-  margin-bottom: 1rem;
-}
-.global-modal-info p {
-  margin-bottom: 1.5rem;
-  font-size: 1.1rem;
 }
 
-/* Right panel: form container with white background and padding */
+.global-modal-info h2 {
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.global-modal-info p {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+/* Styled progress bar inside the steps container */
+.global-modal-info .progress-indicator {
+  width: 90%;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  height: 6px;
+  margin: 0 auto;
+}
+
+.global-modal-info .progress-indicator .progress-bar {
+  height: 100%;
+  background: #fff;
+  transition: width 0.3s ease;
+}
+
+/* 
+  Form Area / Modal Body Content
+  - Increased padding for improved readability and spacing 
+*/
 .global-modal-form {
-  width: 50%;
+  width: 100%;
+  flex: 1;
   padding: 2rem;
   background: #fff;
   overflow-y: auto;
 }
 
-/* --- Global Input Styles --- */
-.input-container {
-  position: relative;
-}
-.input-icon {
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #6c757d;
-}
-.form-control {
-  padding-left: 2.5rem;
-}
-
-/* Modal footer styling */
-.modal-footer {
+/* A global footer container style for action buttons */
+.global-modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  align-items: center;
+  padding: 1rem 2rem;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
 }
 
-/* Alert styling (if used in modals) */
-.alert {
-  margin-bottom: 1rem;
+/* ----------------------------------------------------------------------
+   Mobile and Tablet Breakpoints
+---------------------------------------------------------------------- */
+/* Tablet devices (e.g., iPad Mini in portrait)
+   Adjust modal width to 60% for screens below 992px */
+@media (max-width: 991.98px) {
+  .modal-dialog.modal-slide {
+    width: 60%;
+    max-width: 60%;
+  }
+}
+
+/* Mobile devices (e.g., Google Pixel 9 Pro XL)
+   Use full-width panel for screens below 768px */
+@media (max-width: 767.98px) {
+  .modal-dialog.modal-slide {
+    width: 100%;
+    max-width: 100%;
+  }
 }

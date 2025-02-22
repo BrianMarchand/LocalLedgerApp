@@ -1,10 +1,10 @@
-// File: src/components/SlidingModal.jsx
+// File: src/components/GlobalModal.jsx
 
 import React, { useState, useEffect } from "react";
 import { Modal } from "react-bootstrap";
 import "../styles/components/globalModalSlide.css";
 
-const SlidingModal = ({
+const GlobalModal = ({
   show,
   onClose,
   title,
@@ -81,4 +81,4 @@ const SlidingModal = ({
   );
 };
 
-export default SlidingModal;
+export default GlobalModal;

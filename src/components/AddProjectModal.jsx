@@ -1,9 +1,8 @@
-// File: src/components/AddProjectModal.jsx
+// File: src/components/AddProjectModalSliding.jsx
 
 import React, { useState, useEffect } from "react";
 import { Button } from "react-bootstrap";
 import GlobalModal from "./GlobalModal";
-import "../styles/components/projectModal.css";
 import { getAuth } from "firebase/auth";
 import { useProjects } from "../context/ProjectsContext";
 import { toastSuccess, toastError } from "../utils/toastNotifications";
@@ -13,7 +12,7 @@ import { collection, getDocs, addDoc } from "firebase/firestore";
 import { db } from "@config";
 import CustomerCard from "./customerCardNewProject";
 
-const AddProjectModal = ({ show, handleClose, editingProject }) => {
+const AddProjectModalSliding = ({ show, handleClose, editingProject }) => {
   // Step state for multi-step wizard
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 2;
@@ -345,8 +344,8 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
           {projectType === "fixed" ? (
             <div className="auth-form-group">
               <label htmlFor="budget">Budget ($)</label>
-              <div className="input-group">
-                <span className="input-group-text">$</span>
+              <div className="input-container">
+                <span className="input-icon">$</span>
                 <input
                   type="text"
                   id="budget"
@@ -371,8 +370,8 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
             <>
               <div className="auth-form-group">
                 <label htmlFor="dayRate">Day Rate ($)</label>
-                <div className="input-group">
-                  <span className="input-group-text">$</span>
+                <div className="input-container">
+                  <span className="input-icon">$</span>
                   <input
                     type="text"
                     id="dayRate"
@@ -397,8 +396,8 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
               </div>
               <div className="auth-form-group">
                 <label htmlFor="hourlyRate">Hourly Rate ($)</label>
-                <div className="input-group">
-                  <span className="input-group-text">$</span>
+                <div className="input-container">
+                  <span className="input-icon">$</span>
                   <input
                     type="text"
                     id="hourlyRate"
@@ -600,27 +599,42 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
         </div>
       }
       rightContent={
-        // Wrap rightContent in a container with position: relative so that
-        // absolutely positioned children (CustomerCard) are relative to this container.
+        // Wrap rightContent in a container with position: relative
         <div style={{ position: "relative" }}>
           {renderStepContent()}
           <div className="modal-footer">
-            <Button variant="secondary" type="button" onClick={handleClose}>
+            <Button
+              variant="secondary"
+              type="button"
+              className="global-modal-action-btn"
+              onClick={handleClose}
+            >
               Cancel
             </Button>
             {currentStep > 1 && (
-              <Button variant="secondary" type="button" onClick={handleBack}>
+              <Button
+                variant="secondary"
+                type="button"
+                className="global-modal-action-btn"
+                onClick={handleBack}
+              >
                 Back
               </Button>
             )}
             {currentStep < totalSteps ? (
-              <Button variant="primary" type="button" onClick={handleNext}>
+              <Button
+                variant="primary"
+                type="button"
+                className="global-modal-action-btn"
+                onClick={handleNext}
+              >
                 Next
               </Button>
             ) : (
               <Button
                 variant="primary"
                 type="button"
+                className="global-modal-action-btn"
                 onClick={handleFinalSubmit}
                 disabled={loading}
               >
@@ -663,4 +677,4 @@ const AddProjectModal = ({ show, handleClose, editingProject }) => {
   );
 };
 
-export default AddProjectModal;
+export default AddProjectModalSliding;

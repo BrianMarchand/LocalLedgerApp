@@ -267,10 +267,7 @@ const NotesModal = ({ showNotes, setShowNotes, projectId }) => {
       disableBackdropClick={true}
       leftContent={leftContent}
       rightContent={rightContent}
-      leftWidth="20%"
-      rightWidth="80%"
-      leftContainerPadding="0"
-      leftPanelClass="notes-modal-left-panel"
+      className="notes-modal" // ✅ Apply styling via class
     />
   );
 };
