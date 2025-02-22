@@ -1,5 +1,5 @@
 // File: src/pages/ProjectDashboard.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import {
   collection,
@@ -92,7 +92,9 @@ function ProjectDashboard() {
     return { cashSpent, visaExpenses, debitExpenses, totalExpenses };
   };
 
+  // Modified calculateMetrics to account for Time & Materials projects.
   const calculateBudgetMetrics = (project, incomeMetrics, expenseMetrics) => {
+    // For fixed-budget projects, the original calculations are used.
     const budget = project?.budget || 0;
     const remainingBudget = Math.max(0, budget - expenseMetrics.totalExpenses);
     const remainingClientPayment = Math.max(
@@ -119,16 +121,34 @@ function ProjectDashboard() {
     };
   };
 
+  // Updated calculateMetrics to use alternative values for time & materials projects.
   const calculateMetrics = () => {
     if (!transactions || !Array.isArray(transactions)) return {};
 
     const incomeMetrics = calculateIncomeMetrics(transactions);
     const expenseMetrics = calculateExpenseMetrics(transactions);
-    const budgetMetrics = calculateBudgetMetrics(
-      project,
-      incomeMetrics,
-      expenseMetrics
-    );
+    let budgetMetrics = {};
+
+    if (project?.projectType === "time_and_materials") {
+      // For time & materials projects, there is no fixed budget.
+      // You can adjust these values based on your requirements.
+      budgetMetrics = {
+        remainingBudget: "N/A",
+        remainingClientPayment: "N/A",
+        profit: incomeMetrics.totalIncome - expenseMetrics.totalExpenses,
+        budgetSpentPercent: "N/A",
+        paidPercentage: "N/A",
+        availableFunds:
+          incomeMetrics.totalIncome - expenseMetrics.totalExpenses,
+      };
+    } else {
+      budgetMetrics = calculateBudgetMetrics(
+        project,
+        incomeMetrics,
+        expenseMetrics
+      );
+    }
+
     const largestPayment = transactions.reduce(
       (max, t) => Math.max(max, parseAmount(t.amount)),
       0
@@ -191,6 +211,7 @@ function ProjectDashboard() {
     }
   };
 
+  // Modified handleStatusChange: Skip the paidPercentage check for time & materials projects.
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
     if (newStatus === project.status) return;
@@ -244,7 +265,12 @@ function ProjectDashboard() {
         title: `Project status updated to "${newStatus}"`,
       });
     } else if (newStatus === "completed") {
-      if (metrics && Number(metrics.paidPercentage) < 100) {
+      // Only enforce full payment check for fixed-budget projects.
+      if (
+        project?.projectType !== "time_and_materials" &&
+        metrics &&
+        Number(metrics.paidPercentage) < 100
+      ) {
         await Swal.fire({
           icon: "error",
           title: "Budget Incomplete",
@@ -368,6 +394,38 @@ function ProjectDashboard() {
           </div>
         </div>
 
+        {/* NEW SECTION: Display Time & Materials details if applicable */}
+        {project?.projectType === "time_and_materials" && (
+          <div className="row mb-4">
+            <div className="col-12">
+              <div className="global-card">
+                <div className="card-header">
+                  <h5>
+                    <i className="bi bi-clock-history me-2"></i>Time &amp;
+                    Materials Details
+                  </h5>
+                </div>
+                <div className="card-body">
+                  <p>
+                    <strong>Day Rate:</strong> $
+                    {Number(project.dayRate)?.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </p>
+                  <p>
+                    <strong>Hourly Rate:</strong> $
+                    {Number(project.hourlyRate)?.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="row">
           <div className="col-md-6 mb-4">
             <ProjectDetailsCard
@@ -389,6 +447,8 @@ function ProjectDashboard() {
                 projectId={projectId}
                 fetchTransactions={refetch}
                 formatCurrency={formatCurrency}
+                projectType={project?.projectType || "fixed"}
+                hourlyRate={project?.hourlyRate}
               />
             </ErrorBoundary>
           </div>
