@@ -1,4 +1,5 @@
 // File: src/components/CustomerModal.jsx
+
 import React, { useEffect } from "react";
 import { Button } from "react-bootstrap";
 import GlobalModal from "./GlobalModal";

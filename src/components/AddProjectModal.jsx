@@ -17,6 +17,9 @@ const AddProjectModalSliding = ({ show, handleClose, editingProject }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 2;
 
+  // Error form state
+  const [error, setError] = useState("");
+
   // Project form state
   const [projectName, setProjectName] = useState("");
   const [location, setLocation] = useState("");
@@ -24,6 +27,7 @@ const AddProjectModalSliding = ({ show, handleClose, editingProject }) => {
   const [projectType, setProjectType] = useState("fixed");
   const [dayRate, setDayRate] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
+
   // Step Two fields
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [estimatedCompletionDate, setEstimatedCompletionDate] = useState("");
@@ -112,7 +116,7 @@ const AddProjectModalSliding = ({ show, handleClose, editingProject }) => {
     });
   };
 
-  // Fetch existing customers from Firestore when the modal is shown
+  // Fetch existing customers
   useEffect(() => {
     if (show) {
       const fetchCustomers = async () => {
@@ -131,7 +135,7 @@ const AddProjectModalSliding = ({ show, handleClose, editingProject }) => {
     }
   }, [show]);
 
-  // Pre-fill fields if editing an existing project
+  // Pre-fill fields if editing
   useEffect(() => {
     if (editingProject) {
       setProjectName(editingProject.name || "");
@@ -289,385 +293,363 @@ const AddProjectModalSliding = ({ show, handleClose, editingProject }) => {
     setCurrentStep(1);
   };
 
-  const renderStepContent = () => {
-    if (currentStep === 1) {
-      return (
-        <>
-          {/* Project Name Field */}
-          <div className="auth-form-group">
-            <label htmlFor="projectName">Project Name</label>
-            <div className="input-container">
-              <span className="input-icon">
-                {errors.projectName ? (
-                  <i className="bi bi-exclamation-triangle-fill"></i>
-                ) : (
-                  <i className="bi bi-folder"></i>
-                )}
-              </span>
-              <input
-                type="text"
-                id="projectName"
-                name="projectName"
-                className={`form-control ${errors.projectName ? "is-invalid" : ""}`}
-                placeholder="Enter project name"
-                value={projectName}
-                onChange={(e) => setProjectName(e.target.value)}
-                onBlur={(e) => validateField("projectName", e.target.value)}
-              />
-            </div>
-            {errors.projectName && (
-              <div className="invalid-feedback">{errors.projectName}</div>
-            )}
-          </div>
+  const renderLeftContent = () => (
+    <div className="modal-steps">
+      <h2>
+        Step {currentStep} of {totalSteps}
+      </h2>
+      <p>
+        {currentStep === 1
+          ? "Enter basic project details."
+          : "Enter additional project info."}
+      </p>
+      <div className="progress-indicator">
+        <div
+          className="progress-bar"
+          style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+        />
+      </div>
+    </div>
+  );
 
-          {/* Project Type Selection */}
-          <div className="auth-form-group">
-            <label htmlFor="projectType">Project Type</label>
-            <div className="input-container">
-              <span className="input-icon">
-                <i className="bi bi-kanban"></i>
-              </span>
-              <select
-                id="projectType"
-                name="projectType"
-                className="form-control"
-                value={projectType}
-                onChange={(e) => setProjectType(e.target.value)}
-              >
-                <option value="fixed">Fixed Budget</option>
-                <option value="time_and_materials">Time &amp; Materials</option>
-              </select>
-            </div>
-          </div>
+  const renderFormContent = () => (
+    <div className="modal-content-wrapper">
+      {error && (
+        <div className="alert alert-danger" role="alert">
+          {error}
+        </div>
+      )}
 
-          {/* Conditional Fields Based on Project Type */}
-          {projectType === "fixed" ? (
-            <div className="auth-form-group">
-              <label htmlFor="budget">Budget ($)</label>
+      <form className="modal-form">
+        {currentStep === 1 ? (
+          // Step 1: Basic Project Details
+          <>
+            <div className="form-group form-group-modal">
+              <label htmlFor="projectName">Project Name</label>
               <div className="input-container">
-                <span className="input-icon">$</span>
+                <span className="input-icon">
+                  <i
+                    className={`bi ${errors.projectName ? "bi-exclamation-triangle-fill" : "bi-folder"}`}
+                  ></i>
+                </span>
                 <input
                   type="text"
-                  id="budget"
-                  name="budget"
-                  className={`form-control ${errors.budget ? "is-invalid" : ""}`}
-                  placeholder="Enter budget"
-                  value={budget}
-                  onChange={(e) => setBudget(e.target.value)}
-                  onFocus={(e) => setBudget(e.target.value.replace(/,/g, ""))}
-                  onBlur={(e) => {
-                    const formatted = formatCurrencyValue(e.target.value);
-                    setBudget(formatted);
-                    validateField("budget", e.target.value);
+                  id="projectName"
+                  className={`form-control ${errors.projectName ? "is-invalid" : ""}`}
+                  placeholder="Enter project name"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  onBlur={(e) => validateField("projectName", e.target.value)}
+                />
+                {errors.projectName && (
+                  <div className="invalid-feedback">{errors.projectName}</div>
+                )}
+              </div>
+            </div>
+
+            <div className="form-group form-group-modal">
+              <label htmlFor="projectType">Project Type</label>
+              <div className="input-container">
+                <span className="input-icon">
+                  <i className="bi bi-kanban"></i>
+                </span>
+                <select
+                  id="projectType"
+                  className="form-control"
+                  value={projectType}
+                  onChange={(e) => setProjectType(e.target.value)}
+                >
+                  <option value="fixed">Fixed Budget</option>
+                  <option value="time_and_materials">
+                    Time &amp; Materials
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            {projectType === "fixed" ? (
+              <div className="form-group form-group-modal">
+                <label htmlFor="budget">Budget ($)</label>
+                <div className="input-container input-currency">
+                  <span className="input-icon">
+                    <i className="bi bi-currency-dollar"></i>
+                  </span>
+                  <input
+                    type="text"
+                    id="budget"
+                    className={`form-control ${errors.budget ? "is-invalid" : ""}`}
+                    placeholder="Enter budget"
+                    value={budget}
+                    onChange={(e) => setBudget(e.target.value)}
+                    onFocus={(e) => setBudget(e.target.value.replace(/,/g, ""))}
+                    onBlur={(e) => {
+                      const formatted = formatCurrencyValue(e.target.value);
+                      setBudget(formatted);
+                      validateField("budget", e.target.value);
+                    }}
+                  />
+                  {errors.budget && (
+                    <div className="invalid-feedback">{errors.budget}</div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="form-row">
+                <div className="form-group form-group-modal">
+                  <label htmlFor="dayRate">Day Rate ($)</label>
+                  <div className="input-container input-currency">
+                    <span className="input-icon">
+                      <i className="bi bi-currency-dollar"></i>
+                    </span>
+                    <input
+                      type="text"
+                      id="dayRate"
+                      className={`form-control ${errors.dayRate ? "is-invalid" : ""}`}
+                      placeholder="Enter day rate"
+                      value={dayRate}
+                      onChange={(e) => setDayRate(e.target.value)}
+                      onFocus={(e) =>
+                        setDayRate(e.target.value.replace(/,/g, ""))
+                      }
+                      onBlur={(e) => {
+                        const formatted = formatCurrencyValue(e.target.value);
+                        setDayRate(formatted);
+                        validateField("dayRate", e.target.value);
+                      }}
+                    />
+                    {errors.dayRate && (
+                      <div className="invalid-feedback">{errors.dayRate}</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-group form-group-modal">
+                  <label htmlFor="hourlyRate">Hourly Rate ($)</label>
+                  <div className="input-container input-currency">
+                    <span className="input-icon">
+                      <i className="bi bi-currency-dollar"></i>
+                    </span>
+                    <input
+                      type="text"
+                      id="hourlyRate"
+                      className={`form-control ${errors.hourlyRate ? "is-invalid" : ""}`}
+                      placeholder="Enter hourly rate"
+                      value={hourlyRate}
+                      onChange={(e) => setHourlyRate(e.target.value)}
+                      onFocus={(e) =>
+                        setHourlyRate(e.target.value.replace(/,/g, ""))
+                      }
+                      onBlur={(e) => {
+                        const formatted = formatCurrencyValue(e.target.value);
+                        setHourlyRate(formatted);
+                        validateField("hourlyRate", e.target.value);
+                      }}
+                    />
+                    {errors.hourlyRate && (
+                      <div className="invalid-feedback">
+                        {errors.hourlyRate}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="form-group form-group-modal">
+              <label htmlFor="location">Location</label>
+              <div className="input-container">
+                <span className="input-icon">
+                  <i
+                    className={`bi ${errors.location ? "bi-exclamation-triangle-fill" : "bi-geo-alt"}`}
+                  ></i>
+                </span>
+                <input
+                  type="text"
+                  id="location"
+                  className={`form-control ${errors.location ? "is-invalid" : ""}`}
+                  placeholder="Enter location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  onBlur={(e) => validateField("location", e.target.value)}
+                />
+                {errors.location && (
+                  <div className="invalid-feedback">{errors.location}</div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          // Step 2: Additional Project Info
+          <>
+            <div className="form-group form-group-modal">
+              <label htmlFor="customer">Customer</label>
+              <div className="input-container">
+                <span className="input-icon">
+                  <i className="bi bi-person"></i>
+                </span>
+                <select
+                  id="customer"
+                  className="form-control"
+                  value={selectedCustomer}
+                  onChange={(e) => {
+                    if (e.target.value === "add-new") {
+                      setShowCustomerCard(true);
+                      setSelectedCustomer("");
+                    } else {
+                      setSelectedCustomer(e.target.value);
+                    }
                   }}
+                >
+                  <option value="">Select a customer</option>
+                  {customers.map((cust) => (
+                    <option key={cust.id} value={cust.id}>
+                      {cust.firstName} {cust.lastName}
+                    </option>
+                  ))}
+                  <option value="add-new">+ Add New Customer</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group form-group-modal">
+              <label htmlFor="estimatedCompletionDate">
+                Estimated Completion Date
+              </label>
+              <div className="input-container">
+                <span className="input-icon">
+                  <i className="bi bi-calendar"></i>
+                </span>
+                <input
+                  type="date"
+                  id="estimatedCompletionDate"
+                  className="form-control"
+                  value={
+                    estimatedCompletionDate
+                      ? estimatedCompletionDate.split("T")[0]
+                      : ""
+                  }
+                  onChange={(e) => setEstimatedCompletionDate(e.target.value)}
                 />
               </div>
-              {errors.budget && (
-                <div className="invalid-feedback">{errors.budget}</div>
-              )}
             </div>
-          ) : (
-            <>
-              <div className="auth-form-group">
-                <label htmlFor="dayRate">Day Rate ($)</label>
-                <div className="input-container">
-                  <span className="input-icon">$</span>
-                  <input
-                    type="text"
-                    id="dayRate"
-                    name="dayRate"
-                    className={`form-control ${errors.dayRate ? "is-invalid" : ""}`}
-                    placeholder="Enter day rate"
-                    value={dayRate}
-                    onChange={(e) => setDayRate(e.target.value)}
-                    onFocus={(e) =>
-                      setDayRate(e.target.value.replace(/,/g, ""))
-                    }
-                    onBlur={(e) => {
-                      const formatted = formatCurrencyValue(e.target.value);
-                      setDayRate(formatted);
-                      validateField("dayRate", e.target.value);
-                    }}
-                  />
-                </div>
-                {errors.dayRate && (
-                  <div className="invalid-feedback">{errors.dayRate}</div>
-                )}
-              </div>
-              <div className="auth-form-group">
-                <label htmlFor="hourlyRate">Hourly Rate ($)</label>
-                <div className="input-container">
-                  <span className="input-icon">$</span>
-                  <input
-                    type="text"
-                    id="hourlyRate"
-                    name="hourlyRate"
-                    className={`form-control ${errors.hourlyRate ? "is-invalid" : ""}`}
-                    placeholder="Enter hourly rate"
-                    value={hourlyRate}
-                    onChange={(e) => setHourlyRate(e.target.value)}
-                    onFocus={(e) =>
-                      setHourlyRate(e.target.value.replace(/,/g, ""))
-                    }
-                    onBlur={(e) => {
-                      const formatted = formatCurrencyValue(e.target.value);
-                      setHourlyRate(formatted);
-                      validateField("hourlyRate", e.target.value);
-                    }}
-                  />
-                </div>
-                {errors.hourlyRate && (
-                  <div className="invalid-feedback">{errors.hourlyRate}</div>
-                )}
-              </div>
-            </>
-          )}
 
-          {/* Location Field */}
-          <div className="auth-form-group">
-            <label htmlFor="location">Location</label>
-            <div className="input-container">
-              <span className="input-icon">
-                {errors.location ? (
-                  <i className="bi bi-exclamation-triangle-fill"></i>
-                ) : (
-                  <i className="bi bi-geo-alt"></i>
-                )}
-              </span>
-              <input
-                type="text"
-                id="location"
-                name="location"
-                className={`form-control ${errors.location ? "is-invalid" : ""}`}
-                placeholder="Enter location"
-                value={location}
-                onChange={(e) => {
-                  setLocation(e.target.value);
-                  if (e.target.value.trim()) {
-                    setErrors((prev) => ({ ...prev, location: "" }));
+            <div className="form-group form-group-modal">
+              <label htmlFor="status">Status</label>
+              <div className="input-container">
+                <span className="input-icon">
+                  <i className="bi bi-info-circle"></i>
+                </span>
+                <select
+                  id="status"
+                  className="form-control"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  disabled={
+                    !editingProject ||
+                    ["completed", "cancelled"].includes(status)
                   }
-                }}
-                onBlur={(e) => validateField("location", e.target.value)}
-              />
+                >
+                  {[
+                    "new",
+                    "in-progress",
+                    "completed",
+                    "on-hold",
+                    "cancelled",
+                  ].map((statusKey) => (
+                    <option key={statusKey} value={statusKey}>
+                      {statusKey
+                        .replace("-", " ")
+                        .replace(/\b\w/g, (l) => l.toUpperCase())}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            {errors.location && (
-              <div className="invalid-feedback">{errors.location}</div>
-            )}
-          </div>
-        </>
-      );
-    } else if (currentStep === 2) {
-      return (
-        <>
-          {/* Customer Dropdown Field */}
-          <div className="auth-form-group">
-            <label htmlFor="customer">Customer</label>
-            <div className="input-container">
-              <span className="input-icon">
-                <i className="bi bi-person"></i>
-              </span>
-              <select
-                id="customer"
-                name="customer"
-                className="form-control"
-                value={selectedCustomer}
-                onChange={(e) => {
-                  if (e.target.value === "add-new") {
-                    setShowCustomerCard(true);
-                    setSelectedCustomer("");
-                  } else {
-                    setSelectedCustomer(e.target.value);
-                  }
-                }}
-              >
-                <option value="">Select a customer</option>
-                {customers.map((cust) => (
-                  <option key={cust.id} value={cust.id}>
-                    {cust.firstName} {cust.lastName}
-                  </option>
-                ))}
-                <option value="add-new">+ Add New Customer</option>
-              </select>
-            </div>
-          </div>
 
-          {/* Estimated Completion Date Field */}
-          <div className="auth-form-group">
-            <label htmlFor="estimatedCompletionDate">
-              Estimated Completion Date
-            </label>
-            <div className="input-container">
-              <span className="input-icon">
-                <i className="bi bi-calendar"></i>
-              </span>
-              <input
-                type="date"
-                id="estimatedCompletionDate"
-                name="estimatedCompletionDate"
-                className="form-control"
-                value={
-                  estimatedCompletionDate
-                    ? estimatedCompletionDate.split("T")[0]
-                    : ""
-                }
-                onChange={(e) => setEstimatedCompletionDate(e.target.value)}
-              />
+            <div className="form-group form-group-modal">
+              <label htmlFor="statusNote">Status Note</label>
+              <div className="input-container">
+                <span className="input-icon">
+                  <i className="bi bi-pencil"></i>
+                </span>
+                <textarea
+                  id="statusNote"
+                  className="form-control"
+                  placeholder="Enter a status note (if applicable)"
+                  rows="2"
+                  value={statusNote}
+                  onChange={(e) => setStatusNote(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
+          </>
+        )}
+      </form>
 
-          {/* Status Field */}
-          <div className="auth-form-group">
-            <label htmlFor="status">Status</label>
-            <div className="input-container">
-              <span className="input-icon">
-                <i className="bi bi-info-circle"></i>
-              </span>
-              <select
-                id="status"
-                name="status"
-                className="form-control"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                disabled={
-                  !editingProject ||
-                  ["completed", "cancelled"].includes(status) ||
-                  (status === "new" && !editingProject?.hasDeposit) ||
-                  (!editingProject && status !== "new")
-                }
-              >
-                {[
-                  "new",
-                  "in-progress",
-                  "completed",
-                  "on-hold",
-                  "cancelled",
-                ].map((statusKey) => (
-                  <option key={statusKey} value={statusKey}>
-                    {statusKey
-                      .replace("-", " ")
-                      .replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+      <div className="modal-footer">
+        <Button variant="secondary" onClick={handleClose} className="btn-modal">
+          Cancel
+        </Button>
 
-          {/* Status Note Field */}
-          <div className="auth-form-group">
-            <label htmlFor="statusNote">Status Note</label>
-            <div className="input-container">
-              <span className="input-icon">
-                <i className="bi bi-pencil"></i>
-              </span>
-              <textarea
-                id="statusNote"
-                name="statusNote"
-                className="form-control"
-                placeholder="Enter a status note (if applicable)"
-                rows="2"
-                value={statusNote}
-                onChange={(e) => setStatusNote(e.target.value)}
-              ></textarea>
-            </div>
-          </div>
-        </>
-      );
-    }
-  };
+        {currentStep > 1 && (
+          <Button
+            variant="secondary"
+            onClick={handleBack}
+            className="btn-modal"
+          >
+            Back
+          </Button>
+        )}
+
+        {currentStep < totalSteps ? (
+          <Button variant="primary" onClick={handleNext} className="btn-modal">
+            Next
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            onClick={handleFinalSubmit}
+            className={`btn-modal ${loading ? "btn-loading" : ""}`}
+            disabled={loading}
+          >
+            {loading
+              ? "Saving..."
+              : editingProject
+                ? "Save Changes"
+                : "Create Project"}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <GlobalModal
       show={show}
       onClose={handleClose}
       title={editingProject ? "Edit Project" : "Add New Project"}
-      leftContent={
-        <div className="info-content">
-          <h2>
-            Step {currentStep} of {totalSteps}
-          </h2>
-          <p>
-            {currentStep === 1
-              ? "Enter basic project details."
-              : "Enter additional project info."}
-          </p>
-          <div className="progress-indicator">
-            <div
-              className="progress-bar"
-              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-            ></div>
-          </div>
-        </div>
-      }
+      leftContent={renderLeftContent()}
       rightContent={
-        // Wrap rightContent in a container with position: relative
         <div style={{ position: "relative" }}>
-          {renderStepContent()}
-          <div className="modal-footer">
-            <Button
-              variant="secondary"
-              type="button"
-              className="global-modal-action-btn"
-              onClick={handleClose}
-            >
-              Cancel
-            </Button>
-            {currentStep > 1 && (
-              <Button
-                variant="secondary"
-                type="button"
-                className="global-modal-action-btn"
-                onClick={handleBack}
-              >
-                Back
-              </Button>
-            )}
-            {currentStep < totalSteps ? (
-              <Button
-                variant="primary"
-                type="button"
-                className="global-modal-action-btn"
-                onClick={handleNext}
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                type="button"
-                className="global-modal-action-btn"
-                onClick={handleFinalSubmit}
-                disabled={loading}
-              >
-                {loading
-                  ? "Saving..."
-                  : editingProject
-                    ? "Save Changes"
-                    : "Create Project"}
-              </Button>
-            )}
-          </div>
-          {/* Render the slide-in CustomerCard inside the modal container */}
+          {renderFormContent()}
           {showCustomerCard && (
             <CustomerCard
               onClose={() => setShowCustomerCard(false)}
-              onSave={(newCustomer) => {
-                (async () => {
-                  try {
-                    const docRef = await addDoc(
-                      collection(db, "customers"),
-                      newCustomer
-                    );
-                    const savedCustomer = { ...newCustomer, id: docRef.id };
-                    // Immediately update the customers list and select the new customer
-                    setCustomers((prev) => [...prev, savedCustomer]);
-                    setSelectedCustomer(docRef.id);
-                    setShowCustomerCard(false);
-                    toastSuccess("New customer added successfully!");
-                  } catch (error) {
-                    console.error("Error adding new customer:", error);
-                    toastError("Failed to add new customer.");
-                  }
-                })();
+              onSave={async (newCustomer) => {
+                try {
+                  const docRef = await addDoc(
+                    collection(db, "customers"),
+                    newCustomer
+                  );
+                  const savedCustomer = { ...newCustomer, id: docRef.id };
+                  setCustomers((prev) => [...prev, savedCustomer]);
+                  setSelectedCustomer(docRef.id);
+                  setShowCustomerCard(false);
+                  toastSuccess("New customer added successfully!");
+                } catch (error) {
+                  console.error("Error adding new customer:", error);
+                  toastError("Failed to add new customer.");
+                }
               }}
             />
           )}

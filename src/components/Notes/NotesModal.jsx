@@ -1,4 +1,5 @@
 // File: src/components/Notes/NotesModal.jsx
+
 import React, { useState, useEffect, useRef } from "react";
 import GlobalModal from "../GlobalModal";
 import FreeformNote from "./FreeformNote";

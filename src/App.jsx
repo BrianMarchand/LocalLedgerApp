@@ -26,6 +26,8 @@ import "./styles/resets.css"; // CSS Reset (Base Layer)
 import "./styles/global.css"; // Global Styles (Next Layer)
 import "./styles/theme.css"; // Theme Styles (Overrides + Variables)
 import "./styles/utilities.css"; // Utilities (Reusable Classes)
+import "./styles/components/modalStyles.css"; // Global Modal Classes
+import "./styles/components/formStyles.css"; // Global Form Classes
 
 // ================================
 // 3. Context Providers

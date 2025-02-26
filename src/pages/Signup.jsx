@@ -1,3 +1,5 @@
+// File: src/pages/Signup.jsx
+
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import AuthLayout from "../pages/AuthLayout"; // New layout component

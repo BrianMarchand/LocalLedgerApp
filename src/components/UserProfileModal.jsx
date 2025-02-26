@@ -1,3 +1,5 @@
+// File: src/components/UserProfileModal.jsx
+
 import React, { useState, useEffect } from "react";
 import GlobalModal from "./GlobalModal";
 import { useAuth } from "../context/AuthContext";
