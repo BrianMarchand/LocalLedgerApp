@@ -7,28 +7,26 @@ body {
   height: 100%;
 }
 
-/* Main Parent Container */
 .auth-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
   background: #15171a;
-  width: 100vw;
-  height: 100vh;
-  padding: 10px; /* Added padding so the inner card is visible */
+  width: 100%;
+  min-height: 100vh; /* Use min-height instead of height */
+  padding: 10px;
 }
 
-/* Two‑column container styled as a card */
+/* Two-column container styled as a card */
 .auth-container {
   display: flex;
   width: 90%;
-  height: 90%;
+  min-height: 90vh; /* Use min-height instead of height */
   overflow: hidden;
-  /* background-image: url("../public/images/bg-pale-blue.jpg");*/
   box-shadow:
     0 5px 10px rgba(0, 0, 0, 0.08),
     0 15px 40px rgba(0, 0, 0, 0.3);
-  border-radius: 10px; /* Rounded corners */
+  border-radius: 10px;
 }
 
 /* Left Side: Gradient Background */
@@ -322,11 +320,16 @@ body {
 
 /* Mobile & Tablet Breakpoints */
 @media (max-width: 768px) {
+  html,
+  body {
+    height: 100%; /* explicitly set for mobile */
+    overflow: hidden; /* prevent unwanted scroll */
+  }
   .auth-wrapper {
-    height: auto;
     align-items: flex-start;
     overflow-y: auto;
     padding: 0 !important;
+    min-height: 100vh; /* ensure wrapper takes full viewport height */
   }
 
   /* Stack the two columns vertically */
@@ -334,6 +337,8 @@ body {
     flex-direction: column;
     padding: 0;
     border-radius: 0;
+    width: 100%;
+    min-height: 100vh; /* force container to use full height on mobile */
   }
   .auth-gradient,
   .auth-right {
@@ -345,6 +350,8 @@ body {
     padding: 1rem;
     padding-top: 35px;
     text-align: center;
+    align-items: center;
+    justify-content: center;
     /* Optionally reduce height for smaller screens */
     min-height: 100px;
   }
